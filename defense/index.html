@@ -54,7 +54,7 @@ h1 { margin: 16px 0 8px; font-size: 1.6rem; color: #c084fc; text-shadow: 0 0 20p
 
   <button id="speed-btn" onclick="cycleSpeed()" style="background:linear-gradient(135deg,#d97706,#fbbf24);min-width:60px">⚡ 1x</button>
 </div>
-<div style="color:#555;font-size:0.78rem;margin-top:6px;">좌클릭: 배치 | 우클릭: 업그레이드(Lv3) | 드래그: 타워 이동 | 경로 위 배치 불가</div>
+<div style="color:#555;font-size:0.78rem;margin-top:6px;">빈 칸 클릭: 배치 | 타워 클릭: 업그레이드(Lv3) | 타워 드래그: 이동 | 판매모드 후 클릭: 판매</div>
 
 <script>
 const CELL = 40;
@@ -79,14 +79,16 @@ const PATH = [
 const pathSet = new Set(PATH.map(([c,r])=>`${c},${r}`));
 
 // 게임 상태
-let gold = 150, lives = 20, wave = 0, kills = 0;
+let gold = 100, lives = 15, wave = 0, kills = 0;
 let towers = [], enemies = [], bullets = [], particles = [];
 let selectedType = 'arrow';
 let isSelling = false;
 let isMoving = false;
 let movingTower = null;
-let dragging = null;   // 드래그 중인 타워
-let dragX = 0, dragY = 0; // 마우스 현재 위치
+let dragging = null;
+let dragX = 0, dragY = 0;
+let mouseDownTower = null;
+let mouseDownTime = 0;
 let waveRunning = false;
 let autoStartTimer = 0;
 let gameSpeed = 1; // 1x, 2x, 3x
@@ -164,34 +166,42 @@ canvas.addEventListener('mousedown', e => {
   const { col, row, x, y } = getCell(e);
   const t = towers.find(t => t.col === col && t.row === row);
   if (t && !isSelling) {
-    dragging = t;
+    mouseDownTower = t;
+    mouseDownTime = Date.now();
     dragX = x; dragY = y;
     e.preventDefault();
   }
 });
 
 canvas.addEventListener('mousemove', e => {
-  if (!dragging) return;
   const rect = canvas.getBoundingClientRect();
-  dragX = e.clientX - rect.left;
-  dragY = e.clientY - rect.top;
+  const nx = e.clientX - rect.left, ny = e.clientY - rect.top;
+  if (mouseDownTower && !dragging) {
+    // 200ms 이상 or 10px 이상 움직이면 드래그 시작
+    if (Date.now() - mouseDownTime > 200 || Math.hypot(nx - dragX, ny - dragY) > 10) {
+      dragging = mouseDownTower;
+    }
+  }
+  if (dragging) { dragX = nx; dragY = ny; }
 });
 
 canvas.addEventListener('mouseup', e => {
-  if (!dragging) return;
-  const { col, row } = getCell(e);
-  const occupied = towers.some(t => t !== dragging && t.col === col && t.row === row);
-  if (!pathSet.has(`${col},${row}`) && !occupied && col >= 0 && col < COLS && row >= 0 && row < ROWS) {
-    dragging.col = col;
-    dragging.row = row;
-    showMsg('✅ 이동 완료!');
-  } else {
-    showMsg('⚠️ 그 위치엔 놓을 수 없어!');
+  if (dragging) {
+    const { col, row } = getCell(e);
+    const occupied = towers.some(t => t !== dragging && t.col === col && t.row === row);
+    if (!pathSet.has(`${col},${row}`) && !occupied && col >= 0 && col < COLS && row >= 0 && row < ROWS) {
+      dragging.col = col; dragging.row = row;
+      showMsg('✅ 이동 완료!');
+    } else showMsg('⚠️ 그 위치엔 놓을 수 없어!');
+    dragging = null; mouseDownTower = null;
+  } else if (mouseDownTower && !isSelling) {
+    // 짧게 클릭 = 업그레이드
+    upgradeMode(mouseDownTower.col, mouseDownTower.row);
+    mouseDownTower = null;
   }
-  dragging = null;
 });
 
-canvas.addEventListener('mouseleave', () => { dragging = null; });
+canvas.addEventListener('mouseleave', () => { dragging = null; mouseDownTower = null; });
 
 canvas.addEventListener('contextmenu', e => {
   e.preventDefault();
@@ -235,7 +245,7 @@ function startWave() {
   if (waveRunning || gameOver) return;
   wave++;
   spawnCount = 0;
-  spawnTotal = 8 + wave * 3;
+  spawnTotal = 10 + wave * 4;
   spawnTimer = 0;
   waveRunning = true;
   document.getElementById('start-btn').disabled = true;
@@ -243,17 +253,18 @@ function startWave() {
 }
 
 function spawnEnemy() {
-  const hp = Math.floor((40 + wave * 20) * (Math.random() * 0.4 + 0.8));
-  const speed = 0.8 + wave * 0.05;
-  const boss = spawnCount === spawnTotal - 1 && wave % 5 === 0;
+  const hp = Math.floor((60 + wave * 35) * (Math.random() * 0.3 + 0.85));
+  const speed = 1.1 + wave * 0.08;
+  const boss = spawnCount === spawnTotal - 1 && wave % 3 === 0; // 3웨이브마다 보스
+  const armored = !boss && wave > 4 && Math.random() < 0.25; // 5웨이브 이후 강화 적
   enemies.push({
     pathIdx: 0,
     x: pathPixel(0).x, y: pathPixel(0).y,
-    hp, maxHp: boss ? hp * 3 : hp,
-    speed: boss ? speed * 0.6 : speed,
-    slowTimer: 0,
-    boss, size: boss ? 18 : 10,
-    color: boss ? '#ef4444' : `hsl(${Math.random()*60+0},70%,60%)`
+    hp, maxHp: boss ? hp * 4 : armored ? hp * 1.5 : hp,
+    speed: boss ? speed * 0.7 : speed,
+    slowTimer: 0, armor: armored ? 0.5 : 0,
+    boss, armored, size: boss ? 20 : armored ? 13 : 10,
+    color: boss ? '#ef4444' : armored ? '#94a3b8' : `hsl(${Math.random()*60+0},70%,60%)`
   });
 }
 
@@ -328,18 +339,19 @@ function updateBullets() {
     const d = Math.hypot(dx, dy);
     if (d < b.speed + 2) {
       // 히트
+      const applyDmg = (enemy, dmg) => {
+        const actual = enemy.armor ? dmg * (1 - enemy.armor) : dmg;
+        enemy.hp -= actual;
+        if (enemy.hp <= 0) killEnemy(enemy);
+      };
       if (b.def.splash) {
         for (let e of enemies) {
-          if (dist(e, b.tx) < b.def.splash * CELL) {
-            e.hp -= b.def.dmg;
-            if (e.hp <= 0) { killEnemy(e); }
-          }
+          if (dist(e, b.tx) < b.def.splash * CELL) applyDmg(e, b.def.dmg);
         }
         spawnParticles(b.tx.x, b.tx.y, '#f97316', 12);
       } else {
-        b.tx.hp -= b.def.dmg;
-        if (b.def.slow) b.tx.slowTimer = 90;
-        if (b.tx.hp <= 0) { killEnemy(b.tx); }
+        applyDmg(b.tx, b.def.dmg);
+        if (b.def.slow && b.tx) b.tx.slowTimer = 90;
         spawnParticles(b.tx.x, b.tx.y, b.def.bullet, 5);
       }
       b.dead = true;
@@ -354,7 +366,7 @@ function updateBullets() {
 function killEnemy(e) {
   if (e.dead) return;
   e.dead = true;
-  const reward = e.boss ? 30 + wave * 5 : 8 + wave;
+  const reward = e.boss ? 20 + wave * 3 : e.armored ? 6 + wave : 4 + Math.floor(wave * 0.5);
   gold += reward;
   kills++;
   spawnParticles(e.x, e.y, '#fbbf24', 8);
@@ -459,6 +471,10 @@ function draw() {
       ctx.font = '14px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('👹', e.x, e.y + 5);
+    } else if (e.armored) {
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🛡', e.x, e.y + 4);
     }
   }
 
@@ -538,7 +554,7 @@ function tick() {
   // 자동 웨이브
   if (waveRunning && enemies.length === 0 && spawnCount >= spawnTotal) {
     waveRunning = false;
-    const bonus = wave * 20;
+    const bonus = wave * 10;
     gold += bonus;
     autoStartTimer = 180;
     showMsg(`🎉 웨이브 ${wave} 클리어! +${bonus}G | 3초 후 자동 시작...`);
