@@ -37,6 +37,13 @@ canvas{display:block;}
 .upg-card.is-upgrade{border-color:#f97316;}
 .upg-card.is-upgrade:hover{border-color:#fb923c;background:#231508;}
 #item-hud{position:fixed;bottom:10px;left:10px;z-index:10;display:flex;flex-direction:column;gap:4px;pointer-events:none;max-width:160px;}
+#toast-container{position:fixed;bottom:80px;right:10px;z-index:50;display:flex;flex-direction:column;gap:6px;align-items:flex-end;pointer-events:none;}
+.toast{display:flex;align-items:center;gap:8px;background:rgba(13,10,26,0.95);border:1px solid #3d2a5e;border-radius:10px;padding:8px 14px;font-size:0.82rem;color:#e2d4ff;max-width:220px;animation:toastIn 0.3s ease;}
+.toast.toast-item{border-color:#fde047;}
+.toast .t-icon{font-size:1.3rem;}
+.toast .t-body .t-name{font-weight:700;color:#fde047;}
+.toast .t-body .t-desc{font-size:0.7rem;color:#9f8ab8;}
+@keyframes toastIn{from{opacity:0;transform:translateX(30px);}to{opacity:1;transform:translateX(0);}}
 .item-chip{display:flex;align-items:center;gap:5px;background:rgba(13,10,26,0.88);border:1px solid #3d2a5e;border-radius:8px;padding:3px 8px;font-size:0.72rem;color:#e2d4ff;-webkit-backdrop-filter:blur(6px);}
 .item-chip .ic-icon{font-size:1rem;}
 .item-chip .ic-timer{color:#c084fc;font-size:0.65rem;margin-left:auto;}
@@ -90,6 +97,7 @@ canvas{display:block;}
 </head>
 <body>
 <div id="item-hud"></div>
+<div id="toast-container"></div>
 <div class="wlv-hud" id="wlv-hud"></div>
 <div id="ver-badge">v1.2 / bp-1.0</div>
 <div id="tut-btn" onclick="document.getElementById('tut-modal').classList.add('open')">❓ 도움말</div>
@@ -279,6 +287,17 @@ const ITEM_DEFS=[
   {id:'angel_wing', icon:'👼', name:'천사의 날개', desc:'최대 HP +100, 재생 +2',rarity:0.04, apply:p=>{p.maxHp+=100;p.hp=Math.min(p.hp+100,p.maxHp);p.regen=(p.regen||0)+2;}},
   {id:'dragon_orb', icon:'🐉', name:'용의 구슬',  desc:'공격력 +40%, HP+80',rarity:0.02, apply:p=>{p.dmgMult*=1.4;p.maxHp+=80;p.hp=Math.min(p.hp+80,p.maxHp);}},
 ];
+function showToast(icon,name,desc,color){
+  const tc=document.getElementById('toast-container');
+  if(!tc)return;
+  const t=document.createElement('div');
+  t.className='toast toast-item';
+  if(color)t.style.borderColor=color;
+  t.innerHTML='<span class="t-icon">'+icon+'</span><div class="t-body"><div class="t-name">'+name+'</div><div class="t-desc">'+desc+'</div></div>';
+  tc.appendChild(t);
+  setTimeout(()=>{t.style.transition='opacity 0.4s';t.style.opacity='0';setTimeout(()=>t.remove(),400);},2500);
+}
+
 function spawnItem(x,y){
   const r=Math.random();
   let acc=0;
@@ -507,7 +526,7 @@ function update(){
     if(Math.hypot(dx,dy)<player.r+it.r){
       it.collected=true;
       it.apply(player);
-      activeItems.push({icon:it.icon,name:it.name,desc:it.desc});
+      activeItems.push({icon:it.icon,name:it.name,desc:it.desc,id:it.id});
       spawnParticles(it.x,it.y,'#fde047',10);
     }
   }
@@ -542,6 +561,17 @@ function update(){
   }
   const mm=Math.floor(gameTime/60),ss=gameTime%60;
   document.getElementById('time-txt').textContent='⏱ '+mm+':'+String(ss).padStart(2,'0');
+  // 무기 레벨 HUD
+  const wlvHud=document.getElementById('wlv-hud');
+  if(wlvHud){
+    wlvHud.innerHTML=weapons.map(w=>{
+      const lv=w.wlevel||1;
+      const maxed=lv>=8;
+      const pips=Array.from({length:8},(_,i)=>'<div class="wlv-pip '+(i<lv?(maxed?'maxed':'filled'):'')+'"></div>').join('');
+      const evoSymbol=w.evolved?'✨':'';
+      return '<div class="wlv-row">'+w.name.split(' ').slice(0,2).join(' ')+evoSymbol+'<div class="wlv-pips">'+pips+'</div></div>';
+    }).join('');
+  }
 }
 
 function spawnChest(){
@@ -563,11 +593,13 @@ function openChest(c){
     const xpAmt=Math.round(xpNeeded*0.4+50);
     gainXp(xpAmt);
     spawnParticles(c.x,c.y,'#c084fc',10);
+    showToast('⭐','경험치 획득','XP +'+xpAmt,'#c084fc');
   } else if(roll<0.80){
     // 임시 공격력 2배 (20%) - 15초
     player._dmgBoostTimer=(player._dmgBoostTimer||0)+900;
     if(!player._dmgBoost){player._dmgBoost=true;player.dmgMult*=2;}
     spawnParticles(c.x,c.y,'#ef4444',12);
+    showToast('💥','공격 2배 버프','15초 동안 공격력 2배!','#ef4444');
   } else if(roll<0.92){
     // 자석 범위 일시 확대 (12%) - 영구 소폭
     player.magnetR+=25;
@@ -891,8 +923,15 @@ function applyUpgrade(u){
 
 // ── 그리기 ──
 function draw(){
-  ctx.fillStyle='#0a0514';ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='#1a1030';ctx.lineWidth=1;
+  // Map area progression based on time
+  let mapBg='#0a0514',mapGrid='#1a1030',mapName='';
+  if(gameTime>=480){mapBg='#0a0019';mapGrid='#1a0030';mapName='🌑 심연';}
+  else if(gameTime>=300){mapBg='#190a00';mapGrid='#2a1400';mapName='🔥 화산';}
+  else if(gameTime>=120){mapBg='#0a0014';mapGrid='#1a0020';mapName='⚰️ 던전';}
+  else{mapName='🌲 초원';}
+  ctx.fillStyle=mapBg;ctx.fillRect(0,0,W,H);
+  if(mapName&&running){ctx.save();ctx.font='11px sans-serif';ctx.fillStyle='rgba(200,180,255,0.35)';ctx.textAlign='right';ctx.fillText(mapName,W-8,H-8);ctx.restore();}
+  ctx.strokeStyle=mapGrid;ctx.lineWidth=1;
   const ox=(player.x%80+80)%80,oy=(player.y%80+80)%80;
   for(let x=-ox;x<W;x+=80){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
   for(let y=-oy;y<H;y+=80){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
@@ -1016,7 +1055,7 @@ function draw(){
   ctx.fillStyle='#2d1f4e';ctx.fill();
   ctx.strokeStyle='#c084fc';ctx.lineWidth=3;ctx.stroke();
   ctx.font='20px sans-serif';ctx.textAlign='center';
-  ctx.fillText('🧙',player.x,player.y+7);
+  ctx.fillText(player.charEmoji||'🧙',player.x,player.y+7);
   ctx.globalAlpha=1;
 
   // 파티클
