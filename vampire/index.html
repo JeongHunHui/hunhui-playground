@@ -127,7 +127,7 @@ resize();window.addEventListener('resize',resize);
 
 let player,enemies,bullets,xpOrbs,particles,weapons;
 let kills,gameTime,level,xp,xpNeeded,running,paused,diffMult=1,diffName='보통';
-let healthItems=[];let chests=[];let chestSpawnTimer=0;let activeItems=[];
+let healthItems=[];let chests=[];let chestSpawnTimer=0;let activeItems=[];let droppedItems=[];
 let keys={};let touch={dx:0,dy:0};let animId;
 let frameCount=0,lastSecond=Date.now();
 
@@ -203,6 +203,28 @@ const BOSS_TYPES=[
   {minT:240,em:'🐲',color:'#5b21b6',name:'고대 드래곤',hpM:45,spdM:0.9, rM:3.0,xpM:120,dmgM:4.5},
 ];
 
+// ── 아이템 정의 ──
+const ITEM_DEFS=[
+  {id:'ring_dmg',   icon:'💍', name:'공격 반지',  desc:'공격력 +20%', rarity:0.30, apply:p=>{p.dmgMult*=1.2;}},
+  {id:'wind_boots', icon:'🌪️', name:'질풍 부츠',  desc:'이동속도 +25%',rarity:0.25, apply:p=>{p.spd*=1.25;}},
+  {id:'ruby',       icon:'🔴', name:'루비 아뮬렛',desc:'최대 HP +50',  rarity:0.25, apply:p=>{p.maxHp+=50;p.hp=Math.min(p.hp+50,p.maxHp);}},
+  {id:'lifesteal',  icon:'🩸', name:'흡혈 반지',  desc:'킬 시 HP+5',  rarity:0.15, apply:p=>{p.lifesteal=(p.lifesteal||0)+5;}},
+  {id:'magnet_gem', icon:'💎', name:'자석 보석',  desc:'XP 범위 +80', rarity:0.15, apply:p=>{p.magnetR+=80;}},
+  {id:'amulet',     icon:'🧿', name:'수호 부적',  desc:'회피율 +15%', rarity:0.10, apply:p=>{p.dodge=Math.min(0.5,(p.dodge||0)+0.15);}},
+  {id:'frost_gem',  icon:'❄️', name:'서리 결정',  desc:'냉기 오라 강화',rarity:0.08, apply:p=>{p.frostBonus=(p.frostBonus||0)+1;}},
+  {id:'fire_stone', icon:'🔥', name:'화염 석',    desc:'공격 시 폭발+',rarity:0.07, apply:p=>{p.fireBonus=(p.fireBonus||0)+15;}},
+  {id:'angel_wing', icon:'👼', name:'천사의 날개', desc:'최대 HP +100, 재생 +2',rarity:0.04, apply:p=>{p.maxHp+=100;p.hp=Math.min(p.hp+100,p.maxHp);p.regen=(p.regen||0)+2;}},
+  {id:'dragon_orb', icon:'🐉', name:'용의 구슬',  desc:'공격력 +40%, HP+80',rarity:0.02, apply:p=>{p.dmgMult*=1.4;p.maxHp+=80;p.hp=Math.min(p.hp+80,p.maxHp);}},
+];
+let droppedItems=[];
+
+function spawnItem(x,y){
+  const r=Math.random();
+  let acc=0;
+  for(const def of ITEM_DEFS){acc+=def.rarity;if(r<acc){droppedItems.push({...def,x,y,r:14,life:600,pulse:0,collected:false});return;}}
+  droppedItems.push({...ITEM_DEFS[0],x,y,r:14,life:600,pulse:0,collected:false});
+}
+
 function getEnemyPool(t){return ENEMY_TYPES.filter(e=>t>=e.minT);}
 function getBossType(t){let r=BOSS_TYPES[0];for(let b of BOSS_TYPES){if(t>=b.minT)r=b;}return r;}
 
@@ -215,7 +237,7 @@ function startGame(diff){
     invincible:0,dmgMult:1,
     magnetR:80,xpMult:1,regen:0,luck:1,dodge:0,armor:0,barrierMax:0,barrier:0,barrierCooldown:0,thorns:0,durationMult:1,
   };
-  enemies=[];bullets=[];xpOrbs=[];particles=[];healthItems=[];chests=[];chestSpawnTimer=0;activeItems=[];
+  enemies=[];bullets=[];xpOrbs=[];particles=[];healthItems=[];chests=[];chestSpawnTimer=0;activeItems=[];droppedItems=[];
   weapons=[{...WEAPON_DEFS.knife,wid:'knife',timer:0,pierce:1,count:1}];
   kills=0;gameTime=0;level=1;xp=0;xpNeeded=20;
   running=true;paused=false;
@@ -404,6 +426,19 @@ function update(){
   }
   chests=chests.filter(c=>!c.collected);
 
+  // 드롭 아이템 처리
+  for(let it of droppedItems){
+    it.pulse=(it.pulse||0)+0.06;it.life--;
+    const dx=player.x-it.x,dy=player.y-it.y;
+    if(Math.hypot(dx,dy)<player.r+it.r){
+      it.collected=true;
+      it.apply(player);
+      activeItems.push({icon:it.icon,name:it.name,desc:it.desc});
+      spawnParticles(it.x,it.y,'#fde047',10);
+    }
+  }
+  droppedItems=droppedItems.filter(it=>!it.collected&&it.life>0);
+
   for(let p of particles){p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;p.life--;}
   particles=particles.filter(p=>p.life>0);
 
@@ -426,7 +461,10 @@ function update(){
     if((player.thorns||0)>0)chips.push({icon:'⚡',name:'반격 '+player.thorns,timer:''});
     // orbit weapon duration 표시
     for(let w of weapons){if(w.duration&&(w.durationLeft||0)>0)chips.push({icon:w.wtype==='holy'?'✝️':w.wtype==='ghost'?'👻':'✨',name:w.name.split(' ').pop(),timer:Math.ceil(w.durationLeft/60)+'s'});}
-    iHud.innerHTML=chips.map(c=>'<div class="item-chip"><span class="ic-icon">'+c.icon+'</span><span>'+c.name+'</span>'+(c.timer?'<span class="ic-timer">'+c.timer+'</span>':'')+'</div>').join('');
+    // 수집된 아이템도 표시
+    const itemChips=activeItems.map(i=>({icon:i.icon,name:i.name,timer:''}));
+    const allChips=[...chips,...itemChips];
+    iHud.innerHTML=allChips.slice(0,8).map(c=>'<div class="item-chip"><span class="ic-icon">'+c.icon+'</span><span>'+c.name+'</span>'+(c.timer?'<span class="ic-timer">'+c.timer+'</span>':'')+'</div>').join('');
   }
   const mm=Math.floor(gameTime/60),ss=gameTime%60;
   document.getElementById('time-txt').textContent='⏱ '+mm+':'+String(ss).padStart(2,'0');
@@ -461,11 +499,8 @@ function openChest(c){
     player.magnetR+=25;
     spawnParticles(c.x,c.y,'#7c3aed',8);
   } else {
-    // 레어 전리품: 랜덤 스탯 영구 소폭 증가 (8%)
-    const r2=Math.random();
-    if(r2<0.33)player.spd*=1.08;
-    else if(r2<0.66)player.dmgMult*=1.12;
-    else{player.maxHp+=15;player.hp=Math.min(player.hp+15,player.maxHp);}
+    // 레어 전리품: 아이템 드롭! (8%)
+    spawnItem(c.x,c.y-30);
     spawnParticles(c.x,c.y,'#fde047',20);
   }
 }
@@ -478,8 +513,13 @@ function gainXp(amt){
 function killEnemy(e){
   e.dead=true;kills++;
   spawnXpOrb(e.x,e.y,Math.round(e.xpVal*player.luck),e);
-  // 5% 확률 체력 회복 아이템 드롭
   if(Math.random()<0.05)spawnHealthItem(e.x,e.y);
+  // 아이템 드롭: 보스 15%, 일반 3%
+  const itemChance=e.isBoss?0.15:0.03;
+  if(Math.random()<itemChance)spawnItem(e.x,e.y+(e.r||20));
+  // 상자에서도 아이템 (chest에서 이미 처리)
+  // lifesteal
+  if((player.lifesteal||0)>0)player.hp=Math.min(player.maxHp,player.hp+player.lifesteal);
 }
 
 function spawnEnemy(){
@@ -769,6 +809,24 @@ function draw(){
     ctx.globalAlpha=Math.min(1,h.life/60)*pulse;
     ctx.font=(h.r*2.2)+'px sans-serif';ctx.textAlign='center';
     ctx.fillText('♥',h.x,h.y+h.r*0.6);
+    ctx.restore();
+  }
+
+  // 드롭 아이템
+  for(let it of droppedItems){
+    const pulse=Math.sin(it.pulse||0)*0.2+0.85;
+    const fadeAlpha=Math.min(1,it.life/60);
+    ctx.save();
+    ctx.translate(it.x,it.y);
+    ctx.scale(pulse,pulse);
+    ctx.globalAlpha=fadeAlpha;
+    // 빛나는 테두리
+    ctx.beginPath();ctx.arc(0,0,it.r+2,0,Math.PI*2);
+    ctx.fillStyle='#fde04722';ctx.fill();
+    ctx.strokeStyle='#fde047';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.font='22px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(it.icon,0,0);
+    ctx.globalAlpha=1;
     ctx.restore();
   }
 
