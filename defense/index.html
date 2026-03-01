@@ -53,7 +53,7 @@ h1 { margin: 16px 0 8px; font-size: 1.6rem; color: #c084fc; text-shadow: 0 0 20p
   <button id="start-btn" onclick="sellMode()" style="background:linear-gradient(135deg,#dc2626,#f87171)">🔨 판매 모드</button>
   <button id="start-btn" onclick="moveMode()" style="background:linear-gradient(135deg,#0369a1,#38bdf8)">🚚 이동 모드</button>
 </div>
-<div style="color:#555;font-size:0.78rem;margin-top:6px;">클릭해서 타워 배치 | 경로 위에는 배치 불가</div>
+<div style="color:#555;font-size:0.78rem;margin-top:6px;">좌클릭: 타워 배치 | 우클릭: 타워 업그레이드 (Lv3 최대) | 경로 위 배치 불가</div>
 
 <script>
 const CELL = 40;
@@ -85,6 +85,7 @@ let isSelling = false;
 let isMoving = false;
 let movingTower = null;
 let waveRunning = false;
+let autoStartTimer = 0;  // 자동 웨이브 카운트다운 (프레임)
 let spawnTimer = 0, spawnCount = 0, spawnTotal = 0;
 let gameOver = false;
 
@@ -110,6 +111,20 @@ function moveMode() {
   isMoving = !isMoving; isSelling = false; movingTower = null;
   showMsg(isMoving ? '🚚 이동 모드: 먼저 이동할 타워, 그 다음 빈 칸 클릭' : '');
 }
+function upgradeCost(t) {
+  return Math.floor(TOWER_DEF[t.type].cost * 0.7 * t.level);
+}
+function upgradeMode(col, row) {
+  const t = towers.find(t => t.col === col && t.row === row);
+  if (!t) return;
+  if (t.level >= 3) { showMsg('⚠️ 이미 최대 레벨!'); return; }
+  const cost = upgradeCost(t);
+  if (gold < cost) { showMsg(`💰 골드 부족! 업그레이드 ${cost}G 필요`); return; }
+  gold -= cost;
+  t.level++;
+  showMsg(`⬆️ ${TOWER_DEF[t.type].emoji} Lv.${t.level} 업그레이드! (-${cost}G)`);
+  updateUI();
+}
 
 function showMsg(m) { document.getElementById('msg').textContent = m; }
 function updateUI() {
@@ -124,6 +139,14 @@ function pathPixel(i) {
   const [c, r] = PATH[i];
   return { x: c * CELL + CELL/2, y: r * CELL + CELL/2 };
 }
+
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const col = Math.floor((e.clientX - rect.left) / CELL);
+  const row = Math.floor((e.clientY - rect.top) / CELL);
+  upgradeMode(col, row);
+});
 
 canvas.addEventListener('click', e => {
   if (gameOver) return;
@@ -169,7 +192,7 @@ canvas.addEventListener('click', e => {
   if (gold < def.cost) { showMsg(`💰 골드 부족! (${def.cost}G 필요)`); return; }
 
   gold -= def.cost;
-  towers.push({ col, row, type: selectedType, timer: 0, target: null });
+  towers.push({ col, row, type: selectedType, timer: 0, target: null, level: 1 });
   showMsg('');
   updateUI();
 });
@@ -231,11 +254,18 @@ function updateEnemies() {
 function updateTowers() {
   for (let t of towers) {
     t.timer++;
-    const def = TOWER_DEF[t.type];
+    const base = TOWER_DEF[t.type];
+    const lvMult = 1 + (t.level - 1) * 0.4; // 레벨당 40% 향상
+    const def = {
+      ...base,
+      dmg: base.dmg * lvMult,
+      range: base.range * (1 + (t.level-1)*0.15),
+      rate: Math.max(20, base.rate / lvMult),
+    };
     const rangePx = def.range * CELL;
+    const cx = t.col*CELL+CELL/2, cy = t.row*CELL+CELL/2;
 
     // 타겟 선정: 범위 내 적 중 pathIdx 가장 작은 놈(맨 뒤) 우선
-    const cx = t.col*CELL+CELL/2, cy = t.row*CELL+CELL/2;
     t.target = null;
     let minPathIdx = Infinity;
     for (let e of enemies) {
@@ -249,7 +279,7 @@ function updateTowers() {
     if (t.target && t.timer >= def.rate) {
       t.timer = 0;
       bullets.push({
-        x: t.col*CELL+CELL/2, y: t.row*CELL+CELL/2,
+        x: cx, y: cy,
         tx: t.target, type: t.type,
         speed: 5, def
       });
@@ -361,6 +391,13 @@ function draw() {
     ctx.textAlign = 'center';
     ctx.fillText(def.emoji, cx, cy+6);
 
+    // 레벨 표시
+    if (t.level > 1) {
+      ctx.font = 'bold 10px sans-serif';
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillText('★'.repeat(t.level-1), cx, cy - CELL*0.3);
+    }
+
     // 이동 선택된 타워 강조
     if (movingTower === t) {
       ctx.beginPath();
@@ -428,11 +465,19 @@ function draw() {
   // 웨이브 클리어
   if (waveRunning && enemies.length === 0 && spawnCount >= spawnTotal) {
     waveRunning = false;
-    document.getElementById('start-btn').disabled = false;
     const bonus = wave * 20;
     gold += bonus;
-    showMsg(`🎉 웨이브 ${wave} 클리어! +${bonus}G 보너스`);
+    autoStartTimer = 180; // 3초 (60fps)
+    showMsg(`🎉 웨이브 ${wave} 클리어! +${bonus}G | 3초 후 자동 시작...`);
     updateUI();
+  }
+
+  // 자동 웨이브 카운트다운
+  if (!waveRunning && autoStartTimer > 0 && !gameOver) {
+    autoStartTimer--;
+    const sec = Math.ceil(autoStartTimer / 60);
+    if (autoStartTimer % 60 === 0 && autoStartTimer > 0) showMsg(`⏱ ${sec}초 후 웨이브 ${wave+1} 자동 시작...`);
+    if (autoStartTimer === 0) startWave();
   }
 }
 
