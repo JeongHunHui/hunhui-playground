@@ -100,7 +100,7 @@ const PATH = [
 const pathSet = new Set(PATH.map(([c,r])=>`${c},${r}`));
 
 // 게임 상태
-let gold = 100, lives = 15, wave = 0, kills = 0;
+let gold = 130, lives = 20, wave = 0, kills = 0;
 let towers = [], enemies = [], bullets = [], particles = [];
 let selectedType = 'arrow';
 let isSelling = false;
@@ -301,7 +301,7 @@ function startWave() {
   if (waveRunning || gameOver) return;
   wave++;
   spawnCount = 0;
-  spawnTotal = 10 + wave * 4;
+  spawnTotal = 8 + wave * 3;
   spawnTimer = 0;
   waveRunning = true;
   document.getElementById('start-btn').disabled = true;
@@ -309,8 +309,8 @@ function startWave() {
 }
 
 function spawnEnemy() {
-  const hp = Math.floor((60 + wave * 35) * (Math.random() * 0.3 + 0.85));
-  const speed = 1.1 + wave * 0.08;
+  const hp = Math.floor((45 + wave * 22) * (Math.random() * 0.3 + 0.85));
+  const speed = 0.9 + wave * 0.06;
   const boss = spawnCount === spawnTotal - 1 && wave % 3 === 0; // 3웨이브마다 보스
   const armored = !boss && wave > 4 && Math.random() < 0.25; // 5웨이브 이후 강화 적
   enemies.push({
@@ -366,14 +366,21 @@ function updateTowers() {
     const rangePx = def.range * CELL;
     const cx = t.col*CELL+CELL/2, cy = t.row*CELL+CELL/2;
 
-    // 타겟 선정: 범위 내 적 중 pathIdx 가장 작은 놈(맨 뒤) 우선
+    // 타겟 선정: 맨 뒤에 있는 적 (pathIdx + 세그먼트 진행도 역순)
     t.target = null;
-    let minPathIdx = Infinity;
+    let minProgress = Infinity;
     for (let e of enemies) {
       const td = dist({ x: cx, y: cy }, e);
-      if (td < rangePx && e.pathIdx < minPathIdx) {
-        minPathIdx = e.pathIdx;
-        t.target = e;
+      if (td < rangePx) {
+        // 진행도 = pathIdx + 현재 노드~다음 노드 진행 비율
+        let prog = e.pathIdx;
+        if (e.pathIdx < PATH.length - 1) {
+          const next = pathPixel(e.pathIdx + 1);
+          const seg = dist(pathPixel(e.pathIdx), next);
+          const done = dist(pathPixel(e.pathIdx), e);
+          prog += seg > 0 ? done / seg : 0;
+        }
+        if (prog < minProgress) { minProgress = prog; t.target = e; }
       }
     }
 
@@ -422,7 +429,7 @@ function updateBullets() {
 function killEnemy(e) {
   if (e.dead) return;
   e.dead = true;
-  const reward = e.boss ? 20 + wave * 3 : e.armored ? 6 + wave : 4 + Math.floor(wave * 0.5);
+  const reward = e.boss ? 25 + wave * 4 : e.armored ? 8 + wave : 6 + wave;
   gold += reward;
   kills++;
   spawnParticles(e.x, e.y, '#fbbf24', 8);
@@ -610,7 +617,7 @@ function tick() {
   // 자동 웨이브
   if (waveRunning && enemies.length === 0 && spawnCount >= spawnTotal) {
     waveRunning = false;
-    const bonus = wave * 10;
+    const bonus = wave * 15;
     gold += bonus;
     autoStartTimer = 180;
     showMsg(`🎉 웨이브 ${wave} 클리어! +${bonus}G | 3초 후 자동 시작...`);
