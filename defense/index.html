@@ -100,7 +100,7 @@ const PATH = [
 const pathSet = new Set(PATH.map(([c,r])=>`${c},${r}`));
 
 // 게임 상태
-let gold = 130, lives = 20, wave = 0, kills = 0;
+let gold = 150, lives = 20, wave = 0, kills = 0;
 let towers = [], enemies = [], bullets = [], particles = [];
 let selectedType = 'arrow';
 let isSelling = false;
@@ -301,7 +301,7 @@ function startWave() {
   if (waveRunning || gameOver) return;
   wave++;
   spawnCount = 0;
-  spawnTotal = 8 + wave * 3;
+  spawnTotal = 5 + Math.floor(wave * 2.5 + wave * wave * 0.15);
   spawnTimer = 0;
   waveRunning = true;
   document.getElementById('start-btn').disabled = true;
@@ -309,8 +309,8 @@ function startWave() {
 }
 
 function spawnEnemy() {
-  const hp = Math.floor((45 + wave * 22) * (Math.random() * 0.3 + 0.85));
-  const speed = 0.9 + wave * 0.06;
+  const hp = Math.floor((20 + wave * wave * 3 + wave * 8) * (Math.random() * 0.3 + 0.85));
+  const speed = 0.65 + wave * 0.07 + (wave > 5 ? (wave-5)*0.04 : 0);
   const boss = spawnCount === spawnTotal - 1 && wave % 3 === 0; // 3웨이브마다 보스
   const armored = !boss && wave > 4 && Math.random() < 0.25; // 5웨이브 이후 강화 적
   enemies.push({

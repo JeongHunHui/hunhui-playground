@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🧛 뱀파이어 서바이벌</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;touch-action:none;}
+body{background:#0d0a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;height:100svh;}
+canvas{display:block;}
+#hud{position:fixed;top:0;left:0;right:0;pointer-events:none;padding:8px 12px;display:flex;gap:10px;align-items:center;background:linear-gradient(#000a,transparent);z-index:5;}
+.hbar{height:12px;border-radius:6px;background:#333;overflow:hidden;flex:1;max-width:180px;}
+.hfill{height:100%;border-radius:6px;background:linear-gradient(90deg,#ef4444,#f87171);transition:width 0.2s;}
+.xfill{height:100%;border-radius:6px;background:linear-gradient(90deg,#7c3aed,#c084fc);transition:width 0.3s;}
+.hud-t{font-size:0.8rem;color:#e2d4ff;white-space:nowrap;}
+#overlay{position:fixed;inset:0;background:#000b;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;}
+#overlay h1{font-size:2rem;color:#c084fc;margin-bottom:8px;}
+#overlay p{color:#9f8ab8;margin-bottom:20px;text-align:center;}
+.start{padding:12px 32px;border-radius:99px;border:none;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-size:1rem;font-weight:700;cursor:pointer;}
+#level-up{position:fixed;inset:0;background:#000c;display:none;align-items:center;justify-content:center;z-index:15;flex-direction:column;}
+#level-up h2{color:#fde047;font-size:1.6rem;margin-bottom:20px;}
+.upgrade-cards{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;}
+.upg-card{
+  background:#1a1030;border:2px solid #3d2a5e;border-radius:14px;
+  padding:18px;width:160px;cursor:pointer;text-align:center;transition:all 0.2s;
+}
+.upg-card:hover{border-color:#c084fc;background:#2d1f4e;transform:translateY(-4px);}
+.upg-card .upg-icon{font-size:36px;margin-bottom:8px;}
+.upg-card .upg-name{font-weight:700;color:#e2d4ff;margin-bottom:4px;}
+.upg-card .upg-desc{font-size:0.75rem;color:#7c6a9a;}
+</style>
+</head>
+<body>
+<div id="hud">
+  <span class="hud-t">❤️</span>
+  <div class="hbar"><div class="hfill" id="hp-bar" style="width:100%"></div></div>
+  <span class="hud-t" id="hp-txt">100/100</span>
+  &nbsp;
+  <span class="hud-t">⬆️ Lv</span>
+  <div class="hbar"><div class="xfill" id="xp-bar" style="width:0%"></div></div>
+  <span class="hud-t" id="lv-txt">1</span>
+  <span class="hud-t" id="time-txt" style="margin-left:auto;">⏱ 0:00</span>
+  <span class="hud-t" id="kill-txt">💀 0</span>
+</div>
+<canvas id="c"></canvas>
+<div id="overlay">
+  <h1>🧛 뱀파이어 서바이벌</h1>
+  <p>WASD / 방향키 / 조이스틱으로 이동<br>무기는 자동 발사 — 생존하라!</p>
+  <button class="start" onclick="startGame()">생존 시작!</button>
+</div>
+<div id="level-up">
+  <h2>⬆️ 레벨 업!</h2>
+  <div class="upgrade-cards" id="upg-cards"></div>
+</div>
+<script>
+const cv=document.getElementById('c');
+const ctx=cv.getContext('2d');
+let W,H;
+function resize(){W=cv.width=Math.min(window.innerWidth,700);H=cv.height=window.innerHeight;}
+resize();window.addEventListener('resize',resize);
+
+// 게임 상태
+let player,enemies,bullets,xpOrbs,particles,weapons;
+let kills,gameTime,level,xp,xpNeeded,running,paused;
+let keys={};let touch={dx:0,dy:0};let animId;
+
+const WEAPON_DEFS={
+  knife:{name:'🗡 단검',desc:'빠른 단검 발사',color:'#e2d4ff',cooldown:30,damage:15,speed:8,r:6,type:'bullet',pierce:1},
+  axe:{name:'🪓 도끼',desc:'튀어나오는 도끼',color:'#f97316',cooldown:80,damage:40,speed:5,r:10,type:'boomerang'},
+  magic:{name:'✨ 마법진',desc:'주변을 회전 공격',color:'#c084fc',cooldown:120,damage:25,r:80,type:'orbit'},
+  fireball:{name:'🔥 파이어볼',desc:'강력한 폭발',color:'#ef4444',cooldown:100,damage:60,speed:4,r:12,type:'bullet',splash:50},
+  lightning:{name:'⚡ 번개',desc:'가장 가까운 적 공격',color:'#fde047',cooldown:60,damage:35,type:'lightning'},
+  freeze:{name:'❄️ 냉기장',desc:'주변 적 빙결',color:'#7dd3fc',cooldown:150,damage:10,r:120,type:'aura'},
+};
+const ALL_UPGRADES=[
+  {id:'knife',name:'🗡 단검 추가',desc:'단검 발사 추가',icon:'🗡'},
+  {id:'axe',name:'🪓 도끼',desc:'도끼 추가',icon:'🪓'},
+  {id:'magic',name:'✨ 마법진',desc:'마법진 추가',icon:'✨'},
+  {id:'fireball',name:'🔥 파이어볼',desc:'파이어볼 추가',icon:'🔥'},
+  {id:'lightning',name:'⚡ 번개',desc:'번개 추가',icon:'⚡'},
+  {id:'freeze',name:'❄️ 냉기장',desc:'냉기장 추가',icon:'❄️'},
+  {id:'spd',name:'💨 이동속도 +',desc:'이동속도 20% 증가',icon:'💨'},
+  {id:'hp',name:'❤️ 최대 HP +',desc:'최대 HP 30 증가',icon:'❤️'},
+  {id:'dmg',name:'⚔️ 공격력 +',desc:'모든 무기 공격력 20% 증가',icon:'⚔️'},
+  {id:'pierce',name:'🎯 관통 +',desc:'단검 관통 +1',icon:'🎯'},
+];
+
+function startGame(){
+  document.getElementById('overlay').style.display='none';
+  player={
+    x:0,y:0,r:16,hp:100,maxHp:100,spd:2.5,
+    invincible:0,frame:0,dmgMult:1,
+  };
+  enemies=[];bullets=[];xpOrbs=[];particles=[];
+  weapons=[{...WEAPON_DEFS.knife,timer:0,level:1,pierce:1}];
+  kills=0;gameTime=0;level=1;xp=0;xpNeeded=20;
+  running=true;paused=false;
+  loop();
+}
+
+let animId2;
+function loop(){
+  if(!running)return;
+  if(!paused)update();
+  draw();
+  animId=requestAnimationFrame(loop);
+}
+
+let frameCount=0,lastTime=Date.now();
+function update(){
+  frameCount++;
+  const now=Date.now();
+  if(now-lastTime>=1000){gameTime++;lastTime=now;}
+
+  // 이동
+  let dx=0,dy=0;
+  if(keys['ArrowLeft']||keys['a']||keys['A'])dx-=1;
+  if(keys['ArrowRight']||keys['d']||keys['D'])dx+=1;
+  if(keys['ArrowUp']||keys['w']||keys['W'])dy-=1;
+  if(keys['ArrowDown']||keys['s']||keys['S'])dy+=1;
+  dx+=touch.dx;dy+=touch.dy;
+  if(dx&&dy){dx*=0.707;dy*=0.707;}
+  player.x+=dx*player.spd;player.y+=dy*player.spd;
+  player.frame++;
+  if(player.invincible>0)player.invincible--;
+
+  // 적 스폰 - 시간에 따라 점진적 증가
+  const spawnRate=Math.max(10,50-Math.floor(gameTime/10));
+  if(frameCount%spawnRate===0){
+    const count=1+Math.floor(gameTime/30);
+    for(let i=0;i<count;i++)spawnEnemy();
+  }
+  // 보스 스폰
+  if(gameTime>0&&gameTime%60===0&&frameCount%60===0)spawnBoss();
+
+  // 무기 발동
+  for(let w of weapons){
+    w.timer++;
+    if(w.timer>=w.cooldown){
+      w.timer=0;
+      fireWeapon(w);
+    }
+  }
+
+  // 총알 업데이트
+  for(let b of bullets){
+    if(b.type==='orbit'){
+      b.angle+=0.06;
+      b.x=player.x+Math.cos(b.angle)*b.orbitR;
+      b.y=player.y+Math.sin(b.angle)*b.orbitR;
+    } else if(b.type==='aura'){
+      b.x=player.x;b.y=player.y;b.life--;
+    } else if(b.type==='boomerang'){
+      b.x+=b.vx;b.y+=b.vy;
+      b.life--;
+      if(b.life<0){b.vx*=-1;b.vy*=-1;}
+    } else {
+      b.x+=b.vx;b.y+=b.vy;b.life--;
+    }
+    // 적 충돌
+    for(let e of enemies){
+      if(!e.dead&&Math.hypot(b.x-e.x,b.y-e.y)<b.r+e.r){
+        let dmg=b.damage*(b.type==='aura'?0.2:1);
+        e.hp-=dmg;
+        spawnParticles(e.x,e.y,'#f87171',3);
+        if(b.splash){spawnSplash(b.x,b.y,b.splash,b.damage,b.pierces);}
+        if(b.type!=='orbit'&&b.type!=='aura'){
+          b.pierces=(b.pierces||0)+1;
+          if(b.pierces>=(b.maxPierce||1))b.life=-1;
+        }
+        if(e.hp<=0){e.dead=true;kills++;spawnXpOrb(e.x,e.y,e.xpVal||3);}
+      }
+    }
+  }
+  bullets=bullets.filter(b=>b.life>0);
+
+  // 적 이동
+  for(let e of enemies){
+    if(e.frozen>0){e.frozen--;continue;}
+    const dx2=player.x-e.x,dy2=player.y-e.y,d=Math.hypot(dx2,dy2)||1;
+    e.x+=dx2/d*e.spd;e.y+=dy2/d*e.spd;
+    // 플레이어 충돌
+    if(player.invincible===0&&Math.hypot(e.x-player.x,e.y-player.y)<e.r+player.r){
+      player.hp-=e.dmg;
+      player.invincible=60;
+      spawnParticles(player.x,player.y,'#ef4444',8);
+      if(player.hp<=0){gameOver();return;}
+    }
+  }
+  enemies=enemies.filter(e=>!e.dead);
+
+  // XP 수집
+  for(let o of xpOrbs){
+    const dx3=player.x-o.x,dy3=player.y-o.y,d3=Math.hypot(dx3,dy3)||1;
+    if(d3<120){o.x+=dx3/d3*4;o.y+=dy3/d3*4;}
+    if(d3<player.r+o.r){
+      o.collected=true;xp+=o.val;
+      if(xp>=xpNeeded){xp-=xpNeeded;xpNeeded=Math.floor(xpNeeded*1.3);levelUp();}
+    }
+  }
+  xpOrbs=xpOrbs.filter(o=>!o.collected);
+
+  for(let p of particles){p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;p.life--;}
+  particles=particles.filter(p=>p.life>0);
+
+  // HUD
+  document.getElementById('hp-bar').style.width=(player.hp/player.maxHp*100)+'%';
+  document.getElementById('hp-txt').textContent=`${Math.ceil(player.hp)}/${player.maxHp}`;
+  document.getElementById('xp-bar').style.width=(xp/xpNeeded*100)+'%';
+  document.getElementById('lv-txt').textContent=level;
+  document.getElementById('kill-txt').textContent='💀 '+kills;
+  const m=Math.floor(gameTime/60),s=gameTime%60;
+  document.getElementById('time-txt').textContent=`⏱ ${m}:${String(s).padStart(2,'0')}`;
+}
+
+function spawnEnemy(){
+  const angle=Math.random()*Math.PI*2;
+  const d=Math.max(W,H)*0.65;
+  const hp=Math.floor((8+gameTime*0.5)*(0.8+Math.random()*0.4));
+  enemies.push({
+    x:player.x+Math.cos(angle)*d,
+    y:player.y+Math.sin(angle)*d,
+    hp,maxHp:hp,r:13,spd:0.8+gameTime*0.006,
+    dmg:5+Math.floor(gameTime*0.1),xpVal:2,frozen:0,
+    color:`hsl(${10+Math.random()*30},70%,45%)`,
+    emoji:'👾'
+  });
+}
+function spawnBoss(){
+  const angle=Math.random()*Math.PI*2;
+  const d=Math.max(W,H)*0.7;
+  const hp=Math.floor(200+gameTime*5);
+  enemies.push({
+    x:player.x+Math.cos(angle)*d,
+    y:player.y+Math.sin(angle)*d,
+    hp,maxHp:hp,r:28,spd:0.5+gameTime*0.003,
+    dmg:20,xpVal:20,frozen:0,boss:true,
+    color:'#b91c1c',emoji:'👹'
+  });
+}
+
+function fireWeapon(w){
+  if(w.id==='knife'||(!w.id&&w.type==='bullet')){
+    // 가장 가까운 적 방향
+    let nearest=null,nd=Infinity;
+    for(let e of enemies){const d=Math.hypot(e.x-player.x,e.y-player.y);if(d<nd){nd=d;nearest=e;}}
+    const angle=nearest?Math.atan2(nearest.y-player.y,nearest.x-player.x):Math.random()*Math.PI*2;
+    for(let i=0;i<(w.count||1);i++){
+      const a=angle+(i-(Math.floor((w.count||1)/2)))*0.2;
+      bullets.push({x:player.x,y:player.y,vx:Math.cos(a)*w.speed,vy:Math.sin(a)*w.speed,
+        r:w.r,damage:w.damage*player.dmgMult,life:80,type:'bullet',maxPierce:w.pierce||1,pierces:0,color:w.color});
+    }
+  } else if(w.type==='boomerang'){
+    let nearest=null,nd=Infinity;
+    for(let e of enemies){const d=Math.hypot(e.x-player.x,e.y-player.y);if(d<nd){nd=d;nearest=e;}}
+    const angle=nearest?Math.atan2(nearest.y-player.y,nearest.x-player.x):Math.random()*Math.PI*2;
+    bullets.push({x:player.x,y:player.y,vx:Math.cos(angle)*w.speed,vy:Math.sin(angle)*w.speed,
+      r:w.r,damage:w.damage*player.dmgMult,life:50,type:'boomerang',maxPierce:99,pierces:0,color:w.color});
+  } else if(w.type==='orbit'){
+    for(let i=0;i<(w.count||3);i++){
+      bullets.push({x:player.x,y:player.y,r:w.r,damage:w.damage*player.dmgMult,
+        life:9999,type:'orbit',angle:i*(Math.PI*2/(w.count||3)),orbitR:w.orbitR||80,
+        maxPierce:99,pierces:0,color:w.color});
+    }
+  } else if(w.type==='lightning'){
+    let near=enemies.slice().sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y)).slice(0,3);
+    for(let e of near){
+      e.hp-=w.damage*player.dmgMult;
+      spawnParticles(e.x,e.y,'#fde047',5);
+      if(e.hp<=0){e.dead=true;kills++;spawnXpOrb(e.x,e.y,e.xpVal);}
+      // 번개 시각 효과
+      bullets.push({x:player.x,y:player.y,tx:e.x,ty:e.y,life:8,type:'lightning_vis',r:0,damage:0,maxPierce:99,pierces:0,color:'#fde047'});
+    }
+  } else if(w.type==='aura'){
+    bullets.push({x:player.x,y:player.y,r:w.r,damage:w.damage*player.dmgMult,
+      life:30,type:'aura',maxPierce:99,pierces:0,color:w.color,frozen:true});
+    // 범위 내 적 빙결
+    for(let e of enemies){
+      if(Math.hypot(e.x-player.x,e.y-player.y)<w.r){e.frozen=90;}
+    }
+  }
+}
+
+function spawnSplash(x,y,r,dmg,pierces){
+  for(let e of enemies){
+    if(Math.hypot(e.x-x,e.y-y)<r){
+      e.hp-=dmg*0.5*player.dmgMult;
+      if(e.hp<=0){e.dead=true;kills++;spawnXpOrb(e.x,e.y,e.xpVal);}
+    }
+  }
+  spawnParticles(x,y,'#f97316',15);
+}
+
+function levelUp(){
+  level++;paused=true;
+  const el=document.getElementById('level-up');
+  const cards=document.getElementById('upg-cards');
+  el.style.display='flex';cards.innerHTML='';
+  // 랜덤 3개 선택
+  const available=ALL_UPGRADES.filter(u=>{
+    if(u.id==='spd'||u.id==='hp'||u.id==='dmg'||u.id==='pierce')return true;
+    const has=weapons.some(w=>w.id===u.id);
+    return !has||level>3;
+  });
+  const picks=available.sort(()=>Math.random()-0.5).slice(0,3);
+  for(let u of picks){
+    const d=document.createElement('div');d.className='upg-card';
+    d.innerHTML=`<div class="upg-icon">${u.icon}</div><div class="upg-name">${u.name}</div><div class="upg-desc">${u.desc}</div>`;
+    d.onclick=()=>{applyUpgrade(u.id);el.style.display='none';paused=false;};
+    cards.appendChild(d);
+  }
+}
+
+function applyUpgrade(id){
+  if(id==='spd'){player.spd*=1.2;}
+  else if(id==='hp'){player.maxHp+=30;player.hp=Math.min(player.hp+30,player.maxHp);}
+  else if(id==='dmg'){player.dmgMult*=1.2;}
+  else if(id==='pierce'){const k=weapons.find(w=>w.id==='knife');if(k)k.pierce++;}
+  else {
+    const def=WEAPON_DEF[id]||WEAPON_DEFS[id];
+    if(def){
+      const existing=weapons.find(w=>w.id===id);
+      if(existing){existing.damage*=1.3;existing.cooldown=Math.max(10,existing.cooldown*0.85);}
+      else weapons.push({...def,id,timer:0,level:1,pierce:def.pierce||1,count:def.count||1,orbitR:def.orbitR||80,frozen:false});
+    }
+  }
+}
+
+function draw(){
+  ctx.fillStyle='#0a0514';ctx.fillRect(0,0,W,H);
+  // 배경 그리드 (카메라 기준)
+  ctx.strokeStyle='#1a1030';ctx.lineWidth=1;
+  const ox=(player.x%80+80)%80,oy=(player.y%80+80)%80;
+  for(let x=-ox;x<W;x+=80){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=-oy;y<H;y+=80){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  const cx=W/2-player.x,cy=H/2-player.y;
+  ctx.save();ctx.translate(cx,cy);
+
+  // XP 오브
+  for(let o of xpOrbs){
+    ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,Math.PI*2);
+    ctx.fillStyle='#7c3aed88';ctx.fill();
+    ctx.strokeStyle='#c084fc';ctx.lineWidth=1.5;ctx.stroke();
+  }
+
+  // 총알
+  for(let b of bullets){
+    if(b.type==='lightning_vis'){
+      ctx.strokeStyle=b.color;ctx.lineWidth=2;ctx.globalAlpha=b.life/8;
+      ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(b.tx,b.ty);ctx.stroke();
+      ctx.globalAlpha=1;
+    } else if(b.type==='orbit'||b.type==='aura'){
+      ctx.beginPath();ctx.arc(b.type==='orbit'?b.x:player.x,b.type==='orbit'?b.y:player.y,b.r,0,Math.PI*2);
+      ctx.strokeStyle=b.color;ctx.lineWidth=2;ctx.globalAlpha=0.3;ctx.stroke();
+      ctx.globalAlpha=1;
+      if(b.type==='orbit'){ctx.beginPath();ctx.arc(b.x,b.y,8,0,Math.PI*2);ctx.fillStyle=b.color;ctx.fill();}
+    } else {
+      ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+      ctx.fillStyle=b.color;ctx.fill();
+    }
+  }
+
+  // 적
+  for(let e of enemies){
+    ctx.globalAlpha=e.frozen?0.6:1;
+    ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,Math.PI*2);
+    ctx.fillStyle=e.frozen?'#93c5fd44':e.color+'88';ctx.fill();
+    ctx.strokeStyle=e.frozen?'#93c5fd':e.color;ctx.lineWidth=e.boss?3:2;ctx.stroke();
+    ctx.font=`${e.r*1.4}px sans-serif`;ctx.textAlign='center';ctx.globalAlpha=1;
+    ctx.fillText(e.emoji,e.x,e.y+e.r*0.45);
+    // HP바
+    const bw=e.r*2.5;
+    ctx.fillStyle='#33333388';ctx.fillRect(e.x-bw/2,e.y-e.r-10,bw,5);
+    ctx.fillStyle=e.boss?'#ef4444':'#22c55e';ctx.fillRect(e.x-bw/2,e.y-e.r-10,bw*(e.hp/e.maxHp),5);
+  }
+  ctx.globalAlpha=1;
+
+  // 플레이어
+  const palpha=player.invincible>0?(Math.floor(player.invincible/5)%2?0.3:1):1;
+  ctx.globalAlpha=palpha;
+  ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,Math.PI*2);
+  ctx.fillStyle='#2d1f4e';ctx.fill();
+  ctx.strokeStyle='#c084fc';ctx.lineWidth=3;ctx.stroke();
+  ctx.font='20px sans-serif';ctx.textAlign='center';
+  ctx.fillText('🧙',player.x,player.y+7);
+  ctx.globalAlpha=1;
+
+  // 파티클
+  for(let p of particles){
+    ctx.globalAlpha=p.life/30;
+    ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);
+    ctx.fillStyle=p.color;ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  ctx.restore();
+}
+
+function spawnXpOrb(x,y,val){xpOrbs.push({x,y,r:8,val,collected:false});}
+function spawnParticles(x,y,color,n){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2,s=Math.random()*3+1;
+    particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1,life:25,color});
+  }
+}
+function gameOver(){
+  running=false;
+  const ov=document.getElementById('overlay');
+  const m=Math.floor(gameTime/60),s=gameTime%60;
+  ov.innerHTML=`<h1>💀 사망</h1><p>생존 시간: ${m}:${String(s).padStart(2,'0')}<br>처치 수: ${kills}<br>레벨: ${level}</p><button class="start" onclick="startGame()">다시 도전!</button>`;
+  ov.style.display='flex';
+}
+
+// 입력
+document.addEventListener('keydown',e=>keys[e.key]=true);
+document.addEventListener('keyup',e=>keys[e.key]=false);
+
+// 조이스틱 (모바일)
+let joystickStart=null;
+cv.addEventListener('touchstart',e=>{
+  const t=e.touches[0];
+  joystickStart={x:t.clientX,y:t.clientY};
+},{passive:true});
+cv.addEventListener('touchmove',e=>{
+  if(!joystickStart)return;
+  const t=e.touches[0];
+  const dx=t.clientX-joystickStart.x;
+  const dy=t.clientY-joystickStart.y;
+  const d=Math.hypot(dx,dy)||1;
+  const maxD=50;
+  touch.dx=Math.abs(dx)>8?Math.min(d,maxD)/maxD*(dx/d):0;
+  touch.dy=Math.abs(dy)>8?Math.min(d,maxD)/maxD*(dy/d):0;
+},{passive:true});
+cv.addEventListener('touchend',()=>{touch.dx=0;touch.dy=0;joystickStart=null;});
+</script>
+</body>
+</html>

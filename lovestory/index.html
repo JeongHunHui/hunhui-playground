@@ -20,7 +20,7 @@ body{background:#0d0a1a;color:#f0e6ff;font-family:'Noto Sans KR',sans-serif;min-
   cursor:pointer;width:180px;overflow:hidden;transition:all 0.25s;
 }
 .char-card:hover{border-color:#c084fc;transform:translateY(-6px);box-shadow:0 12px 40px #c084fc44;}
-.char-img{width:100%;height:200px;object-fit:cover;object-position:top;display:block;background:#1a1030;}
+.char-img{width:100%;height:220px;object-fit:contain;display:block;background:#1a1030;padding:10px;}
 .char-info{padding:14px;}
 .char-name{font-weight:700;font-size:1.05rem;color:#e2d4ff;margin-bottom:4px;}
 .char-sub{font-size:0.76rem;color:#7c6a9a;line-height:1.5;}
@@ -98,21 +98,21 @@ body{background:#0d0a1a;color:#f0e6ff;font-family:'Noto Sans KR',sans-serif;min-
   <p>마음에 드는 상대를 골라봐</p>
   <div class="chars">
     <div class="char-card" onclick="startGame('yuna')">
-      <img class="char-img" src="https://api.dicebear.com/9.x/lorelei/svg?seed=YunaPark&backgroundColor=1a1030&hair=variant16&hairColor=6d4c41&eyes=variant12&freckles=variant01" alt="유나">
+      <img class="char-img" src="https://api.dicebear.com/9.x/adventurer/svg?seed=YunaCard&backgroundColor=1a1030&hair=long02&hairColor=b56e28&eyes=variant03&skinColor=f2d3b1" alt="유나">
       <div class="char-info">
         <div class="char-name">🌸 박유나</div>
         <div class="char-sub">카페 알바생<br>조용하고 감성적<br>독서를 좋아함</div>
       </div>
     </div>
     <div class="char-card" onclick="startGame('jiyeon')">
-      <img class="char-img" src="https://api.dicebear.com/9.x/lorelei/svg?seed=JiyeonKim&backgroundColor=0f1a35&hair=variant23&hairColor=000000&eyes=variant07" alt="지연">
+      <img class="char-img" src="https://api.dicebear.com/9.x/adventurer/svg?seed=JiyeonCard&backgroundColor=081530&hair=short03&hairColor=0d0d0d&eyes=variant08&skinColor=ecc5a1" alt="지연">
       <div class="char-info">
         <div class="char-name">⚡ 김지연</div>
         <div class="char-sub">스타트업 개발자<br>직설적 에너지<br>코딩이 취미</div>
       </div>
     </div>
     <div class="char-card" onclick="startGame('minjun')">
-      <img class="char-img" src="https://api.dicebear.com/9.x/lorelei/svg?seed=MinjunLee&backgroundColor=0a0a1a&hair=variant18&hairColor=1a1a1a&eyes=variant04" alt="민준">
+      <img class="char-img" src="https://api.dicebear.com/9.x/adventurer/svg?seed=MinjunCard&backgroundColor=080010&hair=short09&hairColor=1a0a2e&eyes=variant05&skinColor=d8b48c" alt="민준">
       <div class="char-info">
         <div class="char-name">🌙 이민준</div>
         <div class="char-sub">음악 프로듀서<br>신비롭고 감성적<br>밤을 좋아함</div>
@@ -152,35 +152,35 @@ body{background:#0d0a1a;color:#f0e6ff;font-family:'Noto Sans KR',sans-serif;min-
 let affection = 0, charId = '', sceneIdx = 0;
 
 const CHARS = {
-  yuna:   { name:'박유나', badge:'🌸 박유나',
+  yuna: { name:'박유나', badge:'🌸 박유나',
     sprites:{
-      normal:  'https://api.dicebear.com/9.x/lorelei/svg?seed=YunaNormal&backgroundColor=1a1030&hair=variant16&hairColor=6d4c41&eyes=variant12',
-      happy:   'https://api.dicebear.com/9.x/lorelei/svg?seed=YunaHappy&backgroundColor=1a1030&hair=variant16&hairColor=6d4c41&eyes=variant09',
-      shy:     'https://api.dicebear.com/9.x/lorelei/svg?seed=YunaShy&backgroundColor=1a1030&hair=variant16&hairColor=6d4c41&eyes=variant15',
-      sad:     'https://api.dicebear.com/9.x/lorelei/svg?seed=YunaSad&backgroundColor=1a1030&hair=variant16&hairColor=6d4c41&eyes=variant24',
+      normal:  'https://api.dicebear.com/9.x/adventurer/svg?seed=YunaA&backgroundColor=1a1030&hair=long02&hairColor=b56e28&eyes=variant03&eyebrows=variant04&mouth=variant03&skinColor=f2d3b1',
+      happy:   'https://api.dicebear.com/9.x/adventurer/svg?seed=YunaB&backgroundColor=1a1030&hair=long02&hairColor=b56e28&eyes=variant06&eyebrows=variant04&mouth=variant09&skinColor=f2d3b1',
+      shy:     'https://api.dicebear.com/9.x/adventurer/svg?seed=YunaC&backgroundColor=1a1030&hair=long02&hairColor=b56e28&eyes=variant07&eyebrows=variant01&mouth=variant05&skinColor=f2d3b1',
+      sad:     'https://api.dicebear.com/9.x/adventurer/svg?seed=YunaD&backgroundColor=1a1030&hair=long02&hairColor=b56e28&eyes=variant14&eyebrows=variant11&mouth=variant18&skinColor=f2d3b1',
     },
-    card: 'https://api.dicebear.com/9.x/lorelei/svg?seed=YunaPark&backgroundColor=1a1030&hair=variant16&hairColor=6d4c41&eyes=variant12&freckles=variant01',
-    bg: 'linear-gradient(160deg,#0f0820,#1e1535,#2d1b40)',
+    card: 'https://api.dicebear.com/9.x/adventurer/svg?seed=YunaCard&backgroundColor=1a1030&hair=long02&hairColor=b56e28&eyes=variant03&skinColor=f2d3b1',
+    bg: 'linear-gradient(160deg,#0f0820,#200d3a,#2d1440)',
   },
   jiyeon: { name:'김지연', badge:'⚡ 김지연',
     sprites:{
-      normal:  'https://api.dicebear.com/9.x/lorelei/svg?seed=JiyeonNormal&backgroundColor=0f1a35&hair=variant23&hairColor=111111&eyes=variant07',
-      happy:   'https://api.dicebear.com/9.x/lorelei/svg?seed=JiyeonHappy&backgroundColor=0f1a35&hair=variant23&hairColor=111111&eyes=variant08',
-      shy:     'https://api.dicebear.com/9.x/lorelei/svg?seed=JiyeonShy&backgroundColor=0f1a35&hair=variant23&hairColor=111111&eyes=variant06',
-      excited: 'https://api.dicebear.com/9.x/lorelei/svg?seed=JiyeonExcited&backgroundColor=0f1a35&hair=variant23&hairColor=111111&eyes=variant10',
+      normal:  'https://api.dicebear.com/9.x/adventurer/svg?seed=JiyeonA&backgroundColor=081530&hair=short03&hairColor=0d0d0d&eyes=variant08&eyebrows=variant05&mouth=variant04&skinColor=ecc5a1',
+      happy:   'https://api.dicebear.com/9.x/adventurer/svg?seed=JiyeonB&backgroundColor=081530&hair=short03&hairColor=0d0d0d&eyes=variant10&eyebrows=variant05&mouth=variant11&skinColor=ecc5a1',
+      shy:     'https://api.dicebear.com/9.x/adventurer/svg?seed=JiyeonC&backgroundColor=081530&hair=short03&hairColor=0d0d0d&eyes=variant07&eyebrows=variant03&mouth=variant07&skinColor=ecc5a1',
+      excited: 'https://api.dicebear.com/9.x/adventurer/svg?seed=JiyeonD&backgroundColor=081530&hair=short03&hairColor=0d0d0d&eyes=variant12&eyebrows=variant06&mouth=variant09&skinColor=ecc5a1',
     },
-    card: 'https://api.dicebear.com/9.x/lorelei/svg?seed=JiyeonKim&backgroundColor=0f1a35&hair=variant23&hairColor=000000&eyes=variant07',
-    bg: 'linear-gradient(160deg,#080f1a,#0f1e35,#1a2d50)',
+    card: 'https://api.dicebear.com/9.x/adventurer/svg?seed=JiyeonCard&backgroundColor=081530&hair=short03&hairColor=0d0d0d&eyes=variant08&skinColor=ecc5a1',
+    bg: 'linear-gradient(160deg,#050f20,#0d1e38,#152a50)',
   },
   minjun: { name:'이민준', badge:'🌙 이민준',
     sprites:{
-      normal:  'https://api.dicebear.com/9.x/lorelei/svg?seed=MinjunNormal&backgroundColor=0a0a1a&hair=variant18&hairColor=1a1a1a&eyes=variant04',
-      happy:   'https://api.dicebear.com/9.x/lorelei/svg?seed=MinjunHappy&backgroundColor=0a0a1a&hair=variant18&hairColor=1a1a1a&eyes=variant11',
-      shy:     'https://api.dicebear.com/9.x/lorelei/svg?seed=MinjunShy&backgroundColor=0a0a1a&hair=variant18&hairColor=1a1a1a&eyes=variant02',
-      excited: 'https://api.dicebear.com/9.x/lorelei/svg?seed=MinjunExcited&backgroundColor=0a0a1a&hair=variant18&hairColor=1a1a1a&eyes=variant13',
+      normal:  'https://api.dicebear.com/9.x/adventurer/svg?seed=MinjunA&backgroundColor=080010&hair=short09&hairColor=1a0a2e&eyes=variant05&eyebrows=variant02&mouth=variant02&skinColor=d8b48c',
+      happy:   'https://api.dicebear.com/9.x/adventurer/svg?seed=MinjunB&backgroundColor=080010&hair=short09&hairColor=1a0a2e&eyes=variant11&eyebrows=variant04&mouth=variant08&skinColor=d8b48c',
+      shy:     'https://api.dicebear.com/9.x/adventurer/svg?seed=MinjunC&backgroundColor=080010&hair=short09&hairColor=1a0a2e&eyes=variant02&eyebrows=variant01&mouth=variant06&skinColor=d8b48c',
+      excited: 'https://api.dicebear.com/9.x/adventurer/svg?seed=MinjunD&backgroundColor=080010&hair=short09&hairColor=1a0a2e&eyes=variant13&eyebrows=variant07&mouth=variant11&skinColor=d8b48c',
     },
-    card: 'https://api.dicebear.com/9.x/lorelei/svg?seed=MinjunLee&backgroundColor=0a0a1a&hair=variant18&hairColor=1a1a1a&eyes=variant04',
-    bg: 'linear-gradient(160deg,#050510,#0a0a1a,#10102a)',
+    card: 'https://api.dicebear.com/9.x/adventurer/svg?seed=MinjunCard&backgroundColor=080010&hair=short09&hairColor=1a0a2e&eyes=variant05&skinColor=d8b48c',
+    bg: 'linear-gradient(160deg,#050008,#0f001a,#150a2a)',
   },
 };
 
