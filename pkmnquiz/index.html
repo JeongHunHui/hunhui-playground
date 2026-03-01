@@ -122,17 +122,67 @@
       cursor: pointer; font-family: inherit;
     }
     .streak { font-size: 0.8rem; color: #f59e0b; }
+    .intro {
+      display: flex; flex-direction: column; align-items: center; gap: 1.25rem;
+    }
+    .intro h2 { font-size: 1.4rem; color: #e0e7ff; }
+    .intro p { color: #94a3b8; font-size: 0.95rem; }
+    .timer-options {
+      display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center;
+    }
+    .timer-opt {
+      background: #0f3460; border: 2px solid transparent;
+      border-radius: 12px; padding: 0.65rem 1.25rem;
+      color: #eee; font-size: 0.95rem; cursor: pointer; font-family: inherit;
+      transition: all 0.2s;
+    }
+    .timer-opt:hover, .timer-opt.selected { border-color: #ffcb05; background: #1a4a80; color: #ffcb05; }
+    .start-btn {
+      background: linear-gradient(135deg, #ffcb05, #f59e0b);
+      color: #1a1a2e; border: none; border-radius: 12px;
+      padding: 0.8rem 2.5rem; font-size: 1.05rem; font-weight: 700;
+      cursor: pointer; font-family: inherit; transition: opacity 0.2s;
+    }
+    .start-btn:hover { opacity: 0.85; }
+    .timer-bar-wrap {
+      width: 100%; height: 6px; background: #0f3460; border-radius: 99px;
+      margin-bottom: 0.5rem; overflow: hidden;
+    }
+    .timer-bar {
+      height: 100%; background: #ffcb05; border-radius: 99px;
+      transition: width 1s linear, background 0.5s;
+    }
+    .timer-text { font-size: 0.85rem; color: #ffcb05; text-align: right; margin-bottom: 0.75rem; min-height: 1.2rem; }
   </style>
 </head>
 <body>
   <h1>⚡ 포켓몬 퀴즈</h1>
   <p class="subtitle">이 포켓몬은 누구일까요?</p>
 
-  <div class="card" id="quiz-card">
+  <div class="card" id="intro-card">
+    <div class="intro">
+      <h2>⏱ 타이머 설정</h2>
+      <p>문제당 제한 시간을 선택하세요</p>
+      <div class="timer-options">
+        <button class="timer-opt" data-sec="0">⏸ 없음</button>
+        <button class="timer-opt" data-sec="10">10초</button>
+        <button class="timer-opt selected" data-sec="15">15초</button>
+        <button class="timer-opt" data-sec="20">20초</button>
+        <button class="timer-opt" data-sec="30">30초</button>
+      </div>
+      <button class="start-btn" id="start-btn">퀴즈 시작! ⚡</button>
+    </div>
+  </div>
+
+  <div class="card" id="quiz-card" style="display:none;">
     <div class="score-bar">
       <span>문제 <span class="score-val" id="q-num">1</span> / 10</span>
       <span>점수 <span class="score-val" id="score">0</span></span>
       <span class="streak" id="streak-display"></span>
+    </div>
+    <div id="timer-wrap" style="display:none;">
+      <div class="timer-text" id="timer-text"></div>
+      <div class="timer-bar-wrap"><div class="timer-bar" id="timer-bar"></div></div>
     </div>
 
     <div class="silhouette-wrap">
@@ -154,7 +204,7 @@
     <h2 id="final-title">퀴즈 완료!</h2>
     <p id="final-score"></p>
     <p id="final-comment"></p>
-    <button class="restart-btn" onclick="startQuiz()">다시 도전하기</button>
+    <button class="restart-btn" onclick="goIntro()">다시 도전하기</button>
   </div>
 
   <script>
@@ -165,6 +215,29 @@
     let score = 0;
     let streak = 0;
     let answered = false;
+    let timerSec = 15;
+    let timerInterval = null;
+    let timeLeft = 0;
+
+    // 인트로 타이머 선택
+    document.querySelectorAll('.timer-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.timer-opt').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        timerSec = parseInt(btn.dataset.sec);
+      });
+    });
+
+    document.getElementById('start-btn').addEventListener('click', () => {
+      document.getElementById('intro-card').style.display = 'none';
+      startQuiz();
+    });
+
+    function goIntro() {
+      document.getElementById('final-card').style.display = 'none';
+      document.getElementById('quiz-card').style.display = 'none';
+      document.getElementById('intro-card').style.display = 'block';
+    }
 
     const TOTAL_POKEMON = 1025; // 9세대까지 (전 1025마리)
 
@@ -209,6 +282,51 @@
       currentQ = { id, name, options, img: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` };
 
       showQuestion();
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      if (!timerSec) {
+        document.getElementById('timer-wrap').style.display = 'none';
+        return;
+      }
+      document.getElementById('timer-wrap').style.display = 'block';
+      timeLeft = timerSec;
+      updateTimerUI();
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        updateTimerUI();
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          if (!answered) timeOut();
+        }
+      }, 1000);
+    }
+
+    function updateTimerUI() {
+      const pct = (timeLeft / timerSec) * 100;
+      const bar = document.getElementById('timer-bar');
+      bar.style.width = pct + '%';
+      bar.style.background = pct > 40 ? '#ffcb05' : pct > 20 ? '#f97316' : '#ef4444';
+      document.getElementById('timer-text').textContent = timerSec ? `⏱ ${timeLeft}초` : '';
+    }
+
+    function timeOut() {
+      answered = true;
+      clearInterval(timerInterval);
+      const q = currentQ;
+      streak = 0;
+      document.querySelectorAll('.opt-btn').forEach(b => {
+        b.disabled = true;
+        if (b.textContent === q.name) b.classList.add('correct');
+      });
+      const msg = document.getElementById('result-msg');
+      msg.textContent = `⏰ 시간 초과! 정답: ${q.name}`;
+      msg.className = 'result-msg wrong-msg';
+      drawFull(document.getElementById('pkmn-img'));
+      updateScore();
+      document.getElementById('next-btn').disabled = false;
+      document.getElementById('next-btn').textContent = current < 9 ? '다음 문제 →' : '결과 보기 🎯';
     }
 
     function startQuiz() {
@@ -266,12 +384,15 @@
         btn.onclick = () => answer(name, btn);
         opts.appendChild(btn);
       });
+
+      startTimer();
     }
 
     function answer(chosen, btn) {
       if (answered) return;
       answered = true;
 
+      clearInterval(timerInterval);
       const q = currentQ;
       const img = document.getElementById('pkmn-img');
       drawFull(img);
@@ -318,6 +439,7 @@
     };
 
     function showFinal() {
+      clearInterval(timerInterval);
       document.getElementById('quiz-card').style.display = 'none';
       const fc = document.getElementById('final-card');
       fc.style.display = 'flex';
