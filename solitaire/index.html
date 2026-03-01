@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🃏 솔리테어</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;}
+body{background:#0d3020;min-height:100vh;font-family:'Segoe UI',sans-serif;}
+#hud{display:flex;gap:10px;padding:10px;align-items:center;background:#0a2818;}
+#hud h1{font-size:1.2rem;color:#4ade80;margin-right:8px;}
+.stat{background:#0f3820;border:1px solid #1e5a30;border-radius:6px;padding:4px 12px;font-size:0.8rem;color:#86efac;}
+.stat span{color:#4ade80;font-weight:700;}
+#new-btn{margin-left:auto;padding:6px 16px;border-radius:8px;border:none;background:linear-gradient(135deg,#16a34a,#4ade80);color:#fff;font-weight:700;cursor:pointer;}
+#table{padding:10px;min-height:calc(100vh - 56px);position:relative;}
+.zone{position:absolute;border:2px dashed #1e5a3080;border-radius:8px;}
+.card{
+  position:absolute;width:68px;height:96px;border-radius:8px;
+  cursor:pointer;transition:box-shadow 0.15s;
+  border:1px solid #0005;
+}
+.card.face-up{background:#f8f4e8;}
+.card.face-down{background:linear-gradient(135deg,#1e3a8a,#1e40af);border:1px solid #3b82f6;}
+.card.selected{box-shadow:0 0 0 3px #4ade80,0 4px 12px #0008;}
+.card:hover.face-up{box-shadow:0 4px 12px #0006;}
+.card-rank{position:absolute;top:4px;left:5px;font-size:0.85rem;font-weight:700;line-height:1;}
+.card-suit{position:absolute;bottom:4px;right:5px;font-size:0.85rem;font-weight:700;line-height:1;transform:rotate(180deg);}
+.card-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.5rem;}
+.red{color:#dc2626;}
+.black{color:#111;}
+.empty-zone{position:absolute;border:2px dashed #1e5a3060;border-radius:8px;width:68px;height:96px;}
+#win-overlay{display:none;position:fixed;inset:0;background:#000c;z-index:100;align-items:center;justify-content:center;flex-direction:column;}
+#win-overlay.show{display:flex;}
+</style>
+</head>
+<body>
+<div id="hud">
+  <h1>🃏 솔리테어</h1>
+  <div class="stat">🕐 <span id="time-txt">0:00</span></div>
+  <div class="stat">🎯 이동: <span id="moves-txt">0</span></div>
+  <button id="new-btn" onclick="initGame()">🔄 새 게임</button>
+</div>
+<div id="table" id="table"></div>
+<div id="win-overlay">
+  <div style="font-size:5rem;margin-bottom:12px;">🎉</div>
+  <h2 style="font-size:2rem;color:#4ade80;margin-bottom:8px;">클리어!</h2>
+  <p style="color:#86efac;margin-bottom:20px;" id="win-stat"></p>
+  <button onclick="initGame();document.getElementById('win-overlay').classList.remove('show')" style="padding:12px 32px;border-radius:99px;border:none;background:linear-gradient(135deg,#16a34a,#4ade80);color:#fff;font-size:1rem;font-weight:700;cursor:pointer;">새 게임</button>
+</div>
+<script>
+const SUITS=['♠','♣','♥','♦'];
+const RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const RED_SUITS=['♥','♦'];
+const CW=68,CH=96,PAD=10,OVERLAP=24;
+
+let deck,tableau,foundation,stock,waste,selected,moves,startTime,timerInterval;
+
+function buildDeck(){
+  const d=[];
+  for(let s of SUITS)for(let r of RANKS)d.push({suit:s,rank:r,faceUp:false});
+  return d.sort(()=>Math.random()-0.5);
+}
+function rankVal(r){return RANKS.indexOf(r)+1;}
+function isRed(s){return RED_SUITS.includes(s);}
+
+function initGame(){
+  deck=buildDeck();
+  tableau=Array.from({length:7},()=>[]);
+  foundation=Array.from({length:4},()=>[]);
+  stock=[];waste=[];selected=null;moves=0;
+  clearInterval(timerInterval);startTime=Date.now();
+  timerInterval=setInterval(updateTimer,1000);
+
+  let idx=0;
+  for(let c=0;c<7;c++){
+    for(let r=0;r<=c;r++){
+      const card=deck[idx++];card.faceUp=(r===c);
+      tableau[c].push(card);
+    }
+  }
+  while(idx<52){deck[idx].faceUp=false;stock.push(deck[idx++]);}
+  render();
+}
+
+function updateTimer(){
+  const s=Math.floor((Date.now()-startTime)/1000);
+  document.getElementById('time-txt').textContent=`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+function render(){
+  const tbl=document.getElementById('table');
+  tbl.innerHTML='';
+  const TW=tbl.offsetWidth||window.innerWidth;
+
+  // 레이아웃
+  const topY=PAD, deckY=topY;
+  const tabY=topY+CH+PAD*2;
+  const tabSpacing=Math.min(CW+PAD,(TW-PAD*2)/7);
+
+  // Stock
+  renderPile('stock',stock,PAD,deckY,()=>drawStock());
+  // Waste
+  renderCard('waste',waste[waste.length-1]||null,PAD+tabSpacing,deckY,()=>selectWaste());
+  // Foundation
+  for(let i=0;i<4;i++){
+    renderFoundation(i,PAD+(3+i)*tabSpacing,deckY);
+  }
+  // Tableau
+  for(let c=0;c<7;c++){
+    const x=PAD+c*tabSpacing;
+    renderTableau(c,x,tabY);
+  }
+  document.getElementById('moves-txt').textContent=moves;
+}
+
+function renderPile(id,pile,x,y,onclick){
+  const tbl=document.getElementById('table');
+  if(pile.length===0){
+    const z=document.createElement('div');z.className='empty-zone';z.style.left=x+'px';z.style.top=y+'px';
+    if(id==='stock'){z.style.cursor='pointer';z.textContent='♻️';z.style.display='flex';z.style.alignItems='center';z.style.justifyContent='center';z.style.fontSize='24px';z.onclick=onclick;}
+    tbl.appendChild(z);return;
+  }
+  const c=document.createElement('div');
+  c.className='card face-down';c.style.left=x+'px';c.style.top=y+'px';
+  c.style.zIndex=1;if(onclick){c.onclick=onclick;c.style.cursor='pointer';}
+  tbl.appendChild(c);
+}
+
+function renderCard(id,card,x,y,onclick){
+  const tbl=document.getElementById('table');
+  if(!card){const z=document.createElement('div');z.className='empty-zone';z.style.left=x+'px';z.style.top=y+'px';tbl.appendChild(z);return;}
+  const el=makeCardEl(card,x,y,1);
+  if(onclick)el.onclick=onclick;
+  tbl.appendChild(el);
+}
+
+function renderFoundation(i,x,y){
+  const tbl=document.getElementById('table');
+  const pile=foundation[i];
+  if(!pile.length){
+    const z=document.createElement('div');z.className='empty-zone';z.style.left=x+'px';z.style.top=y+'px';
+    z.style.display='flex';z.style.alignItems='center';z.style.justifyContent='center';
+    z.style.fontSize='24px';z.textContent=SUITS[i];z.style.color='rgba(255,255,255,0.3)';
+    z.onclick=()=>tryMoveToFoundation(i);tbl.appendChild(z);return;
+  }
+  const top=pile[pile.length-1];
+  const el=makeCardEl(top,x,y,10);
+  el.onclick=()=>tryMoveToFoundation(i);
+  tbl.appendChild(el);
+}
+
+function renderTableau(col,x,y){
+  const tbl=document.getElementById('table');
+  const pile=tableau[col];
+  if(!pile.length){
+    const z=document.createElement('div');z.className='empty-zone';z.style.left=x+'px';z.style.top=y+'px';
+    z.style.cursor='pointer';z.onclick=()=>tryDropOn(col,-1);tbl.appendChild(z);return;
+  }
+  pile.forEach((card,idx)=>{
+    const cy=y+idx*OVERLAP;
+    const el=makeCardEl(card,x,cy,20+idx);
+    if(card.faceUp){
+      el.onclick=()=>handleCardClick(col,idx);
+      if(selected&&selected.src==='tab'&&selected.col===col&&selected.idx<=idx){
+        el.classList.add('selected');
+      }
+    }
+    tbl.appendChild(el);
+  });
+}
+
+function makeCardEl(card,x,y,z){
+  const el=document.createElement('div');
+  el.className='card '+(card.faceUp?'face-up':'face-down');
+  el.style.left=x+'px';el.style.top=y+'px';el.style.zIndex=z;
+  if(card.faceUp){
+    const red=isRed(card.suit);
+    el.innerHTML=`<span class="card-rank ${red?'red':'black'}">${card.rank}<br>${card.suit}</span><span class="card-center">${card.suit}</span><span class="card-suit ${red?'red':'black'}">${card.rank}<br>${card.suit}</span>`;
+  }
+  return el;
+}
+
+function drawStock(){
+  if(stock.length===0){stock=waste.reverse();waste=[];stock.forEach(c=>c.faceUp=false);}
+  else{const c=stock.pop();c.faceUp=true;waste.push(c);}
+  moves++;render();
+}
+
+function selectWaste(){
+  if(!waste.length)return;
+  const top=waste[waste.length-1];
+  if(selected&&selected.src==='waste'){selected=null;render();return;}
+  selected={src:'waste',card:top};
+  render();
+  // 하이라이트
+  document.querySelectorAll('#table .card')[1]?.classList.add('selected');
+}
+
+function handleCardClick(col,idx){
+  const pile=tableau[col];
+  const card=pile[idx];
+  if(!card.faceUp)return;
+
+  if(selected){
+    if(selected.src==='tab'&&selected.col===col&&selected.idx===idx){selected=null;render();return;}
+    tryDropOn(col,idx);
+  } else {
+    selected={src:'tab',col,idx,card};render();
+  }
+}
+
+function tryDropOn(col,idx){
+  if(!selected)return;
+  const pile=tableau[col];
+  const target=pile[pile.length-1]||null;
+
+  // 이동 가능 여부
+  let movingCards=[];
+  if(selected.src==='waste'){movingCards=[selected.card];}
+  else if(selected.src==='tab'){movingCards=tableau[selected.col].slice(selected.idx);}
+
+  const first=movingCards[0];
+  if(target){
+    if(!target.faceUp)return;
+    if(isRed(first.suit)===isRed(target.suit))return; // 같은 색
+    if(rankVal(first.rank)!==rankVal(target.rank)-1)return; // 연속 아님
+  } else {
+    if(first.rank!=='K')return; // 빈 칸엔 K만
+  }
+
+  // 이동
+  if(selected.src==='waste'){waste.pop();pile.push(first);}
+  else{const moved=tableau[selected.col].splice(selected.idx);pile.push(...moved);
+    const prev=tableau[selected.col];if(prev.length&&!prev[prev.length-1].faceUp)prev[prev.length-1].faceUp=true;}
+  moves++;selected=null;checkWin();render();
+}
+
+function tryMoveToFoundation(fIdx){
+  let card=null,src=null;
+  if(selected?.src==='waste'){card=selected.card;src='waste';}
+  else if(selected?.src==='tab'){const pile=tableau[selected.col];if(selected.idx===pile.length-1)card=pile[selected.idx];src='tab';}
+  if(!card)return;
+
+  const pile=foundation[fIdx];
+  const top=pile[pile.length-1];
+  const suitIdx=SUITS.indexOf(card.suit);
+  if(fIdx!==suitIdx&&pile.length>0&&pile[0].suit!==card.suit)return; // 다른 무늬
+  if(!top&&card.rank!=='A')return;
+  if(top&&rankVal(card.rank)!==rankVal(top.rank)+1)return;
+  if(top&&card.suit!==top.suit)return;
+
+  pile.push(card);
+  if(src==='waste')waste.pop();
+  else{tableau[selected.col].pop();const p=tableau[selected.col];if(p.length&&!p[p.length-1].faceUp)p[p.length-1].faceUp=true;}
+  moves++;selected=null;checkWin();render();
+}
+
+function checkWin(){
+  if(foundation.every(p=>p.length===13)){
+    clearInterval(timerInterval);
+    const s=Math.floor((Date.now()-startTime)/1000);
+    document.getElementById('win-stat').textContent=`${moves}번 이동 · ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+    setTimeout(()=>document.getElementById('win-overlay').classList.add('show'),500);
+  }
+}
+
+// 더블클릭으로 foundation 자동 이동
+document.addEventListener('dblclick',e=>{
+  const cardEl=e.target.closest('.card.face-up');
+  if(!cardEl)return;
+  // foundation 자동
+  for(let i=0;i<4;i++){tryMoveToFoundation(i);}
+});
+
+initGame();
+</script>
+</body>
+</html>

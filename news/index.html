@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📰 뉴스피드</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0d0a1a;color:#f0e6ff;font-family:'Noto Sans KR',sans-serif;min-height:100vh;}
+header{background:#0a0818;border-bottom:1px solid #2d1f4e;padding:14px 20px;position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;}
+header h1{font-size:1.3rem;color:#c084fc;}
+.reload-btn{padding:6px 16px;border-radius:8px;border:1px solid #3d2a5e;background:transparent;color:#c084fc;cursor:pointer;margin-left:auto;}
+.reload-btn:hover{background:#2d1f4e;}
+.tabs{display:flex;gap:0;background:#0a0818;border-bottom:1px solid #2d1f4e;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.tab{padding:10px 18px;cursor:pointer;border-bottom:2px solid transparent;color:#7c6a9a;font-size:0.85rem;white-space:nowrap;transition:all 0.2s;}
+.tab.active{color:#c084fc;border-bottom-color:#c084fc;}
+#main{max-width:900px;margin:0 auto;padding:16px;}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+.card{background:#1a1030;border:1px solid #2d1f4e;border-radius:12px;overflow:hidden;transition:all 0.2s;cursor:pointer;}
+.card:hover{border-color:#7c3aed;transform:translateY(-2px);box-shadow:0 6px 24px #7c3aed22;}
+.card-img{width:100%;height:150px;object-fit:cover;background:#0d0820;display:block;}
+.card-body{padding:12px;}
+.card-src{font-size:0.7rem;color:#7c3aed;margin-bottom:4px;display:flex;align-items:center;gap:6px;}
+.src-dot{width:6px;height:6px;border-radius:50%;background:#7c3aed;flex-shrink:0;}
+.card-title{font-size:0.88rem;font-weight:700;color:#e2d4ff;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;line-height:1.5;}
+.card-desc{font-size:0.76rem;color:#7c6a9a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.5;}
+.card-date{font-size:0.7rem;color:#4a3a60;margin-top:6px;}
+#loading{text-align:center;padding:40px;color:#7c6a9a;}
+.spinner{display:inline-block;width:24px;height:24px;border:3px solid #3d2a5e;border-top-color:#c084fc;border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:8px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+#error{text-align:center;padding:40px;color:#7c6a9a;display:none;}
+</style>
+</head>
+<body>
+<header>
+  <h1>📰 서브컬처 뉴스피드</h1>
+  <button class="reload-btn" onclick="loadFeed(activeTab)">🔄 새로고침</button>
+</header>
+<div class="tabs" id="tabs"></div>
+<div id="main">
+  <div id="loading"><div class="spinner"></div><br>피드 불러오는 중...</div>
+  <div id="error">⚠️ 피드를 불러오지 못했어요<br><small>CORS 제한으로 일부 피드는 불러오기 어려울 수 있어요</small></div>
+  <div id="grid"></div>
+</div>
+<script>
+const FEEDS=[
+  {name:'🎮 게임',color:'#7c3aed',feeds:[
+    'https://feeds.feedburner.com/kotaku/full',
+    'https://www.pcgamer.com/rss/',
+    'https://api.rss2json.com/v1/api.json?rss_url=https://www.ign.com/rss/articles',
+  ]},
+  {name:'💻 개발',color:'#2563eb',feeds:[
+    'https://api.rss2json.com/v1/api.json?rss_url=https://dev.to/feed',
+    'https://api.rss2json.com/v1/api.json?rss_url=https://hnrss.org/frontpage',
+    'https://api.rss2json.com/v1/api.json?rss_url=https://feeds.feedburner.com/TheHackersNews',
+  ]},
+  {name:'🌸 서브컬처',color:'#ec4899',feeds:[
+    'https://api.rss2json.com/v1/api.json?rss_url=https://myanimelist.net/rss/news.xml',
+    'https://api.rss2json.com/v1/api.json?rss_url=https://www.animenewsnetwork.com/all/rss.xml',
+  ]},
+  {name:'🤖 AI/기술',color:'#10b981',feeds:[
+    'https://api.rss2json.com/v1/api.json?rss_url=https://techcrunch.com/feed/',
+    'https://api.rss2json.com/v1/api.json?rss_url=https://www.wired.com/feed/rss',
+  ]},
+  {name:'📰 종합',color:'#f97316',feeds:[
+    'https://api.rss2json.com/v1/api.json?rss_url=https://feeds.bbci.co.uk/news/technology/rss.xml',
+    'https://api.rss2json.com/v1/api.json?rss_url=https://rss.cnn.com/rss/edition.rss',
+  ]},
+];
+
+let activeTab=0;
+
+// 탭 생성
+const tabsEl=document.getElementById('tabs');
+FEEDS.forEach((f,i)=>{
+  const t=document.createElement('div');t.className='tab'+(i===0?' active':'');
+  t.textContent=f.name;t.style.setProperty('--c',f.color);
+  t.onclick=()=>{activeTab=i;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');loadFeed(i);};
+  tabsEl.appendChild(t);
+});
+
+async function loadFeed(idx){
+  const f=FEEDS[idx];
+  document.getElementById('loading').style.display='block';
+  document.getElementById('grid').innerHTML='';
+  document.getElementById('error').style.display='none';
+
+  let articles=[];
+  for(let url of f.feeds){
+    try{
+      // rss2json API 직접 사용 (CORS 없음)
+      let apiUrl=url;
+      if(!url.includes('rss2json.com')){
+        apiUrl=`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&api_key=&count=20`;
+      }
+      const r=await fetch(apiUrl);
+      const d=await r.json();
+      if(d.items){
+        articles.push(...d.items.map(it=>({
+          title:it.title,
+          url:it.link||it.guid,
+          desc:stripHtml(it.description||it.content||''),
+          img:it.thumbnail||it.enclosure?.link||extractImg(it.description||it.content||''),
+          date:it.pubDate,
+          source:d.feed?.title||'RSS',
+          color:f.color,
+        })));
+      }
+    }catch(e){console.warn(e);}
+  }
+
+  document.getElementById('loading').style.display='none';
+  if(!articles.length){document.getElementById('error').style.display='block';return;}
+
+  // 날짜순 정렬
+  articles.sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+  const grid=document.getElementById('grid');
+  grid.innerHTML=articles.slice(0,40).map(a=>`
+    <div class="card" onclick="window.open('${escHtml(a.url)}','_blank')">
+      ${a.img?`<img class="card-img" src="${escHtml(a.img)}" loading="lazy" onerror="this.style.display='none'" alt="">`:
+      `<div class="card-img" style="display:flex;align-items:center;justify-content:center;font-size:40px;">${FEEDS[idx].name.split(' ')[0]}</div>`}
+      <div class="card-body">
+        <div class="card-src" style="color:${a.color}"><div class="src-dot" style="background:${a.color}"></div>${escHtml(a.source)}</div>
+        <div class="card-title">${escHtml(a.title)}</div>
+        ${a.desc?`<div class="card-desc">${escHtml(a.desc.slice(0,120))}</div>`:''}
+        <div class="card-date">${fmtDate(a.date)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function stripHtml(html){return html.replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').trim();}
+function extractImg(html){const m=html.match(/<img[^>]+src="([^"]+)"/);return m?m[1]:'';}
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmtDate(d){
+  if(!d)return'';
+  const dt=new Date(d),now=new Date();
+  const diff=Math.floor((now-dt)/60000);
+  if(diff<60)return`${diff}분 전`;
+  if(diff<1440)return`${Math.floor(diff/60)}시간 전`;
+  return`${dt.getMonth()+1}/${dt.getDate()}`;
+}
+
+loadFeed(0);
+</script>
+</body>
+</html>
