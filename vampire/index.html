@@ -95,12 +95,12 @@ let kills,gameTime,level,xp,xpNeeded,running,paused;
 let keys={};let touch={dx:0,dy:0};let animId;
 
 const WEAPON_DEFS={
-  knife:{name:'🗡 단검',desc:'빠른 단검 발사',color:'#e2d4ff',cooldown:30,damage:15,speed:8,r:6,type:'bullet',pierce:1},
-  axe:{name:'🪓 도끼',desc:'튀어나오는 도끼',color:'#f97316',cooldown:80,damage:40,speed:5,r:10,type:'boomerang'},
-  magic:{name:'✨ 마법진',desc:'주변을 회전 공격',color:'#c084fc',cooldown:130,damage:12,r:60,type:'orbit'},
-  fireball:{name:'🔥 파이어볼',desc:'강력한 폭발',color:'#ef4444',cooldown:100,damage:60,speed:4,r:12,type:'bullet',splash:50},
-  lightning:{name:'⚡ 번개',desc:'가장 가까운 적 공격',color:'#fde047',cooldown:60,damage:35,type:'lightning'},
-  freeze:{name:'❄️ 냉기장',desc:'주변 적 빙결',color:'#7dd3fc',cooldown:150,damage:10,r:120,type:'aura'},
+  knife:{name:'🗡 단검',desc:'빠른 단검 발사',color:'#e2d4ff',cooldown:30,damage:8,speed:8,r:6,type:'bullet',pierce:1},
+  axe:{name:'🪓 도끼',desc:'튀어나오는 도끼',color:'#f97316',cooldown:80,damage:20,speed:5,r:10,type:'boomerang'},
+  magic:{name:'✨ 마법진',desc:'주변을 회전 공격',color:'#c084fc',cooldown:130,damage:8,r:60,type:'orbit'},
+  fireball:{name:'🔥 파이어볼',desc:'강력한 폭발',color:'#ef4444',cooldown:100,damage:30,speed:4,r:12,type:'bullet',splash:50},
+  lightning:{name:'⚡ 번개',desc:'가장 가까운 적 공격',color:'#fde047',cooldown:60,damage:18,type:'lightning'},
+  freeze:{name:'❄️ 냉기장',desc:'주변 적 빙결',color:'#7dd3fc',cooldown:150,damage:5,r:120,type:'aura'},
 };
 const ALL_UPGRADES=[
   {id:'knife',name:'🗡 단검 추가',desc:'단검 발사 추가',icon:'🗡'},
