@@ -47,7 +47,7 @@ body{background:#0d0a1a;color:#f0e6ff;font-family:'Noto Sans KR',sans-serif;min-
 .restart{padding:12px 32px;border-radius:99px;border:none;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-size:1rem;cursor:pointer;font-weight:700;}
 </style>
 <style>
-#tut-btn{position:fixed;top:10px;right:10px;z-index:998;padding:5px 12px;border-radius:99px;background:rgba(13,10,26,0.85);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;cursor:pointer;backdrop-filter:blur(8px);}
+#tut-btn{position:fixed;top:10px;right:10px;z-index:998;padding:5px 12px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
 #tut-modal{display:none;position:fixed;inset:0;background:#0009;z-index:1000;align-items:center;justify-content:center;padding:16px;}
 #tut-modal.open{display:flex;}
 #tut-inner{background:#120a28;border:1px solid #3d2a5e;border-radius:16px;max-width:440px;width:100%;padding:20px;max-height:80vh;overflow-y:auto;}
@@ -69,7 +69,7 @@ body{background:#0d0a1a;color:#f0e6ff;font-family:'Noto Sans KR',sans-serif;min-
   <button class="tut-close" onclick="document.getElementById('tut-modal').classList.remove('open')">✕ 닫기</button>
 </div>
 </div>
-<a href="/" style="position:fixed;top:10px;left:10px;z-index:999;display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;background:rgba(13,10,26,0.85);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;text-decoration:none;backdrop-filter:blur(8px);transition:all 0.2s;" onmouseover="this.style.background='rgba(45,31,78,0.95)'" onmouseout="this.style.background='rgba(13,10,26,0.85)'">🏠 홈</a>
+<a href="/" style="position:fixed;top:10px;left:10px;z-index:999;display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;text-decoration:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:all 0.2s;" onmouseover="this.style.background='rgba(45,31,78,0.95)'" onmouseout="this.style.background='rgba(13,10,26,0.85)'">🏠 홈</a>
 <div id="char-select">
   <h1>💕 연애 시뮬레이션</h1>
   <p>마음에 드는 상대를 골라봐</p>
@@ -113,257 +113,242 @@ body{background:#0d0a1a;color:#f0e6ff;font-family:'Noto Sans KR',sans-serif;min-
   <button class="restart" onclick="restart()">🔄 다시 시작</button>
 </div>
 
-<script>
 // ══════════════════════════════════════
-// 애니 스타일 캐릭터 드로잉 함수
+// 애니 스타일 캐릭터 드로잉 함수 v3
 // ══════════════════════════════════════
 function drawAnimeChar(ctx, config, w, h) {
-  const { skin, hair, hairColor, eyeColor, expression, gender, outfit } = config;
+  const { skin, hairColor, hairHighlight, eyeColor, expression, gender, outfit } = config;
   const cx = w / 2;
-  // 배경 그라디언트
   const bg = ctx.createLinearGradient(0, 0, 0, h);
   bg.addColorStop(0, config.bgTop || '#1a1030');
   bg.addColorStop(1, config.bgBot || '#0d0820');
   ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
 
-  const faceY = h * 0.32, faceR = w * 0.24;
-  const bodyTop = faceY + faceR * 0.8;
+  const faceR = w * 0.21;
+  const faceX = cx, faceY = h * 0.32;
+  const bodyTop = faceY + faceR * 0.95;
+  const bodyW = faceR * 2.5;
 
-  // ── 몸통 ──
-  ctx.save();
+  // 몸통
   ctx.beginPath();
-  ctx.moveTo(cx - faceR * 1.1, h);
-  ctx.lineTo(cx - faceR * 0.9, bodyTop + 10);
-  ctx.bezierCurveTo(cx - faceR * 0.6, bodyTop, cx + faceR * 0.6, bodyTop, cx + faceR * 0.9, bodyTop + 10);
-  ctx.lineTo(cx + faceR * 1.1, h);
+  ctx.moveTo(cx - bodyW * 0.6, h);
+  ctx.lineTo(cx - bodyW * 0.48, bodyTop + 8);
+  ctx.bezierCurveTo(cx - bodyW * 0.3, bodyTop - 4, cx + bodyW * 0.3, bodyTop - 4, cx + bodyW * 0.48, bodyTop + 8);
+  ctx.lineTo(cx + bodyW * 0.6, h);
   ctx.closePath();
-  ctx.fillStyle = outfit.body; ctx.fill();
-  // 옷 디테일
+  ctx.fillStyle = outfit.jacket; ctx.fill();
+  // 셔츠
   ctx.beginPath();
-  ctx.moveTo(cx, bodyTop + 15);
-  ctx.lineTo(cx - 8, bodyTop + 60);
-  ctx.lineTo(cx + 8, bodyTop + 60);
-  ctx.closePath();
-  ctx.fillStyle = outfit.collar; ctx.fill();
-  ctx.restore();
+  ctx.moveTo(cx - bodyW * 0.15, bodyTop + 6);
+  ctx.lineTo(cx - bodyW * 0.08, bodyTop + (h - bodyTop) * 0.6);
+  ctx.lineTo(cx + bodyW * 0.08, bodyTop + (h - bodyTop) * 0.6);
+  ctx.lineTo(cx + bodyW * 0.15, bodyTop + 6);
+  ctx.closePath(); ctx.fillStyle = outfit.collar; ctx.fill();
+  // 넥타이
+  ctx.beginPath();
+  ctx.moveTo(cx - 5, bodyTop + 10); ctx.lineTo(cx + 5, bodyTop + 10);
+  ctx.lineTo(cx + 7, bodyTop + (h - bodyTop) * 0.35);
+  ctx.lineTo(cx, bodyTop + (h - bodyTop) * 0.44);
+  ctx.lineTo(cx - 7, bodyTop + (h - bodyTop) * 0.35);
+  ctx.closePath(); ctx.fillStyle = outfit.tie; ctx.fill();
 
-  // ── 목 ──
-  ctx.beginPath();
-  ctx.rect(cx - faceR * 0.18, faceY + faceR * 0.85, faceR * 0.36, faceR * 0.35);
+  // 목
+  ctx.beginPath(); ctx.rect(cx - faceR * 0.2, faceY + faceR * 0.82, faceR * 0.4, faceR * 0.35);
   ctx.fillStyle = skin; ctx.fill();
 
-  // ── 앞머리 ──
-  ctx.save();
-  if (gender === 'f') {
-    // 여자 - 긴 머리 양옆
-    ctx.beginPath();
-    ctx.moveTo(cx - faceR, faceY - faceR * 0.3);
-    ctx.bezierCurveTo(cx - faceR * 1.4, faceY + faceR * 0.5, cx - faceR * 1.5, faceY + faceR * 1.5, cx - faceR * 1.1, h);
-    ctx.lineTo(cx - faceR * 0.9, h);
-    ctx.bezierCurveTo(cx - faceR * 1.2, faceY + faceR * 1.2, cx - faceR * 1.0, faceY + faceR * 0.3, cx - faceR * 0.7, faceY - faceR * 0.1);
-    ctx.closePath();
-    ctx.fillStyle = hairColor; ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(cx + faceR, faceY - faceR * 0.3);
-    ctx.bezierCurveTo(cx + faceR * 1.4, faceY + faceR * 0.5, cx + faceR * 1.5, faceY + faceR * 1.5, cx + faceR * 1.1, h);
-    ctx.lineTo(cx + faceR * 0.9, h);
-    ctx.bezierCurveTo(cx + faceR * 1.2, faceY + faceR * 1.2, cx + faceR * 1.0, faceY + faceR * 0.3, cx + faceR * 0.7, faceY - faceR * 0.1);
-    ctx.closePath();
-    ctx.fillStyle = hairColor; ctx.fill();
-  } else {
-    // 남자 - 짧은 머리 양옆
-    ctx.beginPath();
-    ctx.moveTo(cx - faceR * 0.85, faceY - faceR * 0.5);
-    ctx.bezierCurveTo(cx - faceR * 1.2, faceY, cx - faceR * 1.1, faceY + faceR * 0.6, cx - faceR * 0.95, faceY + faceR * 0.9);
-    ctx.lineTo(cx - faceR * 0.8, faceY + faceR * 0.7);
-    ctx.bezierCurveTo(cx - faceR * 0.9, faceY + faceR * 0.3, cx - faceR * 0.8, faceY - faceR * 0.1, cx - faceR * 0.6, faceY - faceR * 0.3);
-    ctx.closePath();
-    ctx.fillStyle = hairColor; ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(cx + faceR * 0.85, faceY - faceR * 0.5);
-    ctx.bezierCurveTo(cx + faceR * 1.2, faceY, cx + faceR * 1.1, faceY + faceR * 0.6, cx + faceR * 0.95, faceY + faceR * 0.9);
-    ctx.lineTo(cx + faceR * 0.8, faceY + faceR * 0.7);
-    ctx.bezierCurveTo(cx + faceR * 0.9, faceY + faceR * 0.3, cx + faceR * 0.8, faceY - faceR * 0.1, cx + faceR * 0.6, faceY - faceR * 0.3);
-    ctx.closePath();
-    ctx.fillStyle = hairColor; ctx.fill();
-  }
-  ctx.restore();
+  // 귀
+  [-1, 1].forEach(s => {
+    ctx.beginPath(); ctx.ellipse(cx + s * faceR * 0.97, faceY + faceR * 0.05, faceR * 0.14, faceR * 0.18, 0, 0, Math.PI * 2);
+    ctx.fillStyle = skin; ctx.fill();
+  });
 
-  // ── 얼굴 ──
-  ctx.beginPath();
-  ctx.ellipse(cx, faceY, faceR, faceR * 1.1, 0, 0, Math.PI * 2);
-  ctx.fillStyle = skin; ctx.fill();
-
-  // ── 머리카락 (얼굴 위) ──
-  ctx.save();
-  ctx.beginPath();
+  // 뒤 머리카락
+  const hc = hairColor, hh = hairHighlight || hairColor;
   if (gender === 'f') {
-    // 긴 앞머리
-    ctx.ellipse(cx, faceY - faceR * 0.6, faceR * 1.1, faceR * 0.65, 0, Math.PI, Math.PI * 2);
-  } else {
-    // 짧은 덮개형
-    ctx.ellipse(cx, faceY - faceR * 0.55, faceR * 1.05, faceR * 0.6, 0, Math.PI, Math.PI * 2);
-  }
-  ctx.fillStyle = hairColor; ctx.fill();
-  // 앞머리 가닥
-  if (gender === 'f') {
-    const bangCount = config.bangs || 5;
-    for (let i = 0; i < bangCount; i++) {
-      const bx = cx - faceR * 0.7 + i * (faceR * 1.4 / (bangCount - 1));
-      const by1 = faceY - faceR * 0.2;
-      const by2 = faceY - faceR * 0.02 + (i % 2 === 0 ? 6 : 0);
+    const hg = ctx.createLinearGradient(cx, faceY - faceR * 0.5, cx, h);
+    hg.addColorStop(0, hh); hg.addColorStop(0.3, hc); hg.addColorStop(1, hc + 'cc');
+    ctx.fillStyle = hg;
+    [-1, 1].forEach(s => {
       ctx.beginPath();
-      ctx.moveTo(bx - 6, faceY - faceR * 0.55);
-      ctx.bezierCurveTo(bx - 4, by1, bx + 2, by1 + 5, bx + 1, by2);
-      ctx.bezierCurveTo(bx - 2, by2 + 3, bx - 8, by1 + 2, bx - 6, faceY - faceR * 0.55);
-      ctx.closePath();
-      ctx.fillStyle = hairColor; ctx.fill();
+      ctx.moveTo(cx + s * faceR * 0.85, faceY - faceR * 0.5);
+      ctx.bezierCurveTo(cx + s * faceR * 1.55, faceY + faceR * 0.2, cx + s * faceR * 1.65, faceY + faceR * 1.2, cx + s * faceR * 1.5, faceY + faceR * 2.5);
+      ctx.bezierCurveTo(cx + s * faceR * 1.3, h, cx + s * faceR * 0.85, h, cx + s * faceR * 0.75, h);
+      ctx.lineTo(cx + s * faceR * 0.55, bodyTop + 12);
+      ctx.bezierCurveTo(cx + s * faceR * 0.85, bodyTop - 4, cx + s * faceR * 0.78, faceY + faceR * 0.3, cx + s * faceR * 0.58, faceY - faceR * 0.12);
+      ctx.closePath(); ctx.fill();
+    });
+    ctx.strokeStyle = hc + '55'; ctx.lineWidth = 1.8;
+    for (let i = 0; i < 3; i++) {
+      const sx = cx - faceR * 1.2 + i * faceR * 0.38;
+      ctx.beginPath(); ctx.moveTo(sx, faceY + faceR * 0.8);
+      ctx.bezierCurveTo(sx - 6, faceY + faceR * 1.8, sx + 4, faceY + faceR * 2.8, sx - 10, h);
+      ctx.stroke();
     }
   } else {
-    // 남자 앞머리 - 한쪽으로 쓸린 느낌
-    ctx.beginPath();
-    ctx.moveTo(cx - faceR * 0.5, faceY - faceR * 0.6);
-    ctx.bezierCurveTo(cx - faceR * 0.2, faceY - faceR * 0.15, cx + faceR * 0.3, faceY - faceR * 0.1, cx + faceR * 0.6, faceY - faceR * 0.55);
-    ctx.bezierCurveTo(cx + faceR * 0.4, faceY - faceR * 0.02, cx - faceR * 0.1, faceY - faceR * 0.05, cx - faceR * 0.5, faceY - faceR * 0.6);
-    ctx.closePath();
-    ctx.fillStyle = hairColor; ctx.fill();
+    const hg = ctx.createLinearGradient(cx - faceR, faceY, cx + faceR, faceY + faceR * 0.5);
+    hg.addColorStop(0, hh); hg.addColorStop(1, hc);
+    ctx.fillStyle = hg;
+    [-1, 1].forEach(s => {
+      ctx.beginPath();
+      ctx.moveTo(cx + s * faceR * 0.85, faceY - faceR * 0.5);
+      ctx.bezierCurveTo(cx + s * faceR * 1.3, faceY, cx + s * faceR * 1.1, faceY + faceR * 0.55, cx + s * faceR * 0.9, faceY + faceR * 0.7);
+      ctx.lineTo(cx + s * faceR * 0.7, faceY + faceR * 0.6);
+      ctx.bezierCurveTo(cx + s * faceR * 0.9, faceY + faceR * 0.2, cx + s * faceR * 0.8, faceY - faceR * 0.1, cx + s * faceR * 0.52, faceY - faceR * 0.32);
+      ctx.closePath(); ctx.fill();
+    });
   }
-  ctx.restore();
 
-  // ── 눈썹 ──
-  const eyeY = faceY - faceR * 0.08;
-  const eyeGap = faceR * 0.38;
-  ctx.lineWidth = gender === 'f' ? 1.8 : 2.5;
-  ctx.strokeStyle = hairColor;
-  ctx.lineCap = 'round';
-  [cx - eyeGap, cx + eyeGap].forEach((ex, i) => {
-    const flip = i === 0 ? -1 : 1;
+  // 얼굴
+  ctx.beginPath(); ctx.ellipse(faceX, faceY, faceR, faceR * 1.12, 0, 0, Math.PI * 2);
+  ctx.fillStyle = skin; ctx.fill();
+  const fg = ctx.createRadialGradient(faceX - faceR * 0.15, faceY - faceR * 0.2, faceR * 0.08, faceX, faceY, faceR * 1.1);
+  fg.addColorStop(0, 'rgba(255,255,255,0.14)'); fg.addColorStop(1, 'rgba(0,0,0,0.07)');
+  ctx.beginPath(); ctx.ellipse(faceX, faceY, faceR, faceR * 1.12, 0, 0, Math.PI * 2);
+  ctx.fillStyle = fg; ctx.fill();
+
+  // 윗 머리카락
+  const hg2 = ctx.createLinearGradient(cx, faceY - faceR * 1.1, cx, faceY - faceR * 0.05);
+  hg2.addColorStop(0, hh); hg2.addColorStop(1, hc);
+  ctx.fillStyle = hg2;
+  if (gender === 'f') {
+    ctx.beginPath(); ctx.ellipse(cx, faceY - faceR * 0.5, faceR * 1.08, faceR * 0.72, 0, Math.PI, Math.PI * 2); ctx.fill();
+    // 앞머리 뾰족뾰족
+    for (let i = 0; i < 7; i++) {
+      const t = i / 6;
+      const bx = cx - faceR * 0.88 + t * faceR * 1.76;
+      const wid = faceR * 0.17;
+      const tipY = faceY - faceR * (0.04 + (i % 2) * 0.05);
+      ctx.beginPath();
+      ctx.moveTo(bx - wid * 0.8, faceY - faceR * 0.63);
+      ctx.bezierCurveTo(bx - wid, faceY - faceR * 0.3, bx - wid * 0.4, tipY - 3, bx, tipY);
+      ctx.bezierCurveTo(bx + wid * 0.4, tipY - 3, bx + wid, faceY - faceR * 0.3, bx + wid * 0.8, faceY - faceR * 0.63);
+      ctx.closePath(); ctx.fillStyle = hg2; ctx.fill();
+    }
+    ctx.strokeStyle = hh + 'aa'; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(cx - faceR * 0.28, faceY - faceR * 0.95);
+    ctx.bezierCurveTo(cx, faceY - faceR * 0.88, cx + faceR * 0.2, faceY - faceR * 0.9, cx + faceR * 0.42, faceY - faceR * 0.82); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.ellipse(cx, faceY - faceR * 0.5, faceR * 1.05, faceR * 0.65, 0, Math.PI, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx - faceR * 0.6, faceY - faceR * 0.65);
+    ctx.bezierCurveTo(cx - faceR * 0.3, faceY - faceR * 0.18, cx + faceR * 0.2, faceY - faceR * 0.14, cx + faceR * 0.65, faceY - faceR * 0.62);
+    ctx.bezierCurveTo(cx + faceR * 0.4, faceY, cx - faceR * 0.05, faceY - faceR * 0.03, cx - faceR * 0.6, faceY - faceR * 0.65);
+    ctx.closePath(); ctx.fillStyle = hg2; ctx.fill();
+  }
+
+  // 눈썹
+  const eyeGap = faceR * 0.4, eyeY = faceY - faceR * 0.1;
+  ctx.lineWidth = gender === 'f' ? 2 : 2.8; ctx.lineCap = 'round'; ctx.strokeStyle = hc;
+  [cx - eyeGap, cx + eyeGap].forEach((ex, si) => {
     ctx.beginPath();
     if (expression === 'sad') {
-      ctx.moveTo(ex - faceR * 0.18, eyeY - faceR * 0.18 + flip * 3);
-      ctx.quadraticCurveTo(ex, eyeY - faceR * 0.22, ex + faceR * 0.18, eyeY - faceR * 0.16 - flip * 3);
-    } else if (expression === 'shy') {
-      ctx.moveTo(ex - faceR * 0.18, eyeY - faceR * 0.2);
-      ctx.quadraticCurveTo(ex, eyeY - faceR * 0.26, ex + faceR * 0.18, eyeY - faceR * 0.2);
+      ctx.moveTo(ex - faceR * 0.2, eyeY - faceR * 0.26 + (si === 0 ? 4 : -4));
+      ctx.bezierCurveTo(ex, eyeY - faceR * 0.29, ex + faceR * 0.12, eyeY - faceR * 0.23, ex + faceR * 0.2, eyeY - faceR * 0.19 + (si === 0 ? -4 : 4));
+    } else if (expression === 'happy') {
+      ctx.moveTo(ex - faceR * 0.2, eyeY - faceR * 0.27);
+      ctx.bezierCurveTo(ex, eyeY - faceR * 0.33, ex + faceR * 0.1, eyeY - faceR * 0.33, ex + faceR * 0.2, eyeY - faceR * 0.27);
     } else {
-      ctx.moveTo(ex - faceR * 0.18, eyeY - faceR * 0.22);
-      ctx.quadraticCurveTo(ex, eyeY - faceR * 0.28, ex + faceR * 0.18, eyeY - faceR * 0.22);
+      ctx.moveTo(ex - faceR * 0.2, eyeY - faceR * 0.26 - (si === 0 ? 1 : -1));
+      ctx.bezierCurveTo(ex, eyeY - faceR * 0.31, ex + faceR * 0.1, eyeY - faceR * 0.29, ex + faceR * 0.2, eyeY - faceR * 0.24);
     }
     ctx.stroke();
   });
 
-  // ── 눈 ──
-  const eyeSize = gender === 'f' ? faceR * 0.22 : faceR * 0.18;
+  // 눈
+  const eW = gender === 'f' ? faceR * 0.25 : faceR * 0.19;
+  const eH = gender === 'f' ? faceR * 0.28 : faceR * 0.2;
   [cx - eyeGap, cx + eyeGap].forEach(ex => {
-    // 흰자
+    const etop = expression === 'happy' ? eyeY - eH * 0.45 : eyeY - eH * 0.68;
+    const ebot = eyeY + eH * 0.38;
     ctx.beginPath();
-    ctx.ellipse(ex, eyeY, eyeSize, eyeSize * (expression === 'happy' ? 0.72 : 0.82), 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#fff'; ctx.fill();
-    ctx.strokeStyle = '#bbb'; ctx.lineWidth = 0.5; ctx.stroke();
-    // 홍채 (크고 진함)
+    ctx.moveTo(ex - eW, etop + 4); ctx.bezierCurveTo(ex - eW, etop, ex - eW * 0.5, etop - 4, ex, etop - 4);
+    ctx.bezierCurveTo(ex + eW * 0.5, etop - 4, ex + eW, etop, ex + eW, etop + 4);
+    ctx.lineTo(ex + eW, ebot); ctx.bezierCurveTo(ex + eW * 0.6, ebot + 6, ex - eW * 0.6, ebot + 6, ex - eW, ebot);
+    ctx.closePath(); ctx.fillStyle = '#fff'; ctx.fill();
+    ctx.strokeStyle = hc; ctx.lineWidth = 2; ctx.stroke();
+
+    ctx.save();
     ctx.beginPath();
-    ctx.ellipse(ex, eyeY + 2, eyeSize * 0.72, eyeSize * (expression === 'happy' ? 0.6 : 0.7), 0, 0, Math.PI * 2);
-    ctx.fillStyle = eyeColor; ctx.fill();
-    // 동공
-    ctx.beginPath();
-    ctx.ellipse(ex + 1, eyeY + 2, eyeSize * 0.35, eyeSize * 0.38, 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#111'; ctx.fill();
-    // 하이라이트
-    ctx.beginPath();
-    ctx.ellipse(ex - eyeSize * 0.22, eyeY - eyeSize * 0.15, eyeSize * 0.22, eyeSize * 0.22, 0, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(ex + eyeSize * 0.2, eyeY + eyeSize * 0.15, eyeSize * 0.1, eyeSize * 0.1, 0, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fill();
-    // 속눈썹 (여성)
+    ctx.moveTo(ex - eW, etop + 4); ctx.bezierCurveTo(ex - eW, etop, ex - eW * 0.5, etop - 4, ex, etop - 4);
+    ctx.bezierCurveTo(ex + eW * 0.5, etop - 4, ex + eW, etop, ex + eW, etop + 4);
+    ctx.lineTo(ex + eW, ebot); ctx.bezierCurveTo(ex + eW * 0.6, ebot + 6, ex - eW * 0.6, ebot + 6, ex - eW, ebot);
+    ctx.closePath(); ctx.clip();
+    const irisR = eW * 0.7, irisY = expression === 'happy' ? eyeY - eH * 0.08 : eyeY - eH * 0.04;
+    const ig = ctx.createRadialGradient(ex, irisY - irisR * 0.3, 0, ex, irisY, irisR);
+    ig.addColorStop(0, eyeColor + 'ff'); ig.addColorStop(0.5, eyeColor); ig.addColorStop(1, eyeColor + '88');
+    ctx.beginPath(); ctx.ellipse(ex, irisY, irisR, irisR * 0.95, 0, 0, Math.PI * 2); ctx.fillStyle = ig; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(ex, irisY + 2, irisR * 0.44, irisR * 0.54, 0, 0, Math.PI * 2); ctx.fillStyle = '#080808'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(ex - irisR * 0.27, irisY - irisR * 0.27, irisR * 0.27, irisR * 0.31, -0.3, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(ex + irisR * 0.22, irisY + irisR * 0.14, irisR * 0.13, irisR * 0.13, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fill();
+    ctx.restore();
+
     if (gender === 'f') {
-      ctx.strokeStyle = '#1a0a00'; ctx.lineWidth = 1.5;
-      for (let a = -0.7; a <= 0.7; a += 0.23) {
-        ctx.beginPath();
-        ctx.moveTo(ex + Math.cos(a) * eyeSize, eyeY - Math.sin(Math.abs(a)) * eyeSize * 0.85);
-        ctx.lineTo(ex + Math.cos(a) * (eyeSize + 5), eyeY - Math.sin(Math.abs(a)) * eyeSize * 0.85 - 4);
-        ctx.stroke();
+      ctx.strokeStyle = '#080808'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+      [-0.85,-0.5,-0.15,0.15,0.5,0.85].forEach(a => {
+        const lx = ex + Math.sin(a) * eW, ly = etop - 1 + Math.abs(Math.cos(a)) * 2;
+        ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + Math.sin(a) * 4, ly - 5 - Math.abs(Math.cos(a)) * 2); ctx.stroke();
+      });
+      ctx.lineWidth = 1.2;
+      for (let i = -2; i <= 2; i++) {
+        const lx = ex + i * eW * 0.34;
+        ctx.beginPath(); ctx.moveTo(lx, ebot + 4); ctx.lineTo(lx + i * 1.4, ebot + 7); ctx.stroke();
       }
     }
   });
 
-  // ── 코 ──
-  ctx.beginPath();
-  ctx.moveTo(cx - 3, faceY + faceR * 0.2);
-  ctx.lineTo(cx + 3, faceY + faceR * 0.2);
-  ctx.strokeStyle = skin === '#f2d3b1' ? '#c9a080' : '#c09070';
-  ctx.lineWidth = 1.2; ctx.stroke();
+  // 코
+  ctx.strokeStyle = skin === '#fde8cf' ? '#d4906a' : '#b07040';
+  ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx - 4, faceY + faceR * 0.24); ctx.bezierCurveTo(cx - 5, faceY + faceR * 0.3, cx + 5, faceY + faceR * 0.3, cx + 4, faceY + faceR * 0.24); ctx.stroke();
+  const nc = skin === '#fde8cf' ? '#e8b898' : '#c89070';
+  ctx.fillStyle = nc; ctx.beginPath(); ctx.arc(cx - 6, faceY + faceR * 0.28, 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 6, faceY + faceR * 0.28, 2.5, 0, Math.PI * 2); ctx.fill();
 
-  // ── 입 ──
-  const mouthY = faceY + faceR * 0.52;
-  ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+  // 입
+  const mY = faceY + faceR * 0.56; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+  const blush = (bx, by, r, a) => {
+    const bg2 = ctx.createRadialGradient(bx, by, 0, bx, by, r);
+    bg2.addColorStop(0, `rgba(255,130,130,${a})`); bg2.addColorStop(1, 'rgba(255,130,130,0)');
+    ctx.beginPath(); ctx.ellipse(bx, by, r, r * 0.55, 0, 0, Math.PI * 2); ctx.fillStyle = bg2; ctx.fill();
+  };
   if (expression === 'happy') {
-    ctx.beginPath();
-    ctx.moveTo(cx - faceR * 0.22, mouthY - 3);
-    ctx.quadraticCurveTo(cx, mouthY + 8, cx + faceR * 0.22, mouthY - 3);
-    ctx.strokeStyle = '#c07060'; ctx.stroke();
-    // 치아
-    ctx.beginPath();
-    ctx.moveTo(cx - faceR * 0.14, mouthY);
-    ctx.quadraticCurveTo(cx, mouthY + 6, cx + faceR * 0.14, mouthY);
-    ctx.fillStyle = '#fff4'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx - faceR * 0.2, mY - 2); ctx.bezierCurveTo(cx - faceR * 0.08, mY + 8, cx + faceR * 0.08, mY + 8, cx + faceR * 0.2, mY - 2); ctx.strokeStyle = '#c07060'; ctx.stroke();
+    blush(cx - faceR * 0.6, faceY + faceR * 0.38, faceR * 0.22, 0.35); blush(cx + faceR * 0.6, faceY + faceR * 0.38, faceR * 0.22, 0.35);
   } else if (expression === 'shy') {
-    ctx.beginPath();
-    ctx.arc(cx, mouthY, faceR * 0.1, 0, Math.PI);
-    ctx.strokeStyle = '#c07060'; ctx.stroke();
-    // 볼터치
-    [cx - faceR * 0.55, cx + faceR * 0.55].forEach(bx => {
-      ctx.beginPath();
-      ctx.ellipse(bx, faceY + faceR * 0.3, faceR * 0.18, faceR * 0.1, 0, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,150,150,0.3)'; ctx.fill();
-    });
+    ctx.beginPath(); ctx.moveTo(cx - faceR * 0.14, mY); ctx.bezierCurveTo(cx - faceR * 0.04, mY + 5, cx + faceR * 0.04, mY + 5, cx + faceR * 0.14, mY); ctx.strokeStyle = '#c07060'; ctx.stroke();
+    blush(cx - faceR * 0.55, faceY + faceR * 0.36, faceR * 0.28, 0.5); blush(cx + faceR * 0.55, faceY + faceR * 0.36, faceR * 0.28, 0.5);
   } else if (expression === 'sad') {
-    ctx.beginPath();
-    ctx.moveTo(cx - faceR * 0.2, mouthY + 2);
-    ctx.quadraticCurveTo(cx, mouthY - 4, cx + faceR * 0.2, mouthY + 2);
-    ctx.strokeStyle = '#c07060'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - faceR * 0.17, mY + 4); ctx.bezierCurveTo(cx - faceR * 0.06, mY - 2, cx + faceR * 0.06, mY - 2, cx + faceR * 0.17, mY + 4); ctx.strokeStyle = '#c07060'; ctx.stroke();
   } else {
-    ctx.beginPath();
-    ctx.moveTo(cx - faceR * 0.18, mouthY);
-    ctx.quadraticCurveTo(cx, mouthY + 4, cx + faceR * 0.18, mouthY);
-    ctx.strokeStyle = '#c07060'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - faceR * 0.14, mY + 2); ctx.bezierCurveTo(cx - faceR * 0.04, mY + 5, cx + faceR * 0.04, mY + 5, cx + faceR * 0.14, mY + 2); ctx.strokeStyle = '#c07060'; ctx.stroke();
+    blush(cx - faceR * 0.58, faceY + faceR * 0.38, faceR * 0.15, 0.18); blush(cx + faceR * 0.58, faceY + faceR * 0.38, faceR * 0.15, 0.18);
   }
-
-  // ── 귀 ──
-  [-1, 1].forEach(s => {
-    ctx.beginPath();
-    ctx.ellipse(cx + s * faceR, faceY + faceR * 0.08, faceR * 0.14, faceR * 0.18, 0, 0, Math.PI * 2);
-    ctx.fillStyle = skin; ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(cx + s * faceR, faceY + faceR * 0.08, faceR * 0.08, faceR * 0.1, 0, 0, Math.PI * 2);
-    ctx.fillStyle = skin === '#f2d3b1' ? '#e8a888' : '#c89060'; ctx.fill();
-  });
 }
 
 const CHARS = {
   yuna: {
     name: '박유나', badge: '🌸 박유나', gender: 'f',
-    skin: '#f4d5b8', hairColor: '#8b6553', eyeColor: '#6b7ea8',
-    bgTop: '#1a1030', bgBot: '#0d0820', bangs: 5,
-    outfit: { body: '#c084fc88', collar: '#e2d4ff' },
+    skin: '#fde8cf', hairColor: '#3d2a1e', eyeColor: '#7b9bc8',
+    hairHighlight: '#6b4a30',
+    bgTop: '#1a1030', bgBot: '#0d0820', bangs: 6,
+    outfit: { body: '#c084fc', jacket:'#9333ea', collar: '#e2d4ff', tie:'#3d2a5e' },
     bg: 'linear-gradient(160deg,#0f0820,#200d3a)',
-    expressions: { normal:'normal', happy:'happy', shy:'shy', sad:'sad' },
   },
   jiyeon: {
     name: '김지연', badge: '⚡ 김지연', gender: 'f',
-    skin: '#f0c9a0', hairColor: '#1a1a1a', eyeColor: '#2d4a8a',
-    bgTop: '#081530', bgBot: '#050c20', bangs: 4,
-    outfit: { body: '#3b4a7a', collar: '#7aa8e0' },
+    skin: '#f5dfc0', hairColor: '#111111', eyeColor: '#2d5fa0',
+    hairHighlight: '#333',
+    bgTop: '#081530', bgBot: '#050c20', bangs: 5,
+    outfit: { body: '#1e3a6e', jacket:'#1e3a6e', collar: '#e0e8f0', tie:'#1e3a6e' },
     bg: 'linear-gradient(160deg,#050f20,#0d1e38)',
-    expressions: { normal:'normal', happy:'happy', shy:'shy', excited:'happy' },
   },
   minjun: {
     name: '이민준', badge: '🌙 이민준', gender: 'm',
-    skin: '#e8c49a', hairColor: '#2a1e0e', eyeColor: '#4a3a70',
+    skin: '#f0d4a8', hairColor: '#0f0f1a', eyeColor: '#4a3880',
+    hairHighlight: '#222244',
     bgTop: '#080010', bgBot: '#040008', bangs: 0,
-    outfit: { body: '#2d2a4a', collar: '#9090d0' },
+    outfit: { body: '#1a1a2e', jacket:'#0f0f20', collar: '#c0c0e0', tie:'#3a3a6e' },
     bg: 'linear-gradient(160deg,#050008,#0f001a)',
-    expressions: { normal:'normal', happy:'happy', shy:'shy', excited:'happy' },
   },
 };
 

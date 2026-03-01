@@ -6,295 +6,349 @@
 <title>🃏 솔리테어</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;user-select:none;}
-body{background:#0d3020;min-height:100vh;font-family:'Segoe UI',sans-serif;}
-#hud{display:flex;gap:10px;padding:10px;align-items:center;background:#0a2818;}
-#hud h1{font-size:1.2rem;color:#4ade80;margin-right:8px;}
-.stat{background:#0f3820;border:1px solid #1e5a30;border-radius:6px;padding:4px 12px;font-size:0.8rem;color:#86efac;}
-.stat span{color:#4ade80;font-weight:700;}
-#new-btn{margin-left:auto;padding:6px 16px;border-radius:8px;border:none;background:linear-gradient(135deg,#16a34a,#4ade80);color:#fff;font-weight:700;cursor:pointer;}
-#table{padding:10px;min-height:calc(100vh - 56px);position:relative;}
-.zone{position:absolute;border:2px dashed #1e5a3080;border-radius:8px;}
-.card{
-  position:absolute;width:68px;height:96px;border-radius:8px;
-  cursor:pointer;transition:box-shadow 0.15s;
-  border:1px solid #0005;
-}
-.card.face-up{background:#f8f4e8;}
-.card.face-down{background:linear-gradient(135deg,#1e3a8a,#1e40af);border:1px solid #3b82f6;}
-.card.selected{box-shadow:0 0 0 3px #4ade80,0 4px 12px #0008;}
-.card:hover.face-up{box-shadow:0 4px 12px #0006;}
-.card-rank{position:absolute;top:4px;left:5px;font-size:0.85rem;font-weight:700;line-height:1;}
-.card-suit{position:absolute;bottom:4px;right:5px;font-size:0.85rem;font-weight:700;line-height:1;transform:rotate(180deg);}
-.card-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.5rem;}
-.red{color:#dc2626;}
-.black{color:#111;}
-.empty-zone{position:absolute;border:2px dashed #1e5a3060;border-radius:8px;width:68px;height:96px;}
-#win-overlay{display:none;position:fixed;inset:0;background:#000c;z-index:100;align-items:center;justify-content:center;flex-direction:column;}
-#win-overlay.show{display:flex;}
-</style>
-<style>
-#tut-btn{position:fixed;top:10px;right:10px;z-index:998;padding:5px 12px;border-radius:99px;background:rgba(13,10,26,0.85);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;cursor:pointer;backdrop-filter:blur(8px);}
-#tut-modal{display:none;position:fixed;inset:0;background:#0009;z-index:1000;align-items:center;justify-content:center;padding:16px;}
-#tut-modal.open{display:flex;}
-#tut-inner{background:#120a28;border:1px solid #3d2a5e;border-radius:16px;max-width:440px;width:100%;padding:20px;max-height:80vh;overflow-y:auto;}
-#tut-inner h3{color:#c084fc;font-size:1.1rem;margin-bottom:12px;}
-.tut-ctrl{background:#1a1030;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a78bfa;}
-.tut-ctrl b{color:#c084fc;display:block;margin-bottom:4px;}
-.tut-tips{list-style:none;display:flex;flex-direction:column;gap:6px;}
-.tut-tips li{font-size:0.82rem;color:#9f8ab8;padding:6px 10px;background:#1a1030;border-radius:8px;border-left:3px solid #3d2a5e;}
-.tut-close{width:100%;margin-top:14px;padding:10px;border-radius:8px;border:none;background:#2d1f4e;color:#e2d4ff;cursor:pointer;font-size:0.9rem;}
+body{background:#065f46;display:flex;flex-direction:column;align-items:center;overflow:hidden;height:100svh;font-family:'Segoe UI',sans-serif;}
+#hud{width:100%;background:#064e3b;padding:8px 12px;display:flex;gap:10px;align-items:center;}
+#hud h2{font-size:1rem;color:#34d399;margin-right:6px;}
+.stat{background:#047857;border-radius:6px;padding:4px 12px;font-size:0.78rem;color:#a7f3d0;}
+.stat span{color:#34d399;font-weight:700;}
+#new-btn{margin-left:auto;padding:6px 14px;border-radius:8px;border:none;background:linear-gradient(135deg,#059669,#34d399);color:#fff;font-weight:700;cursor:pointer;font-size:0.82rem;}
+canvas{display:block;touch-action:none;}
+#msg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#000c;color:#fff;padding:16px 28px;border-radius:12px;font-size:1.2rem;font-weight:700;display:none;z-index:20;text-align:center;}
 </style>
 </head>
 <body>
-<div id="tut-btn" onclick="document.getElementById('tut-modal').classList.add('open')">❓ 도움말</div>
-<div id="tut-modal" onclick="if(event.target===this)this.classList.remove('open')">
-<div id="tut-inner">
-  <h3>🃏 솔리테어</h3>
-  <div class="tut-ctrl"><b>🎮 조작법</b>카드 클릭 → 목적지 클릭으로 이동</div>
-  <ul class="tut-tips"><li>💡 빨강/검정 번갈아 내림차순으로 쌓아요</li><li>💡 우측 상단 4칸에 A부터 K까지 완성!</li><li>💡 뒷면 카드는 앞면 카드를 옮기면 뒤집혀요</li><li>💡 더블클릭으로 Foundation에 자동 이동</li><li>💡 왼쪽 덱을 클릭하면 카드를 뒤집어요</li></ul>
-  <button class="tut-close" onclick="document.getElementById('tut-modal').classList.remove('open')">✕ 닫기</button>
-</div>
-</div>
-<a href="/" style="position:fixed;top:10px;left:10px;z-index:999;display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;background:rgba(13,10,26,0.85);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;text-decoration:none;backdrop-filter:blur(8px);transition:all 0.2s;" onmouseover="this.style.background='rgba(45,31,78,0.95)'" onmouseout="this.style.background='rgba(13,10,26,0.85)'">🏠 홈</a>
+<a href="/" style="position:fixed;top:8px;left:8px;z-index:999;padding:5px 12px;border-radius:99px;background:rgba(0,0,0,0.5);color:#86efac;font-size:0.78rem;text-decoration:none;font-weight:700;">🏠</a>
 <div id="hud">
-  <h1>🃏 솔리테어</h1>
-  <div class="stat">🕐 <span id="time-txt">0:00</span></div>
-  <div class="stat">🎯 이동: <span id="moves-txt">0</span></div>
-  <button id="new-btn" onclick="initGame()">🔄 새 게임</button>
+  <h2>🃏 솔리테어</h2>
+  <div class="stat">⏱ <span id="t-time">0:00</span></div>
+  <div class="stat">🎯 <span id="t-moves">0</span>번</div>
+  <button id="new-btn" onclick="newGame()">새 게임</button>
 </div>
-<div id="table" id="table"></div>
-<div id="win-overlay">
-  <div style="font-size:5rem;margin-bottom:12px;">🎉</div>
-  <h2 style="font-size:2rem;color:#4ade80;margin-bottom:8px;">클리어!</h2>
-  <p style="color:#86efac;margin-bottom:20px;" id="win-stat"></p>
-  <button onclick="initGame();document.getElementById('win-overlay').classList.remove('show')" style="padding:12px 32px;border-radius:99px;border:none;background:linear-gradient(135deg,#16a34a,#4ade80);color:#fff;font-size:1rem;font-weight:700;cursor:pointer;">새 게임</button>
-</div>
-<script>
-const SUITS=['♠','♣','♥','♦'];
-const RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-const RED_SUITS=['♥','♦'];
-const CW=68,CH=96,PAD=10,OVERLAP=24;
+<canvas id="c"></canvas>
+<div id="msg" id="msg"></div>
 
-let deck,tableau,foundation,stock,waste,selected,moves,startTime,timerInterval;
+<script>
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const SUITS = ['♠','♣','♥','♦'];
+const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const isRed = s => s==='♥'||s==='♦';
+
+let W, H, CW, CH, PAD, OVERLAP, HIT_H;
+
+function resize(){
+  W = cv.width = window.innerWidth;
+  H = cv.height = window.innerHeight - 48;
+  CW = Math.min(68, Math.floor((W - 16) / 7.5));
+  CH = Math.floor(CW * 1.4);
+  PAD = Math.floor((W - CW*7) / 8);
+  OVERLAP = Math.floor(CH * 0.28);
+  HIT_H = Math.floor(CH * 1.5); // 터치 영역
+}
+resize(); window.addEventListener('resize', () => { resize(); render(); });
+
+// 게임 상태
+let tableau, foundation, stock, waste, selected, selCards;
+let moves, startMs, timerID;
 
 function buildDeck(){
   const d=[];
-  for(let s of SUITS)for(let r of RANKS)d.push({suit:s,rank:r,faceUp:false});
+  for(let s of SUITS) for(let r of RANKS) d.push({s,r,up:false});
   return d.sort(()=>Math.random()-0.5);
 }
-function rankVal(r){return RANKS.indexOf(r)+1;}
-function isRed(s){return RED_SUITS.includes(s);}
+function rv(r){ return RANKS.indexOf(r)+1; }
 
-function initGame(){
-  deck=buildDeck();
-  tableau=Array.from({length:7},()=>[]);
-  foundation=Array.from({length:4},()=>[]);
-  stock=[];waste=[];selected=null;moves=0;
-  clearInterval(timerInterval);startTime=Date.now();
-  timerInterval=setInterval(updateTimer,1000);
-
-  let idx=0;
-  for(let c=0;c<7;c++){
-    for(let r=0;r<=c;r++){
-      const card=deck[idx++];card.faceUp=(r===c);
-      tableau[c].push(card);
-    }
-  }
-  while(idx<52){deck[idx].faceUp=false;stock.push(deck[idx++]);}
+function newGame(){
+  clearInterval(timerID);
+  const deck = buildDeck();
+  tableau = Array.from({length:7},()=>[]);
+  foundation = Array.from({length:4},()=>[]);
+  stock=[]; waste=[]; selected=null; selCards=null; moves=0;
+  let i=0;
+  for(let c=0;c<7;c++) for(let r=0;r<=c;r++) { const cd=deck[i++]; cd.up=r===c; tableau[c].push(cd); }
+  while(i<52){ deck[i].faceUp=false; stock.push(deck[i++]); }
+  startMs=Date.now();
+  timerID=setInterval(updateTimer,1000);
   render();
 }
 
 function updateTimer(){
-  const s=Math.floor((Date.now()-startTime)/1000);
-  document.getElementById('time-txt').textContent=`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+  const s=Math.floor((Date.now()-startMs)/1000);
+  document.getElementById('t-time').textContent=`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+function updateHUD(){
+  document.getElementById('t-moves').textContent=moves;
 }
 
+// ── 레이아웃 계산 ──
+function topY(){ return PAD; }
+function tabY(){ return topY()+CH+PAD*2; }
+function stockX(){ return PAD; }
+function wasteX(){ return PAD+CW+PAD; }
+function foundX(i){ return PAD+(3+i)*(CW+PAD); }
+function tabX(c){ return PAD+c*(CW+PAD); }
+function cardY(col,idx){ return tabY()+idx*OVERLAP; }
+
+// ── 렌더링 ──
 function render(){
-  const tbl=document.getElementById('table');
-  tbl.innerHTML='';
-  const TW=tbl.offsetWidth||window.innerWidth;
+  ctx.fillStyle='#065f46'; ctx.fillRect(0,0,W,H);
 
-  // 레이아웃
-  const topY=PAD, deckY=topY;
-  const tabY=topY+CH+PAD*2;
-  const tabSpacing=Math.min(CW+PAD,(TW-PAD*2)/7);
-
+  // Foundation 빈 칸
+  for(let i=0;i<4;i++) drawEmpty(foundX(i),topY(),SUITS[i]);
+  // Waste 빈 칸
+  drawEmpty(wasteX(),topY(),'');
   // Stock
-  renderPile('stock',stock,PAD,deckY,()=>drawStock());
-  // Waste
-  renderCard('waste',waste[waste.length-1]||null,PAD+tabSpacing,deckY,()=>selectWaste());
+  if(stock.length) drawBack(stockX(),topY());
+  else drawEmpty(stockX(),topY(),'♻');
+
+  // Waste 상단
+  if(waste.length) drawCard(waste[waste.length-1],wasteX(),topY(), selected&&selected.src==='waste');
+
   // Foundation
   for(let i=0;i<4;i++){
-    renderFoundation(i,PAD+(3+i)*tabSpacing,deckY);
+    const p=foundation[i];
+    if(p.length) drawCard(p[p.length-1],foundX(i),topY(),false);
   }
+
   // Tableau
   for(let c=0;c<7;c++){
-    const x=PAD+c*tabSpacing;
-    renderTableau(c,x,tabY);
+    const pile=tableau[c];
+    if(!pile.length){ drawEmpty(tabX(c),tabY(),''); continue; }
+    pile.forEach((cd,idx)=>{
+      const x=tabX(c), y=cardY(c,idx);
+      const isSel = selected&&selected.src==='tab'&&selected.col===c&&selected.idx<=idx;
+      if(cd.up) drawCard(cd,x,y,isSel);
+      else drawBack(x,y);
+    });
   }
-  document.getElementById('moves-txt').textContent=moves;
 }
 
-function renderPile(id,pile,x,y,onclick){
-  const tbl=document.getElementById('table');
-  if(pile.length===0){
-    const z=document.createElement('div');z.className='empty-zone';z.style.left=x+'px';z.style.top=y+'px';
-    if(id==='stock'){z.style.cursor='pointer';z.textContent='♻️';z.style.display='flex';z.style.alignItems='center';z.style.justifyContent='center';z.style.fontSize='24px';z.onclick=onclick;}
-    tbl.appendChild(z);return;
+function drawEmpty(x,y,label){
+  ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=2;
+  ctx.beginPath(); roundRect(x,y,CW,CH,6); ctx.stroke();
+  if(label){
+    ctx.fillStyle='rgba(255,255,255,0.2)';
+    ctx.font=`${CW*0.45}px sans-serif`; ctx.textAlign='center';
+    ctx.fillText(label,x+CW/2,y+CH/2+CW*0.16);
   }
-  const c=document.createElement('div');
-  c.className='card face-down';c.style.left=x+'px';c.style.top=y+'px';
-  c.style.zIndex=1;if(onclick){c.onclick=onclick;c.style.cursor='pointer';}
-  tbl.appendChild(c);
+}
+function drawBack(x,y){
+  const g=ctx.createLinearGradient(x,y,x+CW,y+CH);
+  g.addColorStop(0,'#1e40af'); g.addColorStop(1,'#1d4ed8');
+  ctx.fillStyle=g; ctx.beginPath(); roundRect(x,y,CW,CH,6); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1;
+  ctx.beginPath(); roundRect(x+3,y+3,CW-6,CH-6,4); ctx.stroke();
+  // 패턴
+  ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=1;
+  for(let i=0;i<6;i++){
+    ctx.beginPath(); ctx.moveTo(x+i*(CW/5),y); ctx.lineTo(x,y+i*(CH/5)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+CW-i*(CW/5),y+CH); ctx.lineTo(x+CW,y+CH-i*(CH/5)); ctx.stroke();
+  }
+}
+function drawCard(cd,x,y,sel){
+  // 그림자
+  ctx.fillStyle='rgba(0,0,0,0.25)';
+  ctx.beginPath(); roundRect(x+2,y+2,CW,CH,6); ctx.fill();
+  // 카드 배경
+  ctx.fillStyle= sel?'#fef9c3':'#fffbeb';
+  ctx.beginPath(); roundRect(x,y,CW,CH,6); ctx.fill();
+  if(sel){ctx.strokeStyle='#fde047';ctx.lineWidth=2.5;}
+  else{ctx.strokeStyle='rgba(0,0,0,0.12)';ctx.lineWidth=1;}
+  ctx.beginPath(); roundRect(x,y,CW,CH,6); ctx.stroke();
+
+  const red=isRed(cd.s);
+  const color=red?'#dc2626':'#111827';
+  const fs=Math.floor(CW*0.26);
+  ctx.fillStyle=color; ctx.font=`bold ${fs}px sans-serif`; ctx.textAlign='left';
+  ctx.fillText(cd.r,x+4,y+fs+2);
+  ctx.font=`${Math.floor(fs*0.9)}px sans-serif`;
+  ctx.fillText(cd.s,x+4,y+fs*2+1);
+  // 우하단 뒤집어서
+  ctx.save(); ctx.translate(x+CW-4,y+CH-4); ctx.rotate(Math.PI);
+  ctx.font=`bold ${fs}px sans-serif`; ctx.textAlign='left';
+  ctx.fillText(cd.r,0,fs);
+  ctx.font=`${Math.floor(fs*0.9)}px sans-serif`;
+  ctx.fillText(cd.s,0,fs*2);
+  ctx.restore();
+  // 가운데 심볼
+  ctx.font=`${Math.floor(CW*0.35)}px sans-serif`; ctx.textAlign='center';
+  ctx.fillText(cd.s,x+CW/2,y+CH*0.62);
 }
 
-function renderCard(id,card,x,y,onclick){
-  const tbl=document.getElementById('table');
-  if(!card){const z=document.createElement('div');z.className='empty-zone';z.style.left=x+'px';z.style.top=y+'px';tbl.appendChild(z);return;}
-  const el=makeCardEl(card,x,y,1);
-  if(onclick)el.onclick=onclick;
-  tbl.appendChild(el);
+function roundRect(x,y,w,h,r){
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
 }
 
-function renderFoundation(i,x,y){
-  const tbl=document.getElementById('table');
-  const pile=foundation[i];
-  if(!pile.length){
-    const z=document.createElement('div');z.className='empty-zone';z.style.left=x+'px';z.style.top=y+'px';
-    z.style.display='flex';z.style.alignItems='center';z.style.justifyContent='center';
-    z.style.fontSize='24px';z.textContent=SUITS[i];z.style.color='rgba(255,255,255,0.3)';
-    z.onclick=()=>tryMoveToFoundation(i);tbl.appendChild(z);return;
+// ── 클릭 처리 ──
+function getHitTarget(px,py){
+  // Stock
+  if(px>stockX()&&px<stockX()+CW&&py>topY()&&py<topY()+CH) return {type:'stock'};
+  // Waste
+  if(waste.length&&px>wasteX()&&px<wasteX()+CW&&py>topY()&&py<topY()+CH) return {type:'waste'};
+  // Foundation
+  for(let i=0;i<4;i++){
+    const fx=foundX(i);
+    if(px>fx&&px<fx+CW&&py>topY()&&py<topY()+CH) return {type:'found',idx:i};
   }
-  const top=pile[pile.length-1];
-  const el=makeCardEl(top,x,y,10);
-  el.onclick=()=>tryMoveToFoundation(i);
-  tbl.appendChild(el);
-}
-
-function renderTableau(col,x,y){
-  const tbl=document.getElementById('table');
-  const pile=tableau[col];
-  if(!pile.length){
-    const z=document.createElement('div');z.className='empty-zone';z.style.left=x+'px';z.style.top=y+'px';
-    z.style.cursor='pointer';z.onclick=()=>tryDropOn(col,-1);tbl.appendChild(z);return;
-  }
-  pile.forEach((card,idx)=>{
-    const cy=y+idx*OVERLAP;
-    const el=makeCardEl(card,x,cy,20+idx);
-    if(card.faceUp){
-      el.onclick=()=>handleCardClick(col,idx);
-      if(selected&&selected.src==='tab'&&selected.col===col&&selected.idx<=idx){
-        el.classList.add('selected');
-      }
+  // Tableau
+  for(let c=6;c>=0;c--){
+    const pile=tableau[c];
+    const tx=tabX(c);
+    if(px<tx||px>tx+CW) continue;
+    if(!pile.length&&py>tabY()&&py<tabY()+CH) return {type:'tab',col:c,idx:-1};
+    for(let i=pile.length-1;i>=0;i--){
+      const cy=cardY(c,i);
+      const bot=i===pile.length-1?cy+CH:cardY(c,i+1);
+      if(py>=cy&&py<=bot) return {type:'tab',col:c,idx:i};
     }
-    tbl.appendChild(el);
-  });
-}
-
-function makeCardEl(card,x,y,z){
-  const el=document.createElement('div');
-  el.className='card '+(card.faceUp?'face-up':'face-down');
-  el.style.left=x+'px';el.style.top=y+'px';el.style.zIndex=z;
-  if(card.faceUp){
-    const red=isRed(card.suit);
-    el.innerHTML=`<span class="card-rank ${red?'red':'black'}">${card.rank}<br>${card.suit}</span><span class="card-center">${card.suit}</span><span class="card-suit ${red?'red':'black'}">${card.rank}<br>${card.suit}</span>`;
   }
-  return el;
+  return null;
 }
 
-function drawStock(){
-  if(stock.length===0){stock=waste.reverse();waste=[];stock.forEach(c=>c.faceUp=false);}
-  else{const c=stock.pop();c.faceUp=true;waste.push(c);}
-  moves++;render();
-}
+function onClick(px,py){
+  const hit=getHitTarget(px,py);
+  if(!hit){selected=null;selCards=null;render();return;}
 
-function selectWaste(){
-  if(!waste.length)return;
-  const top=waste[waste.length-1];
-  if(selected&&selected.src==='waste'){selected=null;render();return;}
-  selected={src:'waste',card:top};
-  render();
-  // 하이라이트
-  document.querySelectorAll('#table .card')[1]?.classList.add('selected');
-}
+  if(hit.type==='stock'){
+    if(stock.length){const cd=stock.pop();cd.up=true;waste.push(cd);}
+    else{waste.forEach(c=>c.up=false);stock=waste.reverse();waste=[];}
+    selected=null;selCards=null;moves++;updateHUD();render();return;
+  }
 
-function handleCardClick(col,idx){
-  const pile=tableau[col];
-  const card=pile[idx];
-  if(!card.faceUp)return;
-
+  // 선택된 상태에서 목적지 클릭
   if(selected){
-    if(selected.src==='tab'&&selected.col===col&&selected.idx===idx){selected=null;render();return;}
-    tryDropOn(col,idx);
-  } else {
-    selected={src:'tab',col,idx,card};render();
-  }
-}
-
-function tryDropOn(col,idx){
-  if(!selected)return;
-  const pile=tableau[col];
-  const target=pile[pile.length-1]||null;
-
-  // 이동 가능 여부
-  let movingCards=[];
-  if(selected.src==='waste'){movingCards=[selected.card];}
-  else if(selected.src==='tab'){movingCards=tableau[selected.col].slice(selected.idx);}
-
-  const first=movingCards[0];
-  if(target){
-    if(!target.faceUp)return;
-    if(isRed(first.suit)===isRed(target.suit))return; // 같은 색
-    if(rankVal(first.rank)!==rankVal(target.rank)-1)return; // 연속 아님
-  } else {
-    if(first.rank!=='K')return; // 빈 칸엔 K만
+    let moved=false;
+    if(hit.type==='found'){moved=tryMoveToFund(hit.idx);}
+    else if(hit.type==='tab'){moved=tryMoveToTab(hit.col);}
+    if(moved){selected=null;selCards=null;moves++;updateHUD();checkWin();render();return;}
+    // 같은 카드 클릭 → 선택 해제
+    if(hit.type==='waste'&&selected.src==='waste'){selected=null;selCards=null;render();return;}
+    if(hit.type==='tab'&&selected.src==='tab'&&selected.col===hit.col&&selected.idx===hit.idx){selected=null;selCards=null;render();return;}
   }
 
-  // 이동
-  if(selected.src==='waste'){waste.pop();pile.push(first);}
-  else{const moved=tableau[selected.col].splice(selected.idx);pile.push(...moved);
-    const prev=tableau[selected.col];if(prev.length&&!prev[prev.length-1].faceUp)prev[prev.length-1].faceUp=true;}
-  moves++;selected=null;checkWin();render();
+  // 새 선택
+  if(hit.type==='waste'&&waste.length){
+    selected={src:'waste'};selCards=[waste[waste.length-1]];
+  } else if(hit.type==='tab'){
+    const pile=tableau[hit.col];
+    if(hit.idx<0||!pile.length){
+      // 빈 칸 클릭 — 이미 선택 상태면 이동 시도
+      if(selected){ tryMoveToTab(hit.col);selected=null;selCards=null;moves++;updateHUD();render();}
+      return;
+    }
+    const cd=pile[hit.idx];
+    if(!cd.up){// 뒷면 카드 — 마지막 카드면 뒤집기
+      if(hit.idx===pile.length-1){cd.up=true;moves++;updateHUD();render();}
+      return;
+    }
+    selected={src:'tab',col:hit.col,idx:hit.idx};
+    selCards=pile.slice(hit.idx);
+  }
+  render();
 }
 
-function tryMoveToFoundation(fIdx){
-  let card=null,src=null;
-  if(selected?.src==='waste'){card=selected.card;src='waste';}
-  else if(selected?.src==='tab'){const pile=tableau[selected.col];if(selected.idx===pile.length-1)card=pile[selected.idx];src='tab';}
-  if(!card)return;
-
-  const pile=foundation[fIdx];
+function tryMoveToFund(fi){
+  if(!selCards||selCards.length!==1) return false;
+  const cd=selCards[0];
+  const pile=foundation[fi];
   const top=pile[pile.length-1];
-  const suitIdx=SUITS.indexOf(card.suit);
-  if(fIdx!==suitIdx&&pile.length>0&&pile[0].suit!==card.suit)return; // 다른 무늬
-  if(!top&&card.rank!=='A')return;
-  if(top&&rankVal(card.rank)!==rankVal(top.rank)+1)return;
-  if(top&&card.suit!==top.suit)return;
+  if(top){if(cd.s!==top.s||rv(cd.r)!==rv(top.r)+1)return false;}
+  else{if(cd.r!=='A')return false;}
+  // 모든 foundation에 맞는 suit 찾기
+  const si=SUITS.indexOf(cd.s);
+  if(fi!==si&&foundation[si].length>0&&pile.length>0){}// ok if dropped on right pile
+  // 실제로 suit 일치 체크
+  if(pile.length>0&&pile[0].s!==cd.s)return false;
+  pile.push(cd);
+  removeFromSrc();
+  return true;
+}
 
-  pile.push(card);
-  if(src==='waste')waste.pop();
-  else{tableau[selected.col].pop();const p=tableau[selected.col];if(p.length&&!p[p.length-1].faceUp)p[p.length-1].faceUp=true;}
-  moves++;selected=null;checkWin();render();
+function tryMoveToTab(col){
+  if(!selCards)return false;
+  const pile=tableau[col];
+  const top=pile[pile.length-1];
+  const first=selCards[0];
+  if(top){
+    if(!top.up)return false;
+    if(isRed(first.s)===isRed(top.s))return false;
+    if(rv(first.r)!==rv(top.r)-1)return false;
+  } else {
+    if(first.r!=='K')return false;
+  }
+  pile.push(...selCards);
+  removeFromSrc();
+  return true;
+}
+
+function removeFromSrc(){
+  if(selected.src==='waste'){waste.pop();}
+  else{
+    const p=tableau[selected.col];
+    p.splice(selected.idx);
+    // 뒤집기
+    if(p.length&&!p[p.length-1].up)p[p.length-1].up=true;
+  }
+}
+
+// 더블클릭 → foundation 자동 이동
+function onDblClick(px,py){
+  const hit=getHitTarget(px,py);
+  if(!hit)return;
+  let cd=null;
+  if(hit.type==='waste'&&waste.length){cd=waste[waste.length-1];selected={src:'waste'};selCards=[cd];}
+  else if(hit.type==='tab'&&hit.idx>=0){
+    const pile=tableau[hit.col];
+    cd=pile[hit.idx];
+    if(!cd||!cd.up||hit.idx!==pile.length-1)return;
+    selected={src:'tab',col:hit.col,idx:hit.idx};selCards=[cd];
+  }
+  if(!cd)return;
+  const si=SUITS.indexOf(cd.s);
+  if(tryMoveToFund(si)){moves++;updateHUD();checkWin();}
+  selected=null;selCards=null;render();
 }
 
 function checkWin(){
   if(foundation.every(p=>p.length===13)){
-    clearInterval(timerInterval);
-    const s=Math.floor((Date.now()-startTime)/1000);
-    document.getElementById('win-stat').textContent=`${moves}번 이동 · ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
-    setTimeout(()=>document.getElementById('win-overlay').classList.add('show'),500);
+    clearInterval(timerID);
+    const msg=document.getElementById('msg');
+    const s=Math.floor((Date.now()-startMs)/1000);
+    msg.innerHTML=`🎉 클리어!<br><small style="font-size:0.8rem;opacity:0.8">${moves}번 이동 · ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}</small>`;
+    msg.style.display='block';
+    setTimeout(()=>{msg.style.display='none';newGame();},3000);
   }
 }
 
-// 더블클릭으로 foundation 자동 이동
-document.addEventListener('dblclick',e=>{
-  const cardEl=e.target.closest('.card.face-up');
-  if(!cardEl)return;
-  // foundation 자동
-  for(let i=0;i<4;i++){tryMoveToFoundation(i);}
+// 이벤트
+let lastTap=0;
+function getPos(e){
+  const r=cv.getBoundingClientRect();
+  if(e.touches){return{x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top};}
+  return{x:e.clientX-r.left,y:e.clientY-r.top};
+}
+cv.addEventListener('click',e=>{
+  const {x,y}=getPos(e);
+  const now=Date.now();
+  if(now-lastTap<300){onDblClick(x,y);lastTap=0;return;}
+  lastTap=now;
+  setTimeout(()=>{if(Date.now()-lastTap>=290)onClick(x,y);},310);
 });
+cv.addEventListener('touchend',e=>{
+  e.preventDefault();
+  const r=cv.getBoundingClientRect();
+  const t=e.changedTouches[0];
+  const x=t.clientX-r.left,y=t.clientY-r.top;
+  const now=Date.now();
+  if(now-lastTap<350){onDblClick(x,y);lastTap=0;return;}
+  lastTap=now;
+  onClick(x,y);
+},{passive:false});
 
-initGame();
+newGame();
 </script>
 </body>
 </html>
