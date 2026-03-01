@@ -52,6 +52,7 @@ h1 { margin: 16px 0 8px; font-size: 1.6rem; color: #c084fc; text-shadow: 0 0 20p
   <button id="start-btn" onclick="startWave()">▶ 웨이브 시작</button>
   <button id="start-btn" onclick="sellMode()" style="background:linear-gradient(135deg,#dc2626,#f87171)">🔨 판매 모드</button>
   <button id="start-btn" onclick="moveMode()" style="background:linear-gradient(135deg,#0369a1,#38bdf8)">🚚 이동 모드</button>
+  <button id="speed-btn" onclick="cycleSpeed()" style="background:linear-gradient(135deg,#d97706,#fbbf24);min-width:60px">⚡ 1x</button>
 </div>
 <div style="color:#555;font-size:0.78rem;margin-top:6px;">좌클릭: 타워 배치 | 우클릭: 타워 업그레이드 (Lv3 최대) | 경로 위 배치 불가</div>
 
@@ -85,7 +86,8 @@ let isSelling = false;
 let isMoving = false;
 let movingTower = null;
 let waveRunning = false;
-let autoStartTimer = 0;  // 자동 웨이브 카운트다운 (프레임)
+let autoStartTimer = 0;
+let gameSpeed = 1; // 1x, 2x, 3x
 let spawnTimer = 0, spawnCount = 0, spawnTotal = 0;
 let gameOver = false;
 
@@ -111,6 +113,11 @@ function moveMode() {
   isMoving = !isMoving; isSelling = false; movingTower = null;
   showMsg(isMoving ? '🚚 이동 모드: 먼저 이동할 타워, 그 다음 빈 칸 클릭' : '');
 }
+function cycleSpeed() {
+  gameSpeed = gameSpeed === 1 ? 2 : gameSpeed === 2 ? 3 : 1;
+  document.getElementById('speed-btn').textContent = `⚡ ${gameSpeed}x`;
+}
+
 function upgradeCost(t) {
   return Math.floor(TOWER_DEF[t.type].cost * 0.7 * t.level);
 }
@@ -462,17 +469,31 @@ function draw() {
     ctx.fillText('새로고침해서 다시 시작', W/2, H/2 + 65);
   }
 
-  // 웨이브 클리어
+
+}
+
+function tick() {
+  if (gameOver) return;
+  if (waveRunning && spawnCount < spawnTotal) {
+    spawnTimer++;
+    if (spawnTimer >= Math.max(60, 100 - wave * 3)) {
+      spawnEnemy(); spawnCount++; spawnTimer = 0;
+    }
+  }
+  updateEnemies();
+  updateTowers();
+  updateBullets();
+  updateParticles();
+
+  // 자동 웨이브
   if (waveRunning && enemies.length === 0 && spawnCount >= spawnTotal) {
     waveRunning = false;
     const bonus = wave * 20;
     gold += bonus;
-    autoStartTimer = 180; // 3초 (60fps)
+    autoStartTimer = 180;
     showMsg(`🎉 웨이브 ${wave} 클리어! +${bonus}G | 3초 후 자동 시작...`);
     updateUI();
   }
-
-  // 자동 웨이브 카운트다운
   if (!waveRunning && autoStartTimer > 0 && !gameOver) {
     autoStartTimer--;
     const sec = Math.ceil(autoStartTimer / 60);
@@ -482,22 +503,8 @@ function draw() {
 }
 
 function gameLoop() {
-  if (!gameOver) {
-    // 스폰
-    if (waveRunning && spawnCount < spawnTotal) {
-      spawnTimer++;
-      if (spawnTimer >= Math.max(60, 100 - wave * 3)) {
-        spawnEnemy();
-        spawnCount++;
-        spawnTimer = 0;
-      }
-    }
-    updateEnemies();
-    updateTowers();
-    updateBullets();
-    updateParticles();
-    updateUI();
-  }
+  for (let i = 0; i < gameSpeed; i++) tick();
+  updateUI();
   draw();
   requestAnimationFrame(gameLoop);
 }
