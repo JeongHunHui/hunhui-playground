@@ -114,9 +114,42 @@
       color: #334155;
     }
   
-.card-hot{position:relative;}
-.card-hot::before{content:'🔥 HOT';position:absolute;top:-8px;right:-8px;background:linear-gradient(135deg,#ef4444,#f97316);color:#fff;font-size:0.65rem;font-weight:700;padding:3px 8px;border-radius:99px;box-shadow:0 2px 8px #ef444466;letter-spacing:0.05em;}
-.card-hot{border-color:#ef4444!important;box-shadow:0 0 16px #ef444433;}
+.card-hot{position:relative;overflow:visible;}
+.card-hot::before{content:'🔥 HOT';position:absolute;top:-10px;right:-10px;background:linear-gradient(135deg,#ef4444,#f97316);color:#fff;font-size:0.65rem;font-weight:700;padding:3px 10px;border-radius:99px;box-shadow:0 2px 12px #ef444488;letter-spacing:0.05em;z-index:2;animation:hotPulse 1.5s ease-in-out infinite;}
+.card-hot{
+  border-color:#ef4444!important;
+  box-shadow:0 0 0 2px #ef444455, 0 0 24px #ef444466, 0 0 60px #ef444422;
+  animation:auraGlow 3s ease-in-out infinite;
+  background:linear-gradient(135deg,#1a0505 0%,#0d0a1a 40%,#1a0505 100%)!important;
+}
+.card-hot .card-emoji{
+  filter:drop-shadow(0 0 8px #ef4444) drop-shadow(0 0 16px #f97316);
+  animation:emojiBounce 2s ease-in-out infinite;
+}
+.card-hot .card-name{
+  background:linear-gradient(90deg,#ef4444,#f97316,#fde047,#f97316,#ef4444);
+  background-size:200% auto;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation:textShine 2s linear infinite;
+  font-weight:800!important;
+}
+@keyframes auraGlow{
+  0%,100%{box-shadow:0 0 0 2px #ef444455, 0 0 24px #ef444466, 0 0 60px #ef444422;}
+  50%{box-shadow:0 0 0 3px #ef4444aa, 0 0 40px #ef4444cc, 0 0 80px #ef444466, 0 0 120px #ef444422;}
+}
+@keyframes hotPulse{
+  0%,100%{transform:scale(1);opacity:1;}
+  50%{transform:scale(1.08);opacity:0.85;}
+}
+@keyframes emojiBounce{
+  0%,100%{transform:translateY(0) scale(1);}
+  50%{transform:translateY(-4px) scale(1.1);}
+}
+@keyframes textShine{
+  to{background-position:200% center;}
+}
 </style>
 </head>
 <body>
@@ -133,10 +166,10 @@
     </header>
 
     <div class="grid">
-      <a class="card card-hot" href="/vampire/">
+      <a class="card card-hot" href="/vampire/" style="transform:scale(1.04);z-index:1;">
         <span class="card-emoji">🧛</span>
         <span class="card-name">훈희 서바이벌</span>
-        <span class="card-desc">자동 전투 생존 게임</span>
+        <span class="card-desc">🔴 자동 전투 생존 RPG</span>
       </a>
       <a class="card" href="/pkmnquiz/">
         <span class="card-emoji">⚡</span>

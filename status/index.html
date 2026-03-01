@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>훈희 상태 대시보드</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0a0a12;color:#e2d4ff;font-family:'Segoe UI',sans-serif;min-height:100vh;padding:20px;}
+h1{text-align:center;font-size:1.4rem;margin-bottom:24px;color:#c084fc;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:700px;margin:0 auto;}
+@media(max-width:500px){.grid{grid-template-columns:1fr;}}
+.card{background:#10101e;border:1px solid #2a1f4e;border-radius:14px;padding:16px;}
+.card h2{font-size:0.75rem;color:#6b5a8a;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;}
+.big{font-size:2.2rem;font-weight:700;color:#c084fc;}
+.sub{font-size:0.75rem;color:#6b5a8a;margin-top:4px;}
+.bar-wrap{background:#1a1530;border-radius:99px;height:8px;margin:8px 0;}
+.bar{height:8px;border-radius:99px;transition:width .5s;}
+.bar-ctx{background:linear-gradient(90deg,#7c3aed,#c084fc);}
+.bar-5h{background:linear-gradient(90deg,#2563eb,#60a5fa);}
+.bar-week{background:linear-gradient(90deg,#059669,#34d399);}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;}
+.dot-green{background:#22c55e;box-shadow:0 0 6px #22c55e;}
+.dot-yellow{background:#eab308;}
+.dot-red{background:#ef4444;}
+.row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #1a1530;font-size:0.82rem;}
+.row:last-child{border:none;}
+.badge{background:#2a1f4e;border-radius:6px;padding:2px 8px;font-size:0.7rem;}
+.span2{grid-column:span 2;}
+@media(max-width:500px){.span2{grid-column:span 1;}}
+#refresh-btn{display:block;margin:20px auto 0;background:#2a1f4e;color:#c084fc;border:1px solid #4a3a6a;border-radius:8px;padding:8px 20px;cursor:pointer;font-size:0.85rem;}
+#refresh-btn:hover{background:#3a2f5e;}
+#last-update{text-align:center;font-size:0.7rem;color:#4a3a6a;margin-top:8px;}
+</style>
+</head>
+<body>
+<h1>📊 훈희 대시보드</h1>
+<div class="grid" id="grid">
+  <div class="card" id="ctx-card">
+    <h2>🧠 현재 컨텍스트</h2>
+    <div class="big" id="ctx-pct">--</div>
+    <div class="bar-wrap"><div class="bar bar-ctx" id="ctx-bar" style="width:0%"></div></div>
+    <div class="sub" id="ctx-sub">로딩 중...</div>
+  </div>
+  <div class="card" id="oc-card">
+    <h2>🦞 OpenClaw 상태</h2>
+    <div id="oc-rows">로딩 중...</div>
+  </div>
+  <div class="card" id="5h-card">
+    <h2>⏱️ 5시간 사용량</h2>
+    <div class="big" id="5h-pct">--</div>
+    <div class="bar-wrap"><div class="bar bar-5h" id="5h-bar" style="width:0%"></div></div>
+    <div class="sub" id="5h-sub">Anthropic API 5h 롤링 윈도우</div>
+  </div>
+  <div class="card" id="week-card">
+    <h2>📅 이번 주 사용량</h2>
+    <div class="big" id="week-pct">--</div>
+    <div class="bar-wrap"><div class="bar bar-week" id="week-bar" style="width:0%"></div></div>
+    <div class="sub" id="week-sub">주간 토큰 사용량</div>
+  </div>
+  <div class="card span2" id="cron-card">
+    <h2>⏰ 크론 작업</h2>
+    <div id="cron-rows">로딩 중...</div>
+  </div>
+  <div class="card span2" id="subagent-card">
+    <h2>🤖 실행 중인 작업</h2>
+    <div id="subagent-rows">로딩 중...</div>
+  </div>
+</div>
+<button id="refresh-btn" onclick="load()">🔄 새로고침</button>
+<div id="last-update"></div>
+<script>
+async function load(){
+  document.getElementById('last-update').textContent='업데이트 중...';
+  try{
+    const r=await fetch('/api/dashboard');
+    const d=await r.json();
+    // Context
+    const ctxPct=d.context?.pct||0;
+    document.getElementById('ctx-pct').textContent=ctxPct+'%';
+    document.getElementById('ctx-bar').style.width=ctxPct+'%';
+    document.getElementById('ctx-bar').style.background=ctxPct>80?'linear-gradient(90deg,#ef4444,#f97316)':ctxPct>50?'linear-gradient(90deg,#eab308,#fde047)':'linear-gradient(90deg,#7c3aed,#c084fc)';
+    document.getElementById('ctx-sub').textContent=(d.context?.used||'?')+' / '+(d.context?.total||'?')+' tokens';
+    // 5h
+    const h5=d.usage5h||{pct:0,used:0,limit:0};
+    document.getElementById('5h-pct').textContent=h5.pct+'%';
+    document.getElementById('5h-bar').style.width=h5.pct+'%';
+    document.getElementById('5h-sub').textContent=(h5.used||'?')+' / '+(h5.limit||'?')+' tokens';
+    // Week
+    const wk=d.usageWeek||{pct:0,used:0,limit:0};
+    document.getElementById('week-pct').textContent=wk.pct+'%';
+    document.getElementById('week-bar').style.width=wk.pct+'%';
+    document.getElementById('week-sub').textContent=(wk.used||'?')+' / '+(wk.limit||'?')+' tokens';
+    // OpenClaw
+    const oc=d.openclaw||{};
+    document.getElementById('oc-rows').innerHTML=[
+      {label:'게이트웨이',val:oc.gateway||'unknown',ok:oc.gateway==='connected'},
+      {label:'에이전트',val:oc.agents||'-',ok:true},
+      {label:'모델',val:oc.model||'-',ok:true},
+      {label:'세션',val:oc.session||'-',ok:true},
+    ].map(r=>`<div class="row"><span><span class="status-dot ${r.ok?'dot-green':'dot-yellow'}"></span>${r.label}</span><span class="badge">${r.val}</span></div>`).join('');
+    // Crons
+    const crons=d.crons||[];
+    document.getElementById('cron-rows').innerHTML=crons.length?crons.map(c=>`<div class="row"><span><span class="status-dot ${c.enabled?'dot-green':'dot-yellow'}"></span>${c.name}</span><span class="badge">${c.next||c.schedule}</span></div>`).join(''):'<div class="sub">크론 없음</div>';
+    // Subagents
+    const subs=d.subagents||[];
+    document.getElementById('subagent-rows').innerHTML=subs.length?subs.map(s=>`<div class="row"><span><span class="status-dot dot-green"></span>${s.label||s.id}</span><span class="badge">${s.status||'running'}</span></div>`).join(''):'<div class="sub">실행 중인 작업 없음</div>';
+    document.getElementById('last-update').textContent='마지막 업데이트: '+new Date().toLocaleTimeString('ko-KR');
+  }catch(e){
+    document.getElementById('last-update').textContent='에러: '+e.message;
+  }
+}
+load();
+setInterval(load,30000);
+</script>
+</body>
+</html>
