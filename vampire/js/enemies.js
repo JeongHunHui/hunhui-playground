@@ -81,6 +81,34 @@ function killEnemy(e) {
   if (Math.random() < itemChance) spawnItem(e.x, e.y + (e.r || 20));
   if ((player.lifesteal || 0) > 0) player.hp = Math.min(player.maxHp, player.hp + player.lifesteal);
 
+  // ── 보스 처치 대박 보상 ──
+  if (e.boss) {
+    // 1. 화면 폭발 파티클 (다색, 대량)
+    const colors = ['#fde047','#f97316','#ef4444','#c084fc','#3b82f6','#22c55e','#ffffff'];
+    for (let i = 0; i < 7; i++) spawnParticles(e.x + (Math.random()-0.5)*80, e.y + (Math.random()-0.5)*80, colors[i], 18);
+    spawnParticles(player.x, player.y, '#fde047', 30); // 플레이어 위에도
+    // 2. HP 전체 회복
+    player.hp = player.maxHp;
+    // 3. 보스 처치 버프 (30초 동안 공격력 2배 + 5초 무적)
+    player._bossKillBuff = 1800; // 30초 * 60프레임
+    player.dmgMult *= 2;
+    player.invincible = 300; // 5초 무적
+    // 4. 보장된 아이템 드롭 (3개: 에픽+ 보장)
+    for (let i = 0; i < 3; i++) {
+      const a = (Math.PI * 2 / 3) * i;
+      spawnItemForced(e.x + Math.cos(a) * 60, e.y + Math.sin(a) * 60, 3); // minTier=3 (에픽+)
+    }
+    // 5. XP 폭발
+    for (let i = 0; i < 8; i++) {
+      const a = Math.random() * Math.PI * 2, d = 40 + Math.random() * 60;
+      spawnXpOrb(e.x + Math.cos(a)*d, e.y + Math.sin(a)*d, Math.round(e.xpVal * 0.4), e);
+    }
+    // 6. 토스트 알림
+    showToast('👑', '보스 처치!', '전 회복 + 공격2배(30초) + 아이템3개!', '#fde047');
+    // 7. 화면 플래시
+    window._screenFlash = {r:255,g:215,b:0,a:0.4,fade:0.025};
+  }
+
   // Type-specific death effects
   if (e.type === 'zombie' && !e.isMini) {
     // Zombie splits into 2 mini zombies

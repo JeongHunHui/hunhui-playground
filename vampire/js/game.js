@@ -71,6 +71,11 @@ function update() {
       player._dmgBoostTimer -= 60;
       if (player._dmgBoostTimer <= 0 && player._dmgBoost) { player._dmgBoost = false; player.dmgMult /= 2; }
     }
+    // 보스 처치 버프 타이머
+    if ((player._bossKillBuff || 0) > 0) {
+      player._bossKillBuff--;
+      if (player._bossKillBuff === 0) { player.dmgMult /= 2; } // 공격2배 해제
+    }
   }
 
   // Player movement
@@ -139,6 +144,16 @@ function draw() {
   else                      { mapName = '🌲 초원'; }
 
   ctx.fillStyle = mapBg; ctx.fillRect(0, 0, W, H);
+  // Screen flash (boss kill etc.)
+  if (window._screenFlash && window._screenFlash.a > 0) {
+    const f = window._screenFlash;
+    ctx.save(); ctx.globalAlpha = f.a;
+    ctx.fillStyle = `rgb(${f.r},${f.g},${f.b})`;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+    f.a -= f.fade;
+    if (f.a <= 0) window._screenFlash = null;
+  }
   if (mapName && running) {
     ctx.save(); ctx.font = '11px sans-serif'; ctx.fillStyle = 'rgba(200,180,255,0.35)';
     ctx.textAlign = 'right'; ctx.fillText(mapName, W - 8, H - 8); ctx.restore();
