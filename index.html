@@ -68,7 +68,31 @@
       border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1;
     }
     .btn-secondary:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
-    .footer { margin-top: 4rem; font-size: 0.8rem; color: #475569; }
+    .footer { margin-top: 3rem; font-size: 0.8rem; color: #475569; }
+    .projects {
+      display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+      margin-top: 2.5rem;
+    }
+    .project-card {
+      display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+      background: rgba(99,102,241,0.08);
+      border: 1px solid rgba(99,102,241,0.25);
+      border-radius: 16px;
+      padding: 1.2rem 1.5rem;
+      text-decoration: none;
+      color: inherit;
+      min-width: 120px;
+      transition: all 0.2s;
+    }
+    .project-card:hover {
+      background: rgba(99,102,241,0.18);
+      border-color: rgba(99,102,241,0.5);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(99,102,241,0.2);
+    }
+    .project-icon { font-size: 2rem; }
+    .project-name { font-size: 0.9rem; font-weight: 700; color: #e0e7ff; }
+    .project-desc { font-size: 0.72rem; color: #64748b; }
   </style>
 </head>
 <body>
@@ -85,8 +109,20 @@
       새로운 기술을 탐험하고, 아이디어를 프로토타입으로 만드는 공간이에요.
     </p>
     <div class="actions">
-      <a class="btn-primary" href="https://github.com/JeongHunHui/hunhui-playground" target="_blank">⭐ GitHub</a>
-      <a class="btn-secondary" href="https://github.com/JeongHunHui" target="_blank">👤 프로필 보기</a>
+      <a class="btn-primary" href="https://github.com/JeongHunHui/hunhui-playground" target="_blank">GitHub</a>
+      <a class="btn-secondary" href="https://github.com/JeongHunHui" target="_blank">👤 프로필</a>
+    </div>
+    <div class="projects">
+      <a class="project-card" href="/luck">
+        <span class="project-icon">🔮</span>
+        <span class="project-name">신점닷컴</span>
+        <span class="project-desc">MZ 무당의 운세</span>
+      </a>
+      <a class="project-card" href="/pkmnquiz">
+        <span class="project-icon">⚡</span>
+        <span class="project-name">포켓몬 퀴즈</span>
+        <span class="project-desc">누구냐 넌?</span>
+      </a>
     </div>
     <div class="footer">built with curiosity · deployed on vercel</div>
   </div>
