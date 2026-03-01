@@ -108,7 +108,7 @@ canvas{display:block;}
   <div class="upgrade-cards" id="upg-cards"></div>
 </div>
 <script>
-const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbx3MATiVjJXaZJDzKedjZfaZbgH4bik1RKFl0OX6foMrl9BwTIPvFQmx35m1TA-tz0/exec';
+const APPS_SCRIPT_URL='/api/ranking';
 const cv=document.getElementById('c');
 const ctx=cv.getContext('2d');
 let W,H;
@@ -740,7 +740,7 @@ async function submitRanking(time,kills,level){
   try{
     await fetch(APPS_SCRIPT_URL,{
       method:'POST',
-      headers:{'Content-Type':'text/plain'},
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({action:'submitScore',initials,time,kills,level})
     });
     msg.textContent='✅ 랭킹 등록 완료! 상위 10위:';
