@@ -118,8 +118,8 @@ const ALL_UPGRADES=[
 function startGame(){
   document.getElementById('overlay').style.display='none';
   player={
-    x:0,y:0,r:16,hp:100,maxHp:100,spd:2.5,
-    invincible:0,frame:0,dmgMult:1,
+    x:0,y:0,r:16,hp:130,maxHp:130,spd:2.8,
+    invincible:0,frame:0,dmgMult:1.2,
   };
   enemies=[];bullets=[];xpOrbs=[];particles=[];
   weapons=[{...WEAPON_DEFS.knife,id:'knife',timer:0,level:1,pierce:1,count:1}];
