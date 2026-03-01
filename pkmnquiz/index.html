@@ -54,16 +54,11 @@
       align-items: center;
       justify-content: center;
     }
-    .pkmn-img {
+    #pkmn-canvas {
       width: 150px;
       height: 150px;
-      image-rendering: pixelated;
-      transition: filter 0.5s ease;
-      filter: brightness(0);
+      transition: filter 0.4s ease;
     }
-    .pkmn-img.hidden { filter: brightness(0); visibility: hidden; }
-    .pkmn-img.ready { filter: brightness(0); visibility: visible; }
-    .pkmn-img.revealed { filter: brightness(1); visibility: visible; }
     .question {
       font-size: 1.1rem;
       margin-bottom: 1.25rem;
@@ -141,7 +136,8 @@
     </div>
 
     <div class="silhouette-wrap">
-      <img id="pkmn-img" class="pkmn-img hidden" src="" alt="포켓몬" />
+      <canvas id="pkmn-canvas" width="150" height="150" style="image-rendering:pixelated;"></canvas>
+      <img id="pkmn-img" src="" alt="" style="display:none;" crossorigin="anonymous" />
     </div>
 
     <p class="question" id="question">이 포켓몬의 이름은?</p>
@@ -224,15 +220,39 @@
       loadQuestion();
     }
 
+    function drawSilhouette(imgEl) {
+      const canvas = document.getElementById('pkmn-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, 150, 150);
+      ctx.drawImage(imgEl, 0, 0, 150, 150);
+      const imageData = ctx.getImageData(0, 0, 150, 150);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] > 10) {
+          data[i] = 20; data[i+1] = 20; data[i+2] = 20;
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    function drawFull(imgEl) {
+      const canvas = document.getElementById('pkmn-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, 150, 150);
+      ctx.drawImage(imgEl, 0, 0, 150, 150);
+    }
+
     function showQuestion() {
       answered = false;
       const q = currentQ;
       document.getElementById('q-num').textContent = current + 1;
 
+      const canvas = document.getElementById('pkmn-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, 150, 150);
+
       const img = document.getElementById('pkmn-img');
-      img.className = 'pkmn-img hidden';
-      img.src = '';
-      img.onload = () => { img.className = 'pkmn-img ready'; };
+      img.onload = () => { drawSilhouette(img); };
       img.src = q.img;
 
       document.getElementById('question').textContent = '이 포켓몬의 이름은?';
@@ -254,7 +274,7 @@
 
       const q = currentQ;
       const img = document.getElementById('pkmn-img');
-      img.className = 'pkmn-img revealed';
+      drawFull(img);
       
 
       const btns = document.querySelectorAll('.opt-btn');
