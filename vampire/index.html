@@ -45,6 +45,19 @@ canvas{display:block;}
 .tut-tips{list-style:none;display:flex;flex-direction:column;gap:6px;}
 .tut-tips li{font-size:0.82rem;color:#9f8ab8;padding:6px 10px;background:#1a1030;border-radius:8px;border-left:3px solid #3d2a5e;}
 .tut-close{width:100%;margin-top:14px;padding:10px;border-radius:8px;border:none;background:#2d1f4e;color:#e2d4ff;cursor:pointer;font-size:0.9rem;}
+.grade-badge{position:absolute;top:6px;right:6px;font-size:0.6rem;font-weight:800;padding:2px 7px;border-radius:99px;letter-spacing:0.5px;pointer-events:none;}
+.upg-card{position:relative;}
+@keyframes rainbow-border{
+  0%{border-color:#ef4444;box-shadow:0 0 12px #ef4444aa;}
+  16%{border-color:#f97316;box-shadow:0 0 12px #f97316aa;}
+  33%{border-color:#eab308;box-shadow:0 0 12px #eab308aa;}
+  50%{border-color:#22c55e;box-shadow:0 0 12px #22c55eaa;}
+  66%{border-color:#3b82f6;box-shadow:0 0 12px #3b82f6aa;}
+  83%{border-color:#8b5cf6;box-shadow:0 0 12px #8b5cf6aa;}
+  100%{border-color:#ef4444;box-shadow:0 0 12px #ef4444aa;}
+}
+.grade-transcend{animation:rainbow-border 1s linear infinite !important;background:#1a0510 !important;}
+.grade-transcend:hover{background:#2a0820 !important;}
 </style>
 </head>
 <body>
@@ -95,6 +108,7 @@ canvas{display:block;}
   <div class="upgrade-cards" id="upg-cards"></div>
 </div>
 <script>
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbx3MATiVjJXaZJDzKedjZfaZbgH4bik1RKFl0OX6foMrl9BwTIPvFQmx35m1TA-tz0/exec';
 const cv=document.getElementById('c');
 const ctx=cv.getContext('2d');
 let W,H;
@@ -103,6 +117,7 @@ resize();window.addEventListener('resize',resize);
 
 let player,enemies,bullets,xpOrbs,particles,weapons;
 let kills,gameTime,level,xp,xpNeeded,running,paused,diffMult=1;
+let healthItems=[];
 let keys={};let touch={dx:0,dy:0};let animId;
 let frameCount=0,lastSecond=Date.now();
 
@@ -184,7 +199,7 @@ function startGame(diff){
     invincible:0,dmgMult:1,
     magnetR:80,xpMult:1,regen:0,luck:1,
   };
-  enemies=[];bullets=[];xpOrbs=[];particles=[];
+  enemies=[];bullets=[];xpOrbs=[];particles=[];healthItems=[];
   weapons=[{...WEAPON_DEFS.knife,wid:'knife',timer:0,pierce:1,count:1}];
   kills=0;gameTime=0;level=1;xp=0;xpNeeded=20;
   running=true;paused=false;
@@ -325,6 +340,20 @@ function update(){
   }
   xpOrbs=xpOrbs.filter(o=>!o.collected);
 
+  // 체력 아이템 업데이트
+  for(let h of healthItems){
+    h.pulse+=0.1;
+    h.life--;
+    if(h.life<=0)h.collected=true;
+    const dx=player.x-h.x,dy=player.y-h.y;
+    if(Math.hypot(dx,dy)<player.r+h.r){
+      h.collected=true;
+      player.hp=Math.min(player.maxHp,player.hp+player.maxHp*0.15);
+      spawnParticles(player.x,player.y,'#ef4444',8);
+    }
+  }
+  healthItems=healthItems.filter(h=>!h.collected);
+
   for(let p of particles){p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;p.life--;}
   particles=particles.filter(p=>p.life>0);
 
@@ -341,7 +370,9 @@ function update(){
 
 function killEnemy(e){
   e.dead=true;kills++;
-  spawnXpOrb(e.x,e.y,Math.round(e.xpVal*player.luck));
+  spawnXpOrb(e.x,e.y,Math.round(e.xpVal*player.luck),e);
+  // 5% 확률 체력 회복 아이템 드롭
+  if(Math.random()<0.05)spawnHealthItem(e.x,e.y);
 }
 
 function spawnEnemy(){
@@ -454,6 +485,20 @@ function doSplash(x,y,r,dmg){
   spawnParticles(x,y,'#f97316',12);
 }
 
+// ── 등급 시스템 ──
+const GRADES=[
+  {name:'레어',   color:'#3b82f6', bg:'#0d1f4e', prob:0.35, mult:1.0,  cls:'grade-rare'},
+  {name:'에픽',   color:'#8b5cf6', bg:'#1a0d4e', prob:0.30, mult:1.3,  cls:'grade-epic'},
+  {name:'유니크', color:'#f97316', bg:'#2a1500', prob:0.20, mult:1.6,  cls:'grade-unique'},
+  {name:'레전드', color:'#eab308', bg:'#1f1a00', prob:0.12, mult:2.0,  cls:'grade-legend'},
+  {name:'초월',   color:'#ef4444', bg:'#1a0510', prob:0.03, mult:2.5,  cls:'grade-transcend'},
+];
+function rollGrade(){
+  const r=Math.random();let acc=0;
+  for(const g of GRADES){acc+=g.prob;if(r<acc)return g;}
+  return GRADES[0];
+}
+
 // ── 레벨업 ──
 function levelUp(){
   level++;paused=true;
@@ -488,9 +533,19 @@ function levelUp(){
   }
 
   for(let u of picks){
+    const grade=rollGrade();
+    u._grade=grade;
     const d=document.createElement('div');
-    d.className='upg-card'+(u.utype==='wupgrade'?' is-upgrade':'');
-    d.innerHTML='<div class="upg-icon">'+u.icon+'</div><div class="upg-name">'+u.name+'</div><div class="upg-desc">'+u.desc+'</div>';
+    const isWupgrade=u.utype==='wupgrade';
+    d.className='upg-card '+(isWupgrade?'is-upgrade ':'')+grade.cls;
+    d.style.borderColor=grade.color;
+    d.style.background=grade.bg;
+    // 초월이 아닌 경우 box-shadow 설정
+    if(grade.cls!=='grade-transcend'){d.style.boxShadow='0 0 8px '+grade.color+'66';}
+    d.innerHTML='<div class="upg-icon">'+u.icon+'</div>'
+      +'<div class="upg-name" style="color:'+grade.color+'">'+u.name+'</div>'
+      +'<div class="upg-desc">'+u.desc+'</div>'
+      +'<div class="grade-badge" style="background:'+grade.color+'22;color:'+grade.color+';border:1px solid '+grade.color+'88">'+grade.name+'</div>';
     const uu=u;
     d.onclick=()=>{applyUpgrade(uu);el.style.display='none';paused=false;};
     cards.appendChild(d);
@@ -498,34 +553,35 @@ function levelUp(){
 }
 
 function applyUpgrade(u){
+  const gm=(u._grade?u._grade.mult:1.0);
   if(u.utype==='stat'){
-    if(u.uid.startsWith('spd'))player.spd*=1.2;
-    else if(u.uid.startsWith('hp')){player.maxHp+=30;player.hp=Math.min(player.hp+30,player.maxHp);}
-    else if(u.uid.startsWith('dmg'))player.dmgMult*=1.2;
+    if(u.uid.startsWith('spd'))player.spd*=(1+0.2*gm);
+    else if(u.uid.startsWith('hp')){const add=Math.round(30*gm);player.maxHp+=add;player.hp=Math.min(player.hp+add,player.maxHp);}
+    else if(u.uid.startsWith('dmg'))player.dmgMult*=(1+0.2*gm);
     else if(u.uid.startsWith('pierce')){
       const k=weapons.find(w=>w.wid==='knife');if(k)k.pierce=(k.pierce||1)+1;
       const f=weapons.find(w=>w.wid==='fireball');if(f)f.pierce=(f.pierce||1)+1;
     }
-    else if(u.uid.startsWith('xpboost'))player.xpMult*=1.3;
-    else if(u.uid.startsWith('magnet'))player.magnetR+=50;
-    else if(u.uid.startsWith('regen'))player.regen=(player.regen||0)+1;
-    else if(u.uid.startsWith('luck'))player.luck*=1.25;
+    else if(u.uid.startsWith('xpboost'))player.xpMult*=(1+0.3*gm);
+    else if(u.uid.startsWith('magnet'))player.magnetR+=Math.round(50*gm);
+    else if(u.uid.startsWith('regen'))player.regen=(player.regen||0)+Math.max(1,Math.round(gm));
+    else if(u.uid.startsWith('luck'))player.luck*=(1+0.25*gm);
   } else if(u.utype==='new'){
     const def=WEAPON_DEFS[u.wid];
     if(def)weapons.push({...def,wid:u.wid,timer:0,pierce:def.pierce||1,count:def.count||1,chainCount:def.chainCount||3,orbitR:def.orbitR||80});
   } else if(u.utype==='wupgrade'){
     const w=weapons.find(x=>x.wid===u.wid);
     if(!w)return;
-    if(u.uid==='up_knife_dmg'){w.damage*=1.3;w.cooldown=Math.max(10,w.cooldown*0.85);}
-    else if(u.uid==='up_knife_cnt')w.count=(w.count||1)+1;
-    else if(u.uid==='up_axe_dmg')w.damage*=1.4;
-    else if(u.uid==='up_magic_orb'){w.orbitR=(w.orbitR||80)+30;w.damage*=1.2;bullets=bullets.filter(b=>b.ownerWid!==w.wid);}
-    else if(u.uid==='up_fireball_splash'){w.splash=(w.splash||50)+25;w.damage*=1.2;}
-    else if(u.uid==='up_lightning_chain')w.chainCount=(w.chainCount||3)+2;
-    else if(u.uid==='up_freeze_range'){w.r=(w.r||120)+40;}
-    else if(u.uid==='up_holy_cnt'){w.count=(w.count||4)+1;w.damage*=1.3;bullets=bullets.filter(b=>b.ownerWid!==w.wid);}
-    else if(u.uid==='up_poison_size'){w.r=(w.r||40)+20;w.damage*=1.3;}
-    else if(u.uid==='up_ghost_cnt'){w.count=(w.count||2)+1;w.damage*=1.3;bullets=bullets.filter(b=>b.ownerWid!==w.wid);}
+    if(u.uid==='up_knife_dmg'){w.damage*=(1+0.3*gm);w.cooldown=Math.max(10,w.cooldown*(1-0.15*gm));}
+    else if(u.uid==='up_knife_cnt')w.count=(w.count||1)+Math.max(1,Math.floor(gm));
+    else if(u.uid==='up_axe_dmg')w.damage*=(1+0.4*gm);
+    else if(u.uid==='up_magic_orb'){w.orbitR=(w.orbitR||80)+Math.round(30*gm);w.damage*=(1+0.2*gm);bullets=bullets.filter(b=>b.ownerWid!==w.wid);}
+    else if(u.uid==='up_fireball_splash'){w.splash=(w.splash||50)+Math.round(25*gm);w.damage*=(1+0.2*gm);}
+    else if(u.uid==='up_lightning_chain')w.chainCount=(w.chainCount||3)+Math.round(2*gm);
+    else if(u.uid==='up_freeze_range'){w.r=(w.r||120)+Math.round(40*gm);}
+    else if(u.uid==='up_holy_cnt'){w.count=(w.count||4)+1;w.damage*=(1+0.3*gm);bullets=bullets.filter(b=>b.ownerWid!==w.wid);}
+    else if(u.uid==='up_poison_size'){w.r=(w.r||40)+Math.round(20*gm);w.damage*=(1+0.3*gm);}
+    else if(u.uid==='up_ghost_cnt'){w.count=(w.count||2)+1;w.damage*=(1+0.3*gm);bullets=bullets.filter(b=>b.ownerWid!==w.wid);}
   }
 }
 
@@ -547,8 +603,17 @@ function draw(){
   // XP 오브
   for(let o of xpOrbs){
     ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,Math.PI*2);
-    ctx.fillStyle='#7c3aed88';ctx.fill();
-    ctx.strokeStyle='#c084fc';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle=(o.color||'#7c3aed')+'88';ctx.fill();
+    ctx.strokeStyle=o.strokeColor||'#c084fc';ctx.lineWidth=1.5;ctx.stroke();
+  }
+  // 체력 아이템
+  for(let h of healthItems){
+    const pulse=Math.sin(h.pulse)*0.25+0.85;
+    ctx.save();
+    ctx.globalAlpha=Math.min(1,h.life/60)*pulse;
+    ctx.font=(h.r*2.2)+'px sans-serif';ctx.textAlign='center';
+    ctx.fillText('♥',h.x,h.y+h.r*0.6);
+    ctx.restore();
   }
 
   // 총알
@@ -627,7 +692,15 @@ function draw(){
   ctx.restore();
 }
 
-function spawnXpOrb(x,y,val){xpOrbs.push({x,y,r:8,val,collected:false});}
+function spawnXpOrb(x,y,val,e){
+  let r=6,color='#22c55e',strokeColor='#4ade80';
+  if(e&&e.boss){r=12;color='#eab308';strokeColor='#fde047';}
+  else if(e&&e.maxHp>50){r=8;color='#3b82f6';strokeColor='#93c5fd';}
+  xpOrbs.push({x,y,r,val,collected:false,color,strokeColor});
+}
+function spawnHealthItem(x,y){
+  healthItems.push({x,y,r:8,life:900,collected:false,pulse:0});
+}
 function spawnParticles(x,y,color,n){
   for(let i=0;i<n;i++){
     const a=Math.random()*Math.PI*2,s=Math.random()*3+1;
@@ -644,12 +717,14 @@ function gameOver(){
     <h1>💀 사망</h1>
     <p>생존 시간: ${timeStr}<br>처치 수: ${kills}<br>레벨: ${level}</p>
     <div style="margin:12px 0">
-      <p style="color:#c084fc;font-size:0.85rem;margin-bottom:6px">🏆 이니셜 등록 (영문/한글 1~3자)</p>
+      <p style="color:#c084fc;font-size:0.85rem;margin-bottom:6px">🏆 이니셜 등록 (영문 대문자 1~3자)</p>
       <input id="initial-input" maxlength="3" placeholder="AAA"
-        style="background:#1a1030;border:1px solid #7c3aed;color:#f0e6ff;padding:8px 14px;border-radius:8px;font-size:1.2rem;text-align:center;width:80px;text-transform:uppercase">
-      <button class="start" style="margin-left:8px;padding:8px 16px;font-size:0.9rem" onclick="submitRanking(${gameTime},${kills},${level})">등록</button>
+        style="background:#1a1030;border:1px solid #7c3aed;color:#f0e6ff;padding:8px 14px;border-radius:8px;font-size:1.2rem;text-align:center;width:80px;text-transform:uppercase"
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z]/g,'')">
+      <button class="start" style="margin-left:8px;padding:8px 16px;font-size:0.9rem" onclick="submitRanking(${gameTime},${kills},${level})">순위 등록</button>
     </div>
     <div id="rank-msg" style="font-size:0.8rem;color:#9f8ab8;margin-bottom:10px"></div>
+    <div id="rank-table" style="max-height:260px;overflow-y:auto;margin-bottom:12px;width:100%;max-width:360px;"></div>
     <button class="start" onclick="startGame()">다시 도전!</button>
   `;
   ov.style.display='flex';
@@ -659,16 +734,30 @@ async function submitRanking(time,kills,level){
   const input=document.getElementById('initial-input');
   const initials=(input?input.value:'').toUpperCase().trim();
   const msg=document.getElementById('rank-msg');
-  if(!initials||!/^[A-Za-z가-힣ㄱ-ㅎ]{1,3}$/.test(initials)){msg.textContent='⚠️ 영문/한글 1~3자로 입력해줘요';return;}
+  const rankTable=document.getElementById('rank-table');
+  if(!initials||!/^[A-Z]{1,3}$/.test(initials)){msg.textContent='⚠️ 영문 대문자 1~3자로 입력해주세요';return;}
   msg.textContent='⏳ 등록 중...';
   try{
-    const resp=await fetch('https://api.github.com/repos/JeongHunHui/hunhui-playground/actions/workflows/save-ranking.yml/dispatches',{
+    await fetch(APPS_SCRIPT_URL,{
       method:'POST',
-      headers:{'Accept':'application/vnd.github+json','Content-Type':'application/json','Authorization':'Bearer PLACEHOLDER'},
-      body:JSON.stringify({ref:'main',inputs:{initials,time:String(time),kills:String(kills),level:String(level),token:'vamp2026'}})
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({action:'submitScore',initials,time,kills,level})
     });
-    msg.textContent=resp.status===204?'✅ 랭킹 등록 완료!':'⚠️ 등록 실패 (나중에 다시 시도)';
-  }catch(e){msg.textContent='⚠️ 네트워크 오류';}
+    msg.textContent='✅ 랭킹 등록 완료! 상위 10위:';
+  }catch(e){msg.textContent='⚠️ 등록 실패 (나중에 다시 시도)';}
+  // 랭킹 조회
+  try{
+    const r=await fetch(APPS_SCRIPT_URL+'?action=getRanking');
+    const data=await r.json();
+    const rows=data.ranking||data||[];
+    if(rankTable&&rows.length){
+      const fmt=(s)=>{const m=Math.floor(s/60),sc=s%60;return m+':'+String(sc).padStart(2,'0');};
+      rankTable.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:0.78rem;color:#e2d4ff">'
+        +'<tr style="color:#c084fc;border-bottom:1px solid #3d2a5e"><th>#</th><th>이니셜</th><th>시간</th><th>킬</th><th>레벨</th></tr>'
+        +rows.slice(0,10).map((row,i)=>`<tr style="border-bottom:1px solid #1a1030;${row.initials===initials&&row.time===time?'background:#2d1f4e':''}"><td>${i+1}</td><td>${row.initials}</td><td>${fmt(row.time)}</td><td>${row.kills}</td><td>${row.level}</td></tr>`).join('')
+        +'</table>';
+    }
+  }catch(e){}
 }
 
 document.addEventListener('keydown',e=>keys[e.key]=true);
