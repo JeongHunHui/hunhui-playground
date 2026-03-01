@@ -35,6 +35,10 @@ canvas{display:block;}
 .upg-card .upg-desc{font-size:0.72rem;color:#7c6a9a;}
 .upg-card.is-upgrade{border-color:#f97316;}
 .upg-card.is-upgrade:hover{border-color:#fb923c;background:#231508;}
+#item-hud{position:fixed;bottom:10px;left:10px;z-index:10;display:flex;flex-direction:column;gap:4px;pointer-events:none;max-width:160px;}
+.item-chip{display:flex;align-items:center;gap:5px;background:rgba(13,10,26,0.88);border:1px solid #3d2a5e;border-radius:8px;padding:3px 8px;font-size:0.72rem;color:#e2d4ff;-webkit-backdrop-filter:blur(6px);}
+.item-chip .ic-icon{font-size:1rem;}
+.item-chip .ic-timer{color:#c084fc;font-size:0.65rem;margin-left:auto;}
 #tut-btn{position:fixed;bottom:10px;right:10px;z-index:998;padding:5px 12px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
 #tut-modal{display:none;position:fixed;inset:0;background:#0009;z-index:1000;align-items:center;justify-content:center;padding:16px;}
 #tut-modal.open{display:flex;}
@@ -57,11 +61,16 @@ canvas{display:block;}
   100%{border-color:#ef4444;box-shadow:0 0 12px #ef4444aa;}
 }
 .grade-common{border-color:#9ca3af !important;}
+.grade-uncommon{border-color:#4ade80 !important;background:#051a0d !important;}
+.grade-uncommon:hover{background:#0a2e14 !important;}
+.grade-unique{border-color:#f97316 !important;background:#2a1500 !important;}
+.grade-unique:hover{background:#3d1f00 !important;}
 .grade-transcend{animation:rainbow-border 1s linear infinite !important;background:#1a0510 !important;}
 .grade-transcend:hover{background:#2a0820 !important;}
 </style>
 </head>
 <body>
+<div id="item-hud"></div>
 <div id="tut-btn" onclick="document.getElementById('tut-modal').classList.add('open')">❓ 도움말</div>
 <div id="tut-modal" onclick="if(event.target===this)this.classList.remove('open')">
 <div id="tut-inner">
@@ -118,7 +127,7 @@ resize();window.addEventListener('resize',resize);
 
 let player,enemies,bullets,xpOrbs,particles,weapons;
 let kills,gameTime,level,xp,xpNeeded,running,paused,diffMult=1,diffName='보통';
-let healthItems=[];let chests=[];let chestSpawnTimer=0;
+let healthItems=[];let chests=[];let chestSpawnTimer=0;let activeItems=[];
 let keys={};let touch={dx:0,dy:0};let animId;
 let frameCount=0,lastSecond=Date.now();
 
@@ -126,13 +135,13 @@ let frameCount=0,lastSecond=Date.now();
 const WEAPON_DEFS={
   knife:{name:'🗡 단검',desc:'빠른 단검 발사',color:'#e2d4ff',cooldown:80,damage:15,speed:8,r:6,wtype:'bullet',pierce:1,count:1},
   axe:{name:'🪓 도끼',desc:'되돌아오는 도끼',color:'#f97316',cooldown:160,damage:40,speed:5,r:10,wtype:'boomerang'},
-  magic:{name:'✨ 마법진',desc:'주변을 회전 공격',color:'#c084fc',cooldown:200,damage:12,r:8,wtype:'orbit',orbitR:80,count:3},
+  magic:{name:'✨ 마법진',desc:'주변을 회전 공격',color:'#c084fc',cooldown:200,damage:12,r:8,wtype:'orbit',orbitR:80,count:3,duration:1200},
   fireball:{name:'🔥 파이어볼',desc:'강력한 폭발',color:'#ef4444',cooldown:180,damage:55,speed:4,r:12,wtype:'bullet',pierce:1,splash:50},
   lightning:{name:'⚡ 번개',desc:'가장 가까운 적 공격',color:'#fde047',cooldown:140,damage:30,wtype:'lightning',chainCount:2},
   freeze:{name:'❄️ 냉기장',desc:'주변 적 빙결',color:'#7dd3fc',cooldown:250,damage:10,r:120,wtype:'aura'},
-  holy:{name:'✝️ 성스러운 오라',desc:'성광 오브가 적을 태움',color:'#fef08a',cooldown:2,damage:18,r:14,wtype:'holy',orbitR:110,count:3},
+  holy:{name:'✝️ 성스러운 오라',desc:'성광 오브가 적을 태움',color:'#fef08a',cooldown:2,damage:18,r:14,wtype:'holy',orbitR:110,count:3,duration:1500},
   poison:{name:'☠️ 독구름',desc:'독 지대를 생성해 데미지',color:'#4ade80',cooldown:250,damage:4,r:32,wtype:'poison'},
-  ghost:{name:'👻 유령 소환',desc:'유령이 주위를 맴돌며 공격',color:'#a5b4fc',cooldown:2,damage:20,r:13,wtype:'ghost',orbitR:130,count:2},
+  ghost:{name:'👻 유령 소환',desc:'유령이 주위를 맴돌며 공격',color:'#a5b4fc',cooldown:2,damage:20,r:13,wtype:'ghost',orbitR:130,count:2,duration:1800},
 };
 
 // ── 업그레이드 풀 ──
@@ -141,26 +150,27 @@ const STAT_UPGRADES=[
   {uid:'hp',name:'❤️ 최대 HP+',desc:'최대 HP 증가',icon:'❤️',utype:'stat',tier:0},
   {uid:'xpboost',name:'🌟 경험치+',desc:'XP 획득량 증가',icon:'🌟',utype:'stat',tier:0},
   {uid:'magnet',name:'🧲 자석 범위+',desc:'XP 흡수 범위 증가',icon:'🧲',utype:'stat',tier:0},
-  {uid:'dmg',name:'⚔️ 공격력+',desc:'모든 무기 공격력 증가',icon:'⚔️',utype:'stat',tier:1},
+  {uid:'dmg',name:'⚔️ 공격력+',desc:'모든 무기 공격력 증가',icon:'⚔️',utype:'stat',tier:2},
   {uid:'regen',name:'💚 재생력+',desc:'초당 HP 회복',icon:'💚',utype:'stat',tier:1},
   {uid:'luck',name:'🍀 행운+',desc:'XP 드롭량 증가',icon:'🍀',utype:'stat',tier:0},
-  {uid:'pierce',name:'🎯 관통+',desc:'단검/파이어볼 관통 +1',icon:'🎯',utype:'stat',tier:1},
-  {uid:'dodge',name:'🌀 회피율+',desc:'피해 회피 확률',icon:'🌀',utype:'stat',tier:1},
-  {uid:'armor',name:'🛡️ 방어력+',desc:'받는 피해 감소',icon:'🛡️',utype:'stat',tier:1},
-  {uid:'barrier',name:'🔮 배리어',desc:'주기적 피해 무효화 막',icon:'🔮',utype:'stat',tier:2},
-  {uid:'thorns',name:'⚡ 반격',desc:'피격 시 주변 적 데미지',icon:'⚡',utype:'stat',tier:2},
+  {uid:'pierce',name:'🎯 관통+',desc:'단검/파이어볼 관통 +1',icon:'🎯',utype:'stat',tier:2},
+  {uid:'dodge',name:'🌀 회피율+',desc:'피해 회피 확률',icon:'🌀',utype:'stat',tier:2},
+  {uid:'armor',name:'🛡️ 방어력+',desc:'받는 피해 감소',icon:'🛡️',utype:'stat',tier:2},
+  {uid:'barrier',name:'🔮 배리어',desc:'주기적 피해 무효화 막',icon:'🔮',utype:'stat',tier:3},
+  {uid:'thorns',name:'⚡ 반격',desc:'피격 시 주변 적 데미지',icon:'⚡',utype:'stat',tier:3},
+  {uid:'duration',name:'⏳ 지속시간+',desc:'소환/오브 지속시간 증가',icon:'⏳',utype:'stat',tier:2},
 ];
 
 const WEAPON_NEW=[
   {uid:'w_knife',wid:'knife',name:'🗡 단검',desc:'빠른 단검 발사',icon:'🗡',utype:'new',tier:0},
-  {uid:'w_axe',wid:'axe',name:'🪓 도끼',desc:'되돌아오는 도끼',icon:'🪓',utype:'new',tier:0},
-  {uid:'w_magic',wid:'magic',name:'✨ 마법진',desc:'주변 회전 공격',icon:'✨',utype:'new',tier:1},
-  {uid:'w_freeze',wid:'freeze',name:'❄️ 냉기장',desc:'주변 적 빙결',icon:'❄️',utype:'new',tier:1},
+  {uid:'w_axe',wid:'axe',name:'🪓 도끼',desc:'되돌아오는 도끼',icon:'🪓',utype:'new',tier:1},
+  {uid:'w_magic',wid:'magic',name:'✨ 마법진',desc:'주변 회전 공격',icon:'✨',utype:'new',tier:2},
+  {uid:'w_freeze',wid:'freeze',name:'❄️ 냉기장',desc:'주변 적 빙결',icon:'❄️',utype:'new',tier:2},
   {uid:'w_poison',wid:'poison',name:'☠️ 독구름',desc:'독 지대 생성',icon:'☠️',utype:'new',tier:1},
-  {uid:'w_fireball',wid:'fireball',name:'🔥 파이어볼',desc:'강력 폭발 투사체',icon:'🔥',utype:'new',tier:2},
-  {uid:'w_lightning',wid:'lightning',name:'⚡ 번개',desc:'자동 타격 번개',icon:'⚡',utype:'new',tier:2},
-  {uid:'w_holy',wid:'holy',name:'✝️ 성스러운 오라',desc:'성광이 적을 태움',icon:'✝️',utype:'new',tier:2},
-  {uid:'w_ghost',wid:'ghost',name:'👻 유령 소환',desc:'공격하는 유령 소환',icon:'👻',utype:'new',tier:3},
+  {uid:'w_fireball',wid:'fireball',name:'🔥 파이어볼',desc:'강력 폭발 투사체',icon:'🔥',utype:'new',tier:3},
+  {uid:'w_lightning',wid:'lightning',name:'⚡ 번개',desc:'자동 타격 번개',icon:'⚡',utype:'new',tier:3},
+  {uid:'w_holy',wid:'holy',name:'✝️ 성스러운 오라',desc:'성광이 적을 태움',icon:'✝️',utype:'new',tier:4},
+  {uid:'w_ghost',wid:'ghost',name:'👻 유령 소환',desc:'공격하는 유령 소환',icon:'👻',utype:'new',tier:5},
 ];
 
 const WEAPON_UPGRADES=[
@@ -203,9 +213,9 @@ function startGame(diff){
   player={
     x:0,y:0,r:16,hp:100,maxHp:100,spd:2.5,
     invincible:0,dmgMult:1,
-    magnetR:80,xpMult:1,regen:0,luck:1,dodge:0,armor:0,barrierMax:0,barrier:0,barrierCooldown:0,thorns:0,
+    magnetR:80,xpMult:1,regen:0,luck:1,dodge:0,armor:0,barrierMax:0,barrier:0,barrierCooldown:0,thorns:0,durationMult:1,
   };
-  enemies=[];bullets=[];xpOrbs=[];particles=[];healthItems=[];chests=[];chestSpawnTimer=0;
+  enemies=[];bullets=[];xpOrbs=[];particles=[];healthItems=[];chests=[];chestSpawnTimer=0;activeItems=[];
   weapons=[{...WEAPON_DEFS.knife,wid:'knife',timer:0,pierce:1,count:1}];
   kills=0;gameTime=0;level=1;xp=0;xpNeeded=20;
   running=true;paused=false;
@@ -259,28 +269,31 @@ function update(){
   // 무기 발동
   for(let w of weapons){
     if(w.wtype==='holy'||w.wtype==='ghost'){
-      // 지속형 - 항상 총알 유지
-      const existing=bullets.filter(b=>b.ownerWid===w.wid);
-      if(existing.length!==w.count){
+      // 지속형 - duration 기반
+      if(!w.durationLeft)w.durationLeft=w.duration||1200;
+      w.durationLeft--;
+      if(w.durationLeft<=0){
+        // 만료: 총알 제거, 무기 비활성
         bullets=bullets.filter(b=>b.ownerWid!==w.wid);
-        const cnt=w.count||2;
-        for(let i=0;i<cnt;i++){
-          const ang=i*(Math.PI*2/cnt);
-          bullets.push({
-            x:player.x+Math.cos(ang)*(w.orbitR||120),
-            y:player.y+Math.sin(ang)*(w.orbitR||120),
-            r:w.r,damage:w.damage*player.dmgMult,
-            life:99999,btype:w.wtype,angle:ang,orbitR:w.orbitR||120,
-            maxPierce:99,pierces:0,color:w.color,ownerWid:w.wid
-          });
-        }
+        w.durationLeft=0;w.active=false;
       } else {
-        for(let b of existing){
-          b.damage=w.damage*player.dmgMult;
-          b.r=w.r;
-          b.angle+=0.03;
-          b.x=player.x+Math.cos(b.angle)*b.orbitR;
-          b.y=player.y+Math.sin(b.angle)*b.orbitR;
+        const existing=bullets.filter(b=>b.ownerWid===w.wid);
+        if(existing.length!==w.count){
+          bullets=bullets.filter(b=>b.ownerWid!==w.wid);
+          const cnt=w.count||2;
+          for(let i=0;i<cnt;i++){
+            const ang=i*(Math.PI*2/cnt);
+            bullets.push({x:player.x+Math.cos(ang)*(w.orbitR||120),y:player.y+Math.sin(ang)*(w.orbitR||120),
+              r:w.r,damage:w.damage*player.dmgMult,life:999999,btype:w.wtype,angle:ang,orbitR:w.orbitR||120,
+              maxPierce:99,pierces:0,color:w.color,ownerWid:w.wid});
+          }
+        } else {
+          for(let b of existing){
+            b.damage=w.damage*player.dmgMult;b.r=w.r;
+            b.angle+=0.03;
+            b.x=player.x+Math.cos(b.angle)*b.orbitR;
+            b.y=player.y+Math.sin(b.angle)*b.orbitR;
+          }
         }
       }
     } else {
@@ -292,7 +305,7 @@ function update(){
   // 총알 업데이트
   for(let b of bullets){
     if(b.btype==='orbit'){
-      b.angle+=0.035;
+      b.angle+=0.035;b.life--;
       b.x=player.x+Math.cos(b.angle)*b.orbitR;
       b.y=player.y+Math.sin(b.angle)*b.orbitR;
     } else if(b.btype==='aura'){
@@ -401,6 +414,20 @@ function update(){
   document.getElementById('xp-bar').style.width=(xp/xpNeeded*100)+'%';
   document.getElementById('lv-txt').textContent=level;
   document.getElementById('kill-txt').textContent='💀 '+kills;
+  // 아이템 HUD 업데이트
+  const iHud=document.getElementById('item-hud');
+  if(iHud){
+    // dmgBoost 표시
+    const chips=[];
+    if(player._dmgBoost){const sec=Math.ceil((player._dmgBoostTimer||0)/60);chips.push({icon:'💥',name:'공격 2배',timer:sec+'s'});}
+    if((player.barrier||0)>0)chips.push({icon:'🔮',name:'배리어 '+Math.ceil(player.barrier),timer:''});
+    if((player.dodge||0)>0)chips.push({icon:'🌀',name:'회피 '+Math.round(player.dodge*100)+'%',timer:''});
+    if((player.armor||0)>0)chips.push({icon:'🛡️',name:'방어 '+Math.round(player.armor*100)+'%',timer:''});
+    if((player.thorns||0)>0)chips.push({icon:'⚡',name:'반격 '+player.thorns,timer:''});
+    // orbit weapon duration 표시
+    for(let w of weapons){if(w.duration&&(w.durationLeft||0)>0)chips.push({icon:w.wtype==='holy'?'✝️':w.wtype==='ghost'?'👻':'✨',name:w.name.split(' ').pop(),timer:Math.ceil(w.durationLeft/60)+'s'});}
+    iHud.innerHTML=chips.map(c=>'<div class="item-chip"><span class="ic-icon">'+c.icon+'</span><span>'+c.name+'</span>'+(c.timer?'<span class="ic-timer">'+c.timer+'</span>':'')+'</div>').join('');
+  }
   const mm=Math.floor(gameTime/60),ss=gameTime%60;
   document.getElementById('time-txt').textContent='⏱ '+mm+':'+String(ss).padStart(2,'0');
 }
@@ -524,12 +551,13 @@ function fireWeapon(w){
     bullets.push({x:player.x,y:player.y,vx:Math.cos(ang)*(w.speed||5),vy:Math.sin(ang)*(w.speed||5),
       r:w.r,damage:w.damage*player.dmgMult,life:50,btype:'boomerang',maxPierce:99,pierces:0,color:w.color});
   } else if(wt==='orbit'){
+    w.durationLeft=w.duration||1200;w.active=true;
     bullets=bullets.filter(b=>b.ownerWid!==w.wid);
     const cnt=w.count||3;
     for(let i=0;i<cnt;i++){
       const ang=i*(Math.PI*2/cnt);
       bullets.push({x:player.x,y:player.y,r:w.r,damage:w.damage*player.dmgMult,
-        life:99999,btype:'orbit',angle:ang,orbitR:w.orbitR||80,
+        life:999999,btype:'orbit',angle:ang,orbitR:w.orbitR||80,
         maxPierce:99,pierces:0,color:w.color,ownerWid:w.wid});
     }
   } else if(wt==='lightning'){
@@ -567,13 +595,15 @@ function doSplash(x,y,r,dmg){
 
 // ── 등급 시스템 ──
 const GRADES=[
-  {name:'커먼',   color:'#9ca3af', bg:'#151515',  prob:0.40, idx:0, cls:'grade-common'},
-  {name:'레어',   color:'#3b82f6', bg:'#0d1f4e',  prob:0.28, idx:1, cls:'grade-rare'},
-  {name:'에픽',   color:'#8b5cf6', bg:'#1a0d4e',  prob:0.18, idx:2, cls:'grade-epic'},
-  {name:'레전드', color:'#eab308', bg:'#1f1a00',  prob:0.11, idx:3, cls:'grade-legend'},
-  {name:'초월',   color:'#ef4444', bg:'#1a0510',  prob:0.03, idx:4, cls:'grade-transcend'},
+  {name:'커먼',   color:'#9ca3af', bg:'#151515',  prob:0.35, idx:0, cls:'grade-common'},
+  {name:'언커먼', color:'#4ade80', bg:'#051a0d',  prob:0.24, idx:1, cls:'grade-uncommon'},
+  {name:'레어',   color:'#3b82f6', bg:'#0d1f4e',  prob:0.18, idx:2, cls:'grade-rare'},
+  {name:'에픽',   color:'#8b5cf6', bg:'#1a0d4e',  prob:0.12, idx:3, cls:'grade-epic'},
+  {name:'유니크', color:'#f97316', bg:'#2a1500',  prob:0.07, idx:4, cls:'grade-unique'},
+  {name:'레전드', color:'#eab308', bg:'#1f1a00',  prob:0.03, idx:5, cls:'grade-legend'},
+  {name:'초월',   color:'#ef4444', bg:'#1a0510',  prob:0.01, idx:6, cls:'grade-transcend'},
 ];
-const GRADE_MULT=[1.0,1.4,1.9,2.6,3.5];
+const GRADE_MULT=[1.0,1.25,1.6,2.0,2.6,3.4,5.0];
 function rollGradeFrom(minTier=0){
   const sub=GRADES.slice(minTier);
   const total=sub.reduce((s,g)=>s+g.prob,0);
@@ -598,6 +628,7 @@ function computeUpgradeValues(u,grade){
     else if(u.uid.startsWith('armor')){const v=rv2(5,15);u._vals={armor:v/100};u.desc='피해 -'+Math.round(v*m)+'%';}
     else if(u.uid.startsWith('barrier')){const v=Math.round(rv2(60,120)*m);u._vals={barrier:v};u.desc='배리어 '+v+' HP';}
     else if(u.uid.startsWith('thorns')){const v=Math.round(rv2(15,35)*m);u._vals={thorns:v};u.desc='반격 '+v+' 데미지';}
+    else if(u.uid.startsWith('duration')){const v=rv2(15,35);u._vals={dur:v/100};u.desc='지속시간 +'+Math.round(v*m)+'%';}
   } else if(u.utype==='wupgrade'){
     if(u.uid==='up_knife_dmg'){const v=Math.round(rv2(25,45)*m);u._vals={d:v/100};u.desc='단검 DMG +'+v+'%, 쿨다운↓';}
     else if(u.uid==='up_knife_cnt'){u._vals={};u.desc='단검 발사 수 +1';}
@@ -661,7 +692,7 @@ function levelUp(){
     d.style.borderColor=grade.color;
     d.style.background=grade.bg;
     if(grade.cls!=='grade-transcend'){d.style.boxShadow='0 0 8px '+grade.color+'66';}
-    const gradeStars={'커먼':'','레어':'★','에픽':'★★','레전드':'★★★','초월':'✦'};
+    const gradeStars={'커먼':'','언커먼':'★','레어':'★★','에픽':'★★★','유니크':'◆','레전드':'◆◆','초월':'✦'};
     d.innerHTML='<div class="upg-icon">'+u.icon+'</div>'
       +'<div class="upg-name" style="color:'+grade.color+'">'+u.name+'</div>'
       +'<div class="upg-desc">'+u.desc+'</div>'
@@ -690,9 +721,10 @@ function applyUpgrade(u){
     else if(u.uid.startsWith('armor'))player.armor=Math.min(0.7,(player.armor||0)+(v.armor||0.08));
     else if(u.uid.startsWith('barrier')){player.barrierMax=(player.barrierMax||0)+(v.barrier||80);player.barrier=(player.barrier||0)+(v.barrier||80);}
     else if(u.uid.startsWith('thorns'))player.thorns=(player.thorns||0)+(v.thorns||20);
+    else if(u.uid.startsWith('duration')){const mult=1+(v.dur||0.2);for(let w of weapons){if(w.duration)w.duration=Math.round(w.duration*mult);}}
   } else if(u.utype==='new'){
     const def=WEAPON_DEFS[u.wid];
-    if(def)weapons.push({...def,wid:u.wid,timer:0,pierce:def.pierce||1,count:def.count||1,chainCount:def.chainCount||3,orbitR:def.orbitR||80});
+    if(def){const dur=def.duration;weapons.push({...def,wid:u.wid,timer:0,pierce:def.pierce||1,count:def.count||1,chainCount:def.chainCount||3,orbitR:def.orbitR||80,durationLeft:dur||0,active:!dur});}
   } else if(u.utype==='wupgrade'){
     const w=weapons.find(x=>x.wid===u.wid);
     if(!w)return;
