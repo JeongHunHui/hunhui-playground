@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>포켓몬 퀴즈</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.25rem;
+      background: linear-gradient(135deg, #ffcb05, #ff0000);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
+    .card {
+      background: #16213e;
+      border-radius: 20px;
+      padding: 2rem;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      text-align: center;
+    }
+    .score-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+      color: #888;
+    }
+    .score-val { color: #ffcb05; font-weight: 700; }
+    .silhouette-wrap {
+      background: #0f3460;
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+      min-height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pkmn-img {
+      width: 150px;
+      height: 150px;
+      image-rendering: pixelated;
+      transition: filter 0.5s ease;
+    }
+    .pkmn-img.hidden { filter: brightness(0); }
+    .pkmn-img.revealed { filter: brightness(1); }
+    .question {
+      font-size: 1.1rem;
+      margin-bottom: 1.25rem;
+      color: #ddd;
+    }
+    .options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    .opt-btn {
+      background: #0f3460;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      padding: 0.75rem 0.5rem;
+      color: #eee;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .opt-btn:hover:not(:disabled) { border-color: #ffcb05; background: #1a4a80; }
+    .opt-btn.correct { border-color: #22c55e; background: rgba(34,197,94,0.15); color: #22c55e; }
+    .opt-btn.wrong { border-color: #ef4444; background: rgba(239,68,68,0.1); color: #ef4444; }
+    .opt-btn:disabled { cursor: default; }
+    .result-msg {
+      font-size: 1rem;
+      min-height: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .result-msg.correct-msg { color: #22c55e; }
+    .result-msg.wrong-msg { color: #ef4444; }
+    .next-btn {
+      background: linear-gradient(135deg, #ffcb05, #f59e0b);
+      color: #1a1a2e;
+      border: none;
+      border-radius: 12px;
+      padding: 0.75rem 2rem;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s;
+    }
+    .next-btn:hover { opacity: 0.85; }
+    .next-btn:disabled { opacity: 0.4; cursor: default; }
+    .loading { color: #888; font-size: 0.9rem; }
+    .final {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    .final h2 { font-size: 1.75rem; color: #ffcb05; }
+    .final p { color: #aaa; }
+    .restart-btn {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white; border: none; border-radius: 12px;
+      padding: 0.75rem 2rem; font-size: 1rem; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+    }
+    .streak { font-size: 0.8rem; color: #f59e0b; }
+  </style>
+</head>
+<body>
+  <h1>⚡ 포켓몬 퀴즈</h1>
+  <p class="subtitle">이 포켓몬은 누구일까요?</p>
+
+  <div class="card" id="quiz-card">
+    <div class="score-bar">
+      <span>문제 <span class="score-val" id="q-num">1</span> / 10</span>
+      <span>점수 <span class="score-val" id="score">0</span></span>
+      <span class="streak" id="streak-display"></span>
+    </div>
+
+    <div class="silhouette-wrap">
+      <img id="pkmn-img" class="pkmn-img hidden" src="" alt="포켓몬" />
+    </div>
+
+    <p class="question" id="question">이 포켓몬의 이름은?</p>
+
+    <div class="options" id="options"></div>
+
+    <p class="result-msg" id="result-msg"></p>
+
+    <button class="next-btn" id="next-btn" disabled>다음 문제 →</button>
+  </div>
+
+  <div class="card final" id="final-card">
+    <h2 id="final-emoji">🎉</h2>
+    <h2 id="final-title">퀴즈 완료!</h2>
+    <p id="final-score"></p>
+    <p id="final-comment"></p>
+    <button class="restart-btn" onclick="startQuiz()">다시 도전하기</button>
+  </div>
+
+  <script>
+    const KO_NAMES = {};
+    let questions = [];
+    let current = 0;
+    let score = 0;
+    let streak = 0;
+    let answered = false;
+
+    const TOTAL_POKEMON = 151; // 1세대
+
+    async function fetchPokemonName(id) {
+      if (KO_NAMES[id]) return KO_NAMES[id];
+      try {
+        const r = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}/`);
+        const d = await r.json();
+        const ko = d.names.find(n => n.language.name === 'ko');
+        KO_NAMES[id] = ko ? ko.name : d.names.find(n => n.language.name === 'en').name;
+      } catch {
+        KO_NAMES[id] = `#${id}`;
+      }
+      return KO_NAMES[id];
+    }
+
+    async function generateQuestions() {
+      const ids = [];
+      while (ids.length < 10) {
+        const id = Math.floor(Math.random() * TOTAL_POKEMON) + 1;
+        if (!ids.includes(id)) ids.push(id);
+      }
+
+      const qs = [];
+      for (const id of ids) {
+        const name = await fetchPokemonName(id);
+        // 오답 3개
+        const wrongIds = [];
+        while (wrongIds.length < 3) {
+          const wid = Math.floor(Math.random() * TOTAL_POKEMON) + 1;
+          if (wid !== id && !wrongIds.includes(wid)) wrongIds.push(wid);
+        }
+        const wrongNames = await Promise.all(wrongIds.map(fetchPokemonName));
+        const options = [name, ...wrongNames].sort(() => Math.random() - 0.5);
+        qs.push({ id, name, options, img: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` });
+      }
+      return qs;
+    }
+
+    async function startQuiz() {
+      document.getElementById('final-card').style.display = 'none';
+      document.getElementById('quiz-card').style.display = 'block';
+      document.getElementById('question').textContent = '로딩 중...';
+      document.getElementById('options').innerHTML = '';
+      document.getElementById('next-btn').disabled = true;
+      document.getElementById('result-msg').textContent = '';
+
+      score = 0; current = 0; streak = 0;
+      updateScore();
+
+      questions = await generateQuestions();
+      showQuestion();
+    }
+
+    function showQuestion() {
+      answered = false;
+      const q = questions[current];
+      document.getElementById('q-num').textContent = current + 1;
+      document.getElementById('result-msg').textContent = '';
+      document.getElementById('next-btn').disabled = true;
+
+      const img = document.getElementById('pkmn-img');
+      img.className = 'pkmn-img hidden';
+      img.src = q.img;
+
+      document.getElementById('question').textContent = '이 포켓몬의 이름은?';
+
+      const opts = document.getElementById('options');
+      opts.innerHTML = '';
+      q.options.forEach(name => {
+        const btn = document.createElement('button');
+        btn.className = 'opt-btn';
+        btn.textContent = name;
+        btn.onclick = () => answer(name, btn);
+        opts.appendChild(btn);
+      });
+    }
+
+    function answer(chosen, btn) {
+      if (answered) return;
+      answered = true;
+
+      const q = questions[current];
+      const img = document.getElementById('pkmn-img');
+      img.className = 'pkmn-img revealed';
+
+      const btns = document.querySelectorAll('.opt-btn');
+      btns.forEach(b => {
+        b.disabled = true;
+        if (b.textContent === q.name) b.classList.add('correct');
+      });
+
+      const msg = document.getElementById('result-msg');
+      if (chosen === q.name) {
+        score++;
+        streak++;
+        btn.classList.add('correct');
+        msg.textContent = streak >= 3 ? `🔥 ${streak}연속 정답! +1` : '✅ 정답!';
+        msg.className = 'result-msg correct-msg';
+      } else {
+        streak = 0;
+        btn.classList.add('wrong');
+        msg.textContent = `❌ 틀렸어요. 정답: ${q.name}`;
+        msg.className = 'result-msg wrong-msg';
+      }
+
+      updateScore();
+      document.getElementById('next-btn').disabled = false;
+      document.getElementById('next-btn').textContent = current < 9 ? '다음 문제 →' : '결과 보기 🎯';
+    }
+
+    function updateScore() {
+      document.getElementById('score').textContent = score;
+      const s = document.getElementById('streak-display');
+      s.textContent = streak >= 3 ? `🔥 ${streak}연속` : '';
+    }
+
+    document.getElementById('next-btn').onclick = () => {
+      current++;
+      if (current >= 10) {
+        showFinal();
+      } else {
+        showQuestion();
+      }
+    };
+
+    function showFinal() {
+      document.getElementById('quiz-card').style.display = 'none';
+      const fc = document.getElementById('final-card');
+      fc.style.display = 'flex';
+      document.getElementById('final-score').textContent = `10문제 중 ${score}개 정답`;
+
+      let emoji = '😢', comment = '다시 도전해봐요!';
+      if (score === 10) { emoji = '🏆'; comment = '완벽해요! 포켓몬 마스터!'; }
+      else if (score >= 8) { emoji = '🎉'; comment = '대단해요! 거의 다 맞혔어요!'; }
+      else if (score >= 5) { emoji = '👍'; comment = '절반 이상! 꽤 잘 하셨어요!'; }
+      else if (score >= 3) { emoji = '🌱'; comment = '조금 더 연습해봐요!'; }
+
+      document.getElementById('final-emoji').textContent = emoji;
+      document.getElementById('final-comment').textContent = comment;
+    }
+
+    startQuiz();
+  </script>
+</body>
+</html>
