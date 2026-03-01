@@ -95,17 +95,19 @@ let kills,gameTime,level,xp,xpNeeded,running,paused;
 let keys={};let touch={dx:0,dy:0};let animId;
 
 const WEAPON_DEFS={
-  knife:{name:'🗡 단검',desc:'빠른 단검 발사',color:'#e2d4ff',cooldown:30,damage:8,speed:8,r:6,type:'bullet',pierce:1},
-  axe:{name:'🪓 도끼',desc:'튀어나오는 도끼',color:'#f97316',cooldown:80,damage:20,speed:5,r:10,type:'boomerang'},
-  magic:{name:'✨ 마법진',desc:'주변을 회전 공격',color:'#c084fc',cooldown:130,damage:8,r:60,type:'orbit'},
-  fireball:{name:'🔥 파이어볼',desc:'강력한 폭발',color:'#ef4444',cooldown:100,damage:30,speed:4,r:12,type:'bullet',splash:50},
-  lightning:{name:'⚡ 번개',desc:'가장 가까운 적 공격',color:'#fde047',cooldown:60,damage:18,type:'lightning'},
-  freeze:{name:'❄️ 냉기장',desc:'주변 적 빙결',color:'#7dd3fc',cooldown:150,damage:5,r:120,type:'aura'},
+  knife:{name:'🗡 단검',desc:'빠른 단검 발사',color:'#e2d4ff',cooldown:55,damage:8,speed:8,r:6,type:'bullet',pierce:1},
+  axe:{name:'🪓 도끼',desc:'튀어나오는 도끼',color:'#f97316',cooldown:120,damage:20,speed:5,r:10,type:'boomerang'},
+  magic:{name:'✨ 마법진',desc:'주변을 회전 공격',color:'#c084fc',cooldown:160,damage:8,r:60,type:'orbit'},
+  fireball:{name:'🔥 파이어볼',desc:'강력한 폭발',color:'#ef4444',cooldown:150,damage:30,speed:4,r:12,type:'bullet',splash:50},
+  lightning:{name:'⚡ 번개',desc:'가장 가까운 적 공격',color:'#fde047',cooldown:90,damage:18,type:'lightning'},
+  freeze:{name:'❄️ 냉기장',desc:'주변 적 빙결',color:'#7dd3fc',cooldown:200,damage:5,r:120,type:'aura'},
+  shotgun:{name:'💥 산탄총',desc:'3방향 동시 발사',color:'#fb923c',cooldown:90,damage:12,speed:7,r:7,type:'shotgun',count:3,spread:0.35},
 };
 const ALL_UPGRADES=[
   {id:'knife',name:'🗡 단검 추가',desc:'단검 발사 추가',icon:'🗡'},
   {id:'axe',name:'🪓 도끼',desc:'도끼 추가',icon:'🪓'},
   {id:'magic',name:'✨ 마법진',desc:'마법진 추가',icon:'✨'},
+  {id:'shotgun',name:'💥 산탄총',desc:'3방향 동시 발사 추가',icon:'💥'},
   {id:'fireball',name:'🔥 파이어볼',desc:'파이어볼 추가',icon:'🔥'},
   {id:'lightning',name:'⚡ 번개',desc:'번개 추가',icon:'⚡'},
   {id:'freeze',name:'❄️ 냉기장',desc:'냉기장 추가',icon:'❄️'},
@@ -286,6 +288,14 @@ function fireWeapon(w){
     const angle=nearest?Math.atan2(nearest.y-player.y,nearest.x-player.x):Math.random()*Math.PI*2;
     bullets.push({x:player.x,y:player.y,vx:Math.cos(angle)*w.speed,vy:Math.sin(angle)*w.speed,
       r:w.r,damage:w.damage*player.dmgMult,life:50,type:'boomerang',maxPierce:99,pierces:0,color:w.color});
+  } else if(w.type==='shotgun'){
+    let sNearest=null,snd=Infinity;for(let e of enemies){const d=Math.hypot(e.x-player.x,e.y-player.y);if(d<snd){snd=d;sNearest=e;}}
+    const baseAngle=Math.atan2(sNearest?sNearest.y-player.y:1,sNearest?sNearest.x-player.x:0);
+    for(let i=0;i<(w.count||3);i++){
+      const a=baseAngle+(i-Math.floor((w.count||3)/2))*(w.spread||0.3);
+      bullets.push({x:player.x,y:player.y,vx:Math.cos(a)*w.speed,vy:Math.sin(a)*w.speed,
+        r:w.r,damage:w.damage*player.dmgMult,life:60,type:'bullet',maxPierce:2,pierces:0,color:w.color});
+    }
   } else if(w.type==='orbit'){
     for(let i=0;i<(w.count||3);i++){
       bullets.push({x:player.x,y:player.y,r:w.r,damage:w.damage*player.dmgMult,
