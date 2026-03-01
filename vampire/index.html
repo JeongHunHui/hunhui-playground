@@ -602,10 +602,16 @@ function levelUp(){
 
   const ownedWids=new Set(weapons.map(w=>w.wid));
   let pool=[];
-  // 신규 무기
+  // 신규 무기 (미보유만)
   for(let u of WEAPON_NEW){if(!ownedWids.has(u.wid))pool.push({...u});}
-  // 무기 강화 (보유 중만)
-  for(let u of WEAPON_UPGRADES){if(ownedWids.has(u.wid))pool.push({...u});}
+  // 무기 강화 (보유 중인 무기만, wid당 1개)
+  const usedWupgradeWids=new Set();
+  const shuffledWU=[...WEAPON_UPGRADES].sort(()=>Math.random()-0.5);
+  for(let u of shuffledWU){
+    if(ownedWids.has(u.wid)&&!usedWupgradeWids.has(u.wid)){
+      pool.push({...u});usedWupgradeWids.add(u.wid);
+    }
+  }
   // 스탯
   pool.push(...STAT_UPGRADES.map(u=>({...u})));
 
