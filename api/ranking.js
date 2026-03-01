@@ -32,7 +32,7 @@ module.exports = async function(req, res) {
       const {initials,time,kills,level,version,difficulty} = req.body||{};
       if (!initials) return res.status(400).json({error:'initials required'});
       const date = new Date().toLocaleDateString('ko-KR');
-      await fetch(`${baseUrl}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
+      await fetch(`${baseUrl}:append?valueInputOption=RAW&insertDataOption=OVERWRITE`,{
         method:'POST',headers:hdrs,
         body:JSON.stringify({values:[[initials,time,kills,level,date,version||'',difficulty||'']]}),
       });
