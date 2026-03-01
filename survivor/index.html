@@ -44,7 +44,7 @@ window.addEventListener('resize',()=>{resize();});
 let arrows=[],gates=[],enemies=[],particles=[];
 let arrowCount=1,wave=1,kills=0,running=false;
 let aimX=W/2,dragging=false,lastFired=0;
-const FIRE_RATE=1200;
+const FIRE_RATE=1500;
 
 function startGame(){
   document.getElementById('overlay').style.display='none';
@@ -79,17 +79,17 @@ function spawnWave(){
 
 function getGatePair(){
   const types=[
-    ['×2','÷2'],['×3','÷3'],['×5','÷2'],['×2','×1'],
-    ['+5','-3'],['×2','+1'],['+10','÷2'],['×3','-5']
+    ['×2','÷2'],['×2','÷2'],['+3','-2'],['×2','+2'],
+    ['+5','÷2'],['+3','-3'],['×2','-3'],['+4','-2']
   ];
   return types[Math.floor(Math.random()*types.length)];
 }
 
 function applyGate(op){
   const n=parseInt(op.replace(/[×÷+\-]/,''));
-  if(op[0]==='×')arrowCount=Math.min(30,arrowCount*n);
+  if(op[0]==='×')arrowCount=Math.min(12,arrowCount*n);
   else if(op[0]==='÷')arrowCount=Math.max(1,Math.floor(arrowCount/n));
-  else if(op[0]==='+')arrowCount=Math.min(30,arrowCount+n);
+  else if(op[0]==='+')arrowCount=Math.min(12,arrowCount+n);
   else if(op[0]==='-')arrowCount=Math.max(1,arrowCount-n);
 }
 

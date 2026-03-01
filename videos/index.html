@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎬 영상 컬렉션</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0d0a1a;color:#f0e6ff;font-family:'Noto Sans KR',sans-serif;min-height:100vh;}
+header{background:#0a0818;border-bottom:1px solid #2d1f4e;padding:14px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10;}
+header h1{font-size:1.3rem;color:#c084fc;}
+.search-input{flex:1;padding:8px 14px;border-radius:8px;border:1px solid #3d2a5e;background:#1a1030;color:#e2d4ff;font-size:0.9rem;}
+.add-btn{padding:8px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-weight:700;cursor:pointer;white-space:nowrap;}
+#add-panel{background:#100820;border-bottom:1px solid #2d1f4e;padding:16px 20px;display:none;}
+.add-row{display:flex;gap:8px;max-width:700px;margin:0 auto;}
+.add-row input{flex:1;padding:10px 14px;border-radius:8px;border:1px solid #3d2a5e;background:#1a1030;color:#e2d4ff;font-size:0.9rem;}
+.add-row .tag-input{width:140px;flex:none;}
+.confirm-btn{padding:10px 20px;border-radius:8px;border:none;background:linear-gradient(135deg,#7c3aed,#c084fc);color:#fff;font-weight:700;cursor:pointer;}
+.tags-row{display:flex;gap:8px;max-width:700px;margin:10px auto 0;flex-wrap:wrap;}
+.tag-btn{padding:4px 12px;border-radius:99px;border:1px solid #3d2a5e;background:#1a1030;color:#9f8ab8;cursor:pointer;font-size:0.8rem;transition:all 0.15s;}
+.tag-btn.active,.tag-btn:hover{border-color:#c084fc;color:#c084fc;background:#2d1f4e;}
+#main{padding:16px 20px;max-width:1400px;margin:0 auto;}
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.filter-bar span{color:#7c6a9a;font-size:0.85rem;}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+.card{background:#1a1030;border:1px solid #2d1f4e;border-radius:14px;overflow:hidden;transition:all 0.2s;cursor:pointer;}
+.card:hover{border-color:#7c3aed;transform:translateY(-3px);box-shadow:0 8px 30px #7c3aed33;}
+.thumb{width:100%;aspect-ratio:16/9;background:#0d0820;position:relative;overflow:hidden;}
+.thumb img{width:100%;height:100%;object-fit:cover;}
+.thumb .duration{position:absolute;bottom:8px;right:8px;background:#000b;border-radius:4px;padding:2px 6px;font-size:0.75rem;color:#fff;}
+.thumb .play-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#0008;opacity:0;transition:opacity 0.2s;}
+.card:hover .play-overlay{opacity:1;}
+.play-icon{font-size:48px;}
+.card-body{padding:12px;}
+.card-title{font-size:0.9rem;font-weight:700;color:#e2d4ff;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.card-meta{font-size:0.75rem;color:#7c6a9a;display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.card-tags{display:flex;gap:4px;flex-wrap:wrap;}
+.ctag{padding:2px 8px;border-radius:99px;background:#2d1f4e;color:#c084fc;font-size:0.7rem;}
+.card-actions{display:flex;gap:6px;margin-top:8px;}
+.action-btn{padding:4px 10px;border-radius:6px;border:1px solid #3d2a5e;background:transparent;color:#9f8ab8;cursor:pointer;font-size:0.75rem;transition:all 0.15s;}
+.action-btn:hover{border-color:#c084fc;color:#c084fc;}
+.del-btn:hover{border-color:#ef4444;color:#ef4444;}
+#player-modal{display:none;position:fixed;inset:0;background:#000d;z-index:100;align-items:center;justify-content:center;flex-direction:column;}
+#player-modal.show{display:flex;}
+#player-wrap{width:min(90vw,860px);background:#0a0818;border-radius:16px;overflow:hidden;border:1px solid #3d2a5e;}
+#player-iframe{width:100%;aspect-ratio:16/9;border:none;}
+#player-info{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;}
+#player-title{font-size:1rem;font-weight:700;color:#e2d4ff;flex:1;}
+#close-btn{padding:6px 16px;border-radius:8px;border:1px solid #3d2a5e;background:transparent;color:#9f8ab8;cursor:pointer;}
+#empty{text-align:center;padding:60px;color:#7c6a9a;display:none;}
+.count{font-size:0.8rem;color:#7c6a9a;margin-left:auto;}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎬 영상 컬렉션</h1>
+  <input class="search-input" id="search" type="text" placeholder="영상 검색..." oninput="render()">
+  <button class="add-btn" onclick="toggleAdd()">+ 추가</button>
+</header>
+
+<div id="add-panel">
+  <div class="add-row">
+    <input id="url-input" type="text" placeholder="YouTube URL 붙여넣기 (https://youtu.be/...)">
+    <input class="tag-input" id="tag-input" type="text" placeholder="태그 (예: 음악)">
+    <button class="confirm-btn" onclick="addVideo()">추가</button>
+  </div>
+  <div class="tags-row" id="quick-tags">
+    <span style="font-size:0.8rem;color:#7c6a9a;align-self:center;">빠른 태그:</span>
+  </div>
+</div>
+
+<div id="main">
+  <div class="filter-bar">
+    <span>필터:</span>
+    <button class="tag-btn active" onclick="filterTag('',this)">전체</button>
+    <div id="filter-tags"></div>
+    <span class="count" id="count-txt"></span>
+  </div>
+  <div id="grid"></div>
+  <div id="empty">📭 영상이 없어요.<br>위에서 YouTube URL을 추가해봐!</div>
+</div>
+
+<div id="player-modal" onclick="closePlayer(event)">
+  <div id="player-wrap">
+    <iframe id="player-iframe" allowfullscreen></iframe>
+    <div id="player-info">
+      <div id="player-title"></div>
+      <button id="close-btn" onclick="closeModal()">✕ 닫기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const QUICK_TAGS=['음악','게임','영화','유머','공부','뉴스','스포츠','먹방','vlog','기타'];
+let videos=JSON.parse(localStorage.getItem('vidcol')||'[]');
+let activeFilter='';
+
+// 빠른 태그 버튼
+const qtEl=document.getElementById('quick-tags');
+QUICK_TAGS.forEach(t=>{
+  const b=document.createElement('button');b.className='tag-btn';b.textContent=t;
+  b.onclick=()=>{
+    document.getElementById('tag-input').value=t;
+    qtEl.querySelectorAll('.tag-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+  };
+  qtEl.appendChild(b);
+});
+
+function toggleAdd(){
+  const p=document.getElementById('add-panel');
+  p.style.display=p.style.display==='block'?'none':'block';
+}
+
+function parseYouTube(url){
+  const r=/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/;
+  const m=url.match(r);
+  return m?m[1]:null;
+}
+
+async function addVideo(){
+  const url=document.getElementById('url-input').value.trim();
+  const tag=document.getElementById('tag-input').value.trim()||'기타';
+  if(!url)return;
+  const vid=parseYouTube(url);
+  if(!vid){alert('YouTube URL을 확인해주세요');return;}
+  if(videos.find(v=>v.id===vid)){alert('이미 추가된 영상이에요');return;}
+
+  // oEmbed로 제목 가져오기
+  let title=url,thumb='';
+  try{
+    const r=await fetch(`https://www.youtube.com/oembed?url=https://youtu.be/${vid}&format=json`);
+    const d=await r.json();
+    title=d.title;thumb=d.thumbnail_url;
+  }catch(e){title='YouTube 영상';thumb=`https://i.ytimg.com/vi/${vid}/hqdefault.jpg`;}
+
+  videos.unshift({id:vid,title,thumb:thumb||`https://i.ytimg.com/vi/${vid}/hqdefault.jpg`,tag,addedAt:Date.now()});
+  save();
+  document.getElementById('url-input').value='';
+  document.getElementById('add-panel').style.display='none';
+  render();
+}
+
+function save(){localStorage.setItem('vidcol',JSON.stringify(videos));}
+
+function filterTag(tag,btn){
+  activeFilter=tag;
+  document.querySelectorAll('.filter-bar .tag-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  render();
+}
+
+function render(){
+  const q=document.getElementById('search').value.toLowerCase();
+  let list=videos.filter(v=>{
+    const matchTag=!activeFilter||v.tag===activeFilter;
+    const matchQ=!q||v.title.toLowerCase().includes(q)||v.tag.toLowerCase().includes(q);
+    return matchTag&&matchQ;
+  });
+
+  // 필터 태그 업데이트
+  const tags=[...new Set(videos.map(v=>v.tag))];
+  const ftEl=document.getElementById('filter-tags');
+  ftEl.innerHTML='';
+  tags.forEach(t=>{
+    const b=document.createElement('button');b.className='tag-btn'+(activeFilter===t?' active':'');
+    b.textContent=t;b.onclick=()=>filterTag(t,b);ftEl.appendChild(b);
+  });
+
+  document.getElementById('count-txt').textContent=`${list.length}개`;
+  const grid=document.getElementById('grid');
+  const empty=document.getElementById('empty');
+  if(!list.length){grid.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+
+  grid.innerHTML=list.map(v=>`
+    <div class="card" id="card-${v.id}">
+      <div class="thumb" onclick="playVideo('${v.id}','${escHtml(v.title)}')">
+        <img src="${v.thumb}" alt="" loading="lazy" onerror="this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'">
+        <div class="play-overlay"><span class="play-icon">▶</span></div>
+      </div>
+      <div class="card-body">
+        <div class="card-title">${escHtml(v.title)}</div>
+        <div class="card-meta">
+          <span>📅 ${fmtDate(v.addedAt)}</span>
+        </div>
+        <div class="card-tags"><span class="ctag">${escHtml(v.tag)}</span></div>
+        <div class="card-actions">
+          <button class="action-btn" onclick="playVideo('${v.id}','${escHtml(v.title)}')">▶ 재생</button>
+          <button class="action-btn" onclick="window.open('https://youtu.be/${v.id}','_blank')">🔗 원본</button>
+          <button class="action-btn del-btn" onclick="delVideo('${v.id}')">🗑 삭제</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function playVideo(id,title){
+  document.getElementById('player-iframe').src=`https://www.youtube.com/embed/${id}?autoplay=1`;
+  document.getElementById('player-title').textContent=title;
+  document.getElementById('player-modal').classList.add('show');
+}
+function closeModal(){
+  document.getElementById('player-iframe').src='';
+  document.getElementById('player-modal').classList.remove('show');
+}
+function closePlayer(e){if(e.target===document.getElementById('player-modal'))closeModal();}
+function delVideo(id){if(confirm('삭제할까요?')){videos=videos.filter(v=>v.id!==id);save();render();}}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function fmtDate(ts){const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()}`;}
+
+// 샘플 영상 (처음 방문 시)
+if(!videos.length){
+  videos=[
+    {id:'dQw4w9WgXcQ',title:'Rick Astley - Never Gonna Give You Up',thumb:'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',tag:'음악',addedAt:Date.now()-86400000*2},
+    {id:'jNQXAC9IVRw',title:'Me at the zoo',thumb:'https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg',tag:'기타',addedAt:Date.now()-86400000},
+  ];
+  save();
+}
+render();
+</script>
+</body>
+</html>
