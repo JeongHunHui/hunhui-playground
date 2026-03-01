@@ -117,8 +117,8 @@ function resize(){W=cv.width=Math.min(window.innerWidth,700);H=cv.height=window.
 resize();window.addEventListener('resize',resize);
 
 let player,enemies,bullets,xpOrbs,particles,weapons;
-let kills,gameTime,level,xp,xpNeeded,running,paused,diffMult=1;
-let healthItems=[];
+let kills,gameTime,level,xp,xpNeeded,running,paused,diffMult=1,diffName='보통';
+let healthItems=[];let chests=[];let chestSpawnTimer=0;
 let keys={};let touch={dx:0,dy:0};let animId;
 let frameCount=0,lastSecond=Date.now();
 
@@ -128,9 +128,9 @@ const WEAPON_DEFS={
   axe:{name:'🪓 도끼',desc:'되돌아오는 도끼',color:'#f97316',cooldown:160,damage:40,speed:5,r:10,wtype:'boomerang'},
   magic:{name:'✨ 마법진',desc:'주변을 회전 공격',color:'#c084fc',cooldown:200,damage:12,r:8,wtype:'orbit',orbitR:80,count:3},
   fireball:{name:'🔥 파이어볼',desc:'강력한 폭발',color:'#ef4444',cooldown:180,damage:55,speed:4,r:12,wtype:'bullet',pierce:1,splash:50},
-  lightning:{name:'⚡ 번개',desc:'가장 가까운 적 공격',color:'#fde047',cooldown:120,damage:35,wtype:'lightning',chainCount:3},
+  lightning:{name:'⚡ 번개',desc:'가장 가까운 적 공격',color:'#fde047',cooldown:140,damage:30,wtype:'lightning',chainCount:2},
   freeze:{name:'❄️ 냉기장',desc:'주변 적 빙결',color:'#7dd3fc',cooldown:250,damage:10,r:120,wtype:'aura'},
-  holy:{name:'✝️ 성스러운 오라',desc:'성광 오브가 적을 태움',color:'#fef08a',cooldown:2,damage:20,r:14,wtype:'holy',orbitR:110,count:4},
+  holy:{name:'✝️ 성스러운 오라',desc:'성광 오브가 적을 태움',color:'#fef08a',cooldown:2,damage:18,r:14,wtype:'holy',orbitR:110,count:3},
   poison:{name:'☠️ 독구름',desc:'독 지대를 생성해 데미지',color:'#4ade80',cooldown:180,damage:7,r:40,wtype:'poison'},
   ghost:{name:'👻 유령 소환',desc:'유령이 주위를 맴돌며 공격',color:'#a5b4fc',cooldown:2,damage:20,r:13,wtype:'ghost',orbitR:130,count:2},
 };
@@ -194,13 +194,14 @@ function getBossType(t){let r=BOSS_TYPES[0];for(let b of BOSS_TYPES){if(t>=b.min
 
 function startGame(diff){
   diffMult=diff||1;
+  diffName=diff<=0.7?'쉬움':diff>=1.5?'어려움':'보통';
   document.getElementById('overlay').style.display='none';
   player={
     x:0,y:0,r:16,hp:100,maxHp:100,spd:2.5,
     invincible:0,dmgMult:1,
     magnetR:80,xpMult:1,regen:0,luck:1,
   };
-  enemies=[];bullets=[];xpOrbs=[];particles=[];healthItems=[];
+  enemies=[];bullets=[];xpOrbs=[];particles=[];healthItems=[];chests=[];chestSpawnTimer=0;
   weapons=[{...WEAPON_DEFS.knife,wid:'knife',timer:0,pierce:1,count:1}];
   kills=0;gameTime=0;level=1;xp=0;xpNeeded=20;
   running=true;paused=false;
@@ -222,6 +223,10 @@ function update(){
   if(now-lastSecond>=1000){
     gameTime++;lastSecond=now;
     if(player.regen>0)player.hp=Math.min(player.maxHp,player.hp+player.regen);
+    if(player._dmgBoostTimer>0){
+      player._dmgBoostTimer-=60;
+      if(player._dmgBoostTimer<=0&&player._dmgBoost){player._dmgBoost=false;player.dmgMult/=2;}
+    }
   }
 
   // 이동
@@ -265,7 +270,7 @@ function update(){
         for(let b of existing){
           b.damage=w.damage*player.dmgMult;
           b.r=w.r;
-          b.angle+=0.05;
+          b.angle+=0.03;
           b.x=player.x+Math.cos(b.angle)*b.orbitR;
           b.y=player.y+Math.sin(b.angle)*b.orbitR;
         }
@@ -279,7 +284,7 @@ function update(){
   // 총알 업데이트
   for(let b of bullets){
     if(b.btype==='orbit'){
-      b.angle+=0.06;
+      b.angle+=0.035;
       b.x=player.x+Math.cos(b.angle)*b.orbitR;
       b.y=player.y+Math.sin(b.angle)*b.orbitR;
     } else if(b.btype==='aura'){
@@ -355,6 +360,22 @@ function update(){
   }
   healthItems=healthItems.filter(h=>!h.collected);
 
+  // 상자 스폰 (40~70초마다)
+  chestSpawnTimer++;
+  if(chestSpawnTimer>=Math.floor(2400+Math.random()*1800)){
+    chestSpawnTimer=0;spawnChest();
+  }
+  // 상자 처리
+  for(let c of chests){
+    c.pulse=(c.pulse||0)+0.05;
+    const dx=player.x-c.x,dy=player.y-c.y;
+    if(Math.hypot(dx,dy)<player.r+c.r){
+      c.collected=true;
+      openChest(c);
+    }
+  }
+  chests=chests.filter(c=>!c.collected);
+
   for(let p of particles){p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;p.life--;}
   particles=particles.filter(p=>p.life>0);
 
@@ -367,6 +388,49 @@ function update(){
   document.getElementById('kill-txt').textContent='💀 '+kills;
   const mm=Math.floor(gameTime/60),ss=gameTime%60;
   document.getElementById('time-txt').textContent='⏱ '+mm+':'+String(ss).padStart(2,'0');
+}
+
+function spawnChest(){
+  const angle=Math.random()*Math.PI*2;
+  const d=150+Math.random()*200;
+  chests.push({x:player.x+Math.cos(angle)*d,y:player.y+Math.sin(angle)*d,r:18,collected:false,pulse:0});
+}
+
+function openChest(c){
+  spawnParticles(c.x,c.y,'#fde047',15);
+  const roll=Math.random();
+  if(roll<0.35){
+    // HP 회복 (35%)
+    const heal=Math.round(player.maxHp*0.3);
+    player.hp=Math.min(player.maxHp,player.hp+heal);
+    spawnParticles(c.x,c.y,'#ef4444',8);
+  } else if(roll<0.60){
+    // XP 폭발 (25%)
+    const xpAmt=Math.round(xpNeeded*0.4+50);
+    gainXp(xpAmt);
+    spawnParticles(c.x,c.y,'#c084fc',10);
+  } else if(roll<0.80){
+    // 임시 공격력 2배 (20%) - 15초
+    player._dmgBoostTimer=(player._dmgBoostTimer||0)+900;
+    if(!player._dmgBoost){player._dmgBoost=true;player.dmgMult*=2;}
+    spawnParticles(c.x,c.y,'#ef4444',12);
+  } else if(roll<0.92){
+    // 자석 범위 일시 확대 (12%) - 영구 소폭
+    player.magnetR+=25;
+    spawnParticles(c.x,c.y,'#7c3aed',8);
+  } else {
+    // 레어 전리품: 랜덤 스탯 영구 소폭 증가 (8%)
+    const r2=Math.random();
+    if(r2<0.33)player.spd*=1.08;
+    else if(r2<0.66)player.dmgMult*=1.12;
+    else{player.maxHp+=15;player.hp=Math.min(player.hp+15,player.maxHp);}
+    spawnParticles(c.x,c.y,'#fde047',20);
+  }
+}
+
+function gainXp(amt){
+  xp+=amt;
+  while(xp>=xpNeeded){xp-=xpNeeded;xpNeeded=Math.floor(xpNeeded*1.18+10);levelUp();}
 }
 
 function killEnemy(e){
@@ -647,6 +711,21 @@ function draw(){
     ctx.restore();
   }
 
+  // 상자
+  for(let c of chests){
+    const pulse=Math.sin(c.pulse||0)*0.15+0.9;
+    ctx.save();
+    ctx.translate(c.x,c.y);
+    ctx.scale(pulse,pulse);
+    ctx.font='28px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('📦',0,0);
+    // 반짝이는 테두리
+    ctx.beginPath();ctx.arc(0,0,18,0,Math.PI*2);
+    ctx.strokeStyle='#fde047';ctx.lineWidth=2;ctx.globalAlpha=0.6+Math.sin(c.pulse||0)*0.4;
+    ctx.stroke();ctx.globalAlpha=1;
+    ctx.restore();
+  }
+
   // 총알
   for(let b of bullets){
     if(b.btype==='lightning_vis'){
@@ -772,7 +851,7 @@ async function submitRanking(time,kills,level){
     await fetch(APPS_SCRIPT_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'submitScore',initials,time,kills,level})
+      body:JSON.stringify({action:'submitScore',initials,time,kills,level,version:'v1.2',difficulty:diffName})
     });
     msg.textContent='✅ 랭킹 등록 완료! 상위 10위:';
   }catch(e){msg.textContent='⚠️ 등록 실패 (나중에 다시 시도)';}
@@ -784,8 +863,8 @@ async function submitRanking(time,kills,level){
     if(rankTable&&rows.length){
       const fmt=(s)=>{const m=Math.floor(s/60),sc=s%60;return m+':'+String(sc).padStart(2,'0');};
       rankTable.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:0.78rem;color:#e2d4ff">'
-        +'<tr style="color:#c084fc;border-bottom:1px solid #3d2a5e"><th>#</th><th>이니셜</th><th>시간</th><th>킬</th><th>레벨</th></tr>'
-        +rows.slice(0,10).map((row,i)=>`<tr style="border-bottom:1px solid #1a1030;${row.initials===initials&&row.time===time?'background:#2d1f4e':''}"><td>${i+1}</td><td>${row.initials}</td><td>${fmt(row.time)}</td><td>${row.kills}</td><td>${row.level}</td></tr>`).join('')
+        +'<tr style="color:#c084fc;border-bottom:1px solid #3d2a5e"><th>#</th><th>이니셜</th><th>시간</th><th>킬</th><th>레벨</th><th>난이도</th></tr>'
+        +rows.slice(0,10).map((row,i)=>`<tr style="border-bottom:1px solid #1a1030;${row.initials===initials&&row.time===time?'background:#2d1f4e':''}"><td>${i+1}</td><td>${row.initials}</td><td>${fmt(row.time)}</td><td>${row.kills}</td><td>${row.level}</td><td>${row.difficulty||'-'}</td></tr>`).join('')
         +'</table>';
     }
   }catch(e){}

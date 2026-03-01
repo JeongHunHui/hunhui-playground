@@ -26,17 +26,21 @@ module.exports = async function(req, res) {
     const sa = JSON.parse(Buffer.from(process.env.GOOGLE_SA_B64,'base64').toString('utf8'));
     const token = await getToken(sa);
     const hdrs = {Authorization:`Bearer ${token}`,'Content-Type':'application/json'};
-    const baseUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}!A:E`;
+    const baseUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}!A:G`;
 
     if (req.method==='POST') {
-      const {initials,time,kills,level} = req.body||{};
+      const {initials,time,kills,level,version,difficulty} = req.body||{};
       if (!initials) return res.status(400).json({error:'initials required'});
-      await fetch(`${baseUrl}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{method:'POST',headers:hdrs,body:JSON.stringify({values:[[initials,time,kills,level,new Date().toLocaleDateString('ko-KR')]]})});
+      const date = new Date().toLocaleDateString('ko-KR');
+      await fetch(`${baseUrl}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
+        method:'POST',headers:hdrs,
+        body:JSON.stringify({values:[[initials,time,kills,level,date,version||'',difficulty||'']]}),
+      });
     }
 
     const d = await (await fetch(baseUrl,{headers:hdrs})).json();
     const ranking = (d.values||[])
-      .map(r=>({initials:r[0]||'',time:+r[1]||0,kills:+r[2]||0,level:+r[3]||0,date:r[4]||''}))
+      .map(r=>({initials:r[0]||'',time:+r[1]||0,kills:+r[2]||0,level:+r[3]||0,date:r[4]||'',version:r[5]||'',difficulty:r[6]||''}))
       .sort((a,b)=>b.kills-a.kills||b.time-a.time).slice(0,10);
     return res.status(200).json({ranking});
   } catch(e) {
