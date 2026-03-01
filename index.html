@@ -11,7 +11,7 @@
 </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>hunhui-playground</title>
+  <title>🎮 훈희 플레이그라운드</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -19,88 +19,105 @@
       background: #0a0a0a;
       color: #f0f0f0;
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
-    .bg-blur { position: fixed; inset: 0; z-index: 0; }
+    .bg-blur { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
     .blob {
       position: absolute;
       border-radius: 50%;
       filter: blur(80px);
-      opacity: 0.35;
-      animation: float 8s ease-in-out infinite;
+      opacity: 0.25;
+      animation: float 10s ease-in-out infinite;
     }
-    .blob-1 { width: 500px; height: 500px; background: #6366f1; top: -100px; left: -100px; }
-    .blob-2 { width: 400px; height: 400px; background: #8b5cf6; bottom: -80px; right: -80px; animation-delay: 3s; }
-    .blob-3 { width: 300px; height: 300px; background: #06b6d4; top: 50%; left: 50%; transform: translate(-50%,-50%); animation-delay: 6s; }
+    .blob-1 { width: 600px; height: 600px; background: #6366f1; top: -150px; left: -150px; }
+    .blob-2 { width: 500px; height: 500px; background: #8b5cf6; bottom: -100px; right: -100px; animation-delay: 4s; }
+    .blob-3 { width: 400px; height: 400px; background: #06b6d4; top: 50%; left: 50%; transform: translate(-50%,-50%); animation-delay: 7s; }
     @keyframes float {
       0%,100% { transform: translateY(0) scale(1); }
-      50% { transform: translateY(-30px) scale(1.05); }
+      50% { transform: translateY(-20px) scale(1.04); }
     }
-    .container {
-      position: relative; z-index: 1;
-      text-align: center; padding: 2rem; max-width: 680px;
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 48px 24px 64px;
     }
-    .badge {
-      display: inline-block;
-      background: rgba(99,102,241,0.2);
-      border: 1px solid rgba(99,102,241,0.4);
-      color: #a5b4fc;
-      font-size: 0.75rem; font-weight: 600;
-      letter-spacing: 0.1em; text-transform: uppercase;
-      padding: 0.35rem 0.9rem; border-radius: 999px; margin-bottom: 1.5rem;
+    header {
+      text-align: center;
+      margin-bottom: 48px;
     }
-    h1 {
-      font-size: clamp(2.5rem, 6vw, 4rem);
-      font-weight: 800; line-height: 1.1; margin-bottom: 1.25rem;
+    header h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
       background: linear-gradient(135deg, #e0e7ff 0%, #a5b4fc 50%, #818cf8 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 10px;
     }
-    p { font-size: 1.1rem; color: #94a3b8; line-height: 1.7; margin-bottom: 2.5rem; }
-    .actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
-    a {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      padding: 0.75rem 1.75rem; border-radius: 12px;
-      font-size: 0.95rem; font-weight: 600; text-decoration: none;
-      transition: all 0.2s ease;
+    header p {
+      color: #64748b;
+      font-size: 0.95rem;
     }
-    .btn-primary {
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      color: white; box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
     }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(99,102,241,0.5); }
-    .btn-secondary {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1;
+    @media (min-width: 640px) {
+      .grid { grid-template-columns: repeat(3, 1fr); }
     }
-    .btn-secondary:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
-    .footer { margin-top: 3rem; font-size: 0.8rem; color: #475569; }
-    .projects {
-      display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
-      margin-top: 2.5rem;
+    @media (min-width: 960px) {
+      .grid { grid-template-columns: repeat(4, 1fr); }
     }
-    .project-card {
-      display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
-      background: rgba(99,102,241,0.08);
-      border: 1px solid rgba(99,102,241,0.25);
-      border-radius: 16px;
-      padding: 1.2rem 1.5rem;
+    .card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      aspect-ratio: 1 / 1;
+      background: rgba(99, 102, 241, 0.07);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: 20px;
       text-decoration: none;
       color: inherit;
-      min-width: 120px;
-      transition: all 0.2s;
+      padding: 20px 12px;
+      transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease, border-color 0.22s ease;
+      text-align: center;
     }
-    .project-card:hover {
-      background: rgba(99,102,241,0.18);
-      border-color: rgba(99,102,241,0.5);
-      transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(99,102,241,0.2);
+    .card:hover {
+      transform: translateY(-6px);
+      background: rgba(99, 102, 241, 0.16);
+      border-color: rgba(99, 102, 241, 0.45);
+      box-shadow: 0 12px 36px rgba(99, 102, 241, 0.25);
     }
-    .project-icon { font-size: 2rem; }
-    .project-name { font-size: 0.9rem; font-weight: 700; color: #e0e7ff; }
-    .project-desc { font-size: 0.72rem; color: #64748b; }
-  </style>
+    .card-emoji {
+      font-size: 2.8rem;
+      line-height: 1;
+    }
+    .card-name {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #e0e7ff;
+      line-height: 1.3;
+    }
+    .card-desc {
+      font-size: 0.72rem;
+      color: #64748b;
+      line-height: 1.4;
+    }
+    footer {
+      text-align: center;
+      margin-top: 64px;
+      font-size: 0.78rem;
+      color: #334155;
+    }
+  
+.card-hot{position:relative;}
+.card-hot::before{content:'🔥 HOT';position:absolute;top:-8px;right:-8px;background:linear-gradient(135deg,#ef4444,#f97316);color:#fff;font-size:0.65rem;font-weight:700;padding:3px 8px;border-radius:99px;box-shadow:0 2px 8px #ef444466;letter-spacing:0.05em;}
+.card-hot{border-color:#ef4444!important;box-shadow:0 0 16px #ef444433;}
+</style>
 </head>
 <body>
   <div class="bg-blur">
@@ -108,100 +125,102 @@
     <div class="blob blob-2"></div>
     <div class="blob blob-3"></div>
   </div>
-  <div class="container">
-    <div class="badge">🛝 hunhui-playground</div>
-    <h1>실험하고,<br/>부수고, 배워요</h1>
-    <p>
-      JeongHunHui의 개인 플레이그라운드입니다.<br />
-      새로운 기술을 탐험하고, 아이디어를 프로토타입으로 만드는 공간이에요.
-    </p>
-    <div class="actions">
-      <a class="btn-primary" href="https://github.com/JeongHunHui/hunhui-playground" target="_blank">GitHub</a>
-      <a class="btn-secondary" href="https://github.com/JeongHunHui" target="_blank">👤 프로필</a>
-      <a class="project-card" href="/news">
-        <span class="project-icon">📰</span>
-        <span class="project-name">뉴스피드</span>
-        <span class="project-desc">게임·개발·서브컬처</span>
+
+  <div class="wrapper">
+    <header>
+      <h1>🎮 훈희 플레이그라운드</h1>
+      <p>게임, 퀴즈, 유틸리티를 모아놓은 개인 플레이그라운드</p>
+    </header>
+
+    <div class="grid">
+      <a class="card card-hot" href="/vampire/">
+        <span class="card-emoji">🧛</span>
+        <span class="card-name">뱀파이어 서바이벌</span>
+        <span class="card-desc">자동 전투 생존 게임</span>
       </a>
-      <a class="project-card" href="/rhythm">
-        <span class="project-icon">🎹</span>
-        <span class="project-name">피아노 타일</span>
-        <span class="project-desc">리듬 게임 (4키)</span>
+      <a class="card" href="/lovestory/">
+        <span class="card-emoji">💕</span>
+        <span class="card-name">연애 시뮬레이션</span>
+        <span class="card-desc">미연시 · 호감도 엔딩</span>
       </a>
-      <a class="project-card" href="/solitaire">
-        <span class="project-icon">🃏</span>
-        <span class="project-name">솔리테어</span>
-        <span class="project-desc">클래식 카드 게임</span>
+      <a class="card" href="/survivor/">
+        <span class="card-emoji">🏹</span>
+        <span class="card-name">Arrow Survivor</span>
+        <span class="card-desc">화살 × ÷ 게이트 게임</span>
       </a>
-      <a class="project-card" href="/dadgame">
-        <span class="project-icon">👊</span>
-        <span class="project-name">아빠와 나</span>
-        <span class="project-desc">격투 액션 5라운드</span>
+      <a class="card" href="/defense/">
+        <span class="card-emoji">🏰</span>
+        <span class="card-name">훈희 디펜스</span>
+        <span class="card-desc">몬스터를 막아라!</span>
       </a>
-      <a class="project-card" href="/ageofwar">
-        <span class="project-icon">⚔️</span>
-        <span class="project-name">전쟁시대</span>
-        <span class="project-desc">시대 진화 전략 게임</span>
+      <a class="card" href="/g2048/">
+        <span class="card-emoji">🎮</span>
+        <span class="card-name">2048</span>
+        <span class="card-desc">타일 합치기</span>
+      </a>
+      <a class="card" href="/solitaire/">
+        <span class="card-emoji">🃏</span>
+        <span class="card-name">솔리테어</span>
+        <span class="card-desc">클래식 카드 게임</span>
+      </a>
+      <a class="card" href="/dadgame/">
+        <span class="card-emoji">👊</span>
+        <span class="card-name">아빠와 나</span>
+        <span class="card-desc">격투 액션 5라운드</span>
+      </a>
+      <a class="card" href="/ageofwar/">
+        <span class="card-emoji">⚔️</span>
+        <span class="card-name">전쟁시대</span>
+        <span class="card-desc">시대 진화 전략 게임</span>
+      </a>
+      <a class="card" href="/pkmnquiz/">
+        <span class="card-emoji">⚡</span>
+        <span class="card-name">포켓몬 퀴즈</span>
+        <span class="card-desc">누구냐 넌?</span>
+      </a>
+      <a class="card" href="/cookierun/">
+        <span class="card-emoji">🍪</span>
+        <span class="card-name">쿠키런</span>
+        <span class="card-desc">점프 러닝 게임</span>
+      </a>
+      <a class="card" href="/catwar/">
+        <span class="card-emoji">🐱</span>
+        <span class="card-name">냥코 대전쟁</span>
+        <span class="card-desc">횡스크롤 진영 전투</span>
+      </a>
+      <a class="card" href="/rhythm/">
+        <span class="card-emoji">🎵</span>
+        <span class="card-name">피아노 타일</span>
+        <span class="card-desc">리듬 게임 4키</span>
+      </a>
+      <a class="card" href="/luck/">
+        <span class="card-emoji">🔮</span>
+        <span class="card-name">신점닷컴</span>
+        <span class="card-desc">MZ 무당의 운세</span>
+      </a>
+      <a class="card" href="/news/">
+        <span class="card-emoji">📰</span>
+        <span class="card-name">뉴스피드</span>
+        <span class="card-desc">게임·개발·서브컬처</span>
+      </a>
+      <a class="card" href="/english/">
+        <span class="card-emoji">📚</span>
+        <span class="card-name">영어 학습</span>
+        <span class="card-desc">영단어 퀴즈</span>
+      </a>
+      <a class="card" href="/stocks/">
+        <span class="card-emoji">📈</span>
+        <span class="card-name">주식 차트</span>
+        <span class="card-desc">실시간 주가 조회</span>
+      </a>
+      <a class="card" href="/videos/">
+        <span class="card-emoji">🎬</span>
+        <span class="card-name">영상 컬렉션</span>
+        <span class="card-desc">YouTube 영상 모아보기</span>
       </a>
     </div>
-    <div class="projects">
-      <a class="project-card" href="/luck">
-        <span class="project-icon">🔮</span>
-        <span class="project-name">신점닷컴</span>
-        <span class="project-desc">MZ 무당의 운세</span>
-      </a>
-      <a class="project-card" href="/pkmnquiz">
-        <span class="project-icon">⚡</span>
-        <span class="project-name">포켓몬 퀴즈</span>
-        <span class="project-desc">누구냐 넌?</span>
-      </a>
-      <a class="project-card" href="/defense">
-        <span class="project-icon">🏰</span>
-        <span class="project-name">훈희 디펜스</span>
-        <span class="project-desc">몬스터를 막아라!</span>
-      </a>
-      <a class="project-card" href="/lovestory">
-        <span class="project-icon">💕</span>
-        <span class="project-name">연애 시뮬레이션</span>
-        <span class="project-desc">미연시 · 호감도 엔딩</span>
-      </a>
-      <a class="project-card" href="/g2048">
-        <span class="project-icon">🎮</span>
-        <span class="project-name">2048</span>
-        <span class="project-desc">타일 합치기</span>
-      </a>
-      <a class="project-card" href="/survivor">
-        <span class="project-icon">🏹</span>
-        <span class="project-name">Arrow Survivor</span>
-        <span class="project-desc">화살 × ÷ 게이트 게임</span>
-      </a>
-      <a class="project-card" href="/cookierun">
-        <span class="project-icon">🍪</span>
-        <span class="project-name">쿠키런</span>
-        <span class="project-desc">점프 러닝 게임</span>
-      </a>
-      <a class="project-card" href="/catwar">
-        <span class="project-icon">🐱</span>
-        <span class="project-name">냥코 대전쟁</span>
-        <span class="project-desc">횡스크롤 진영 전투</span>
-      </a>
-      <a class="project-card" href="/vampire">
-        <span class="project-icon">🧛</span>
-        <span class="project-name">뱀파이어 서바이벌</span>
-        <span class="project-desc">자동 전투 생존 게임</span>
-      </a>
-      <a class="project-card" href="/stocks">
-        <span class="project-icon">📈</span>
-        <span class="project-name">주식 차트</span>
-        <span class="project-desc">실시간 주가 조회</span>
-      </a>
-      <a class="project-card" href="/videos">
-        <span class="project-icon">🎬</span>
-        <span class="project-name">영상 컬렉션</span>
-        <span class="project-desc">YouTube 영상 모아보기</span>
-      </a>
-    </div>
-    <div class="footer">built with curiosity · deployed on vercel</div>
+
+    <footer>built with curiosity · deployed on vercel</footer>
   </div>
 </body>
 </html>
