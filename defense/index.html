@@ -12,6 +12,20 @@ h1 { margin: 16px 0 8px; font-size: 1.6rem; color: #c084fc; text-shadow: 0 0 20p
 .stat { background: #1a1a2e; border: 1px solid #333; border-radius: 8px; padding: 6px 14px; font-size: 0.9rem; }
 .stat span { color: #c084fc; font-weight: bold; }
 #canvas { border: 2px solid #333; border-radius: 4px; cursor: crosshair; background: #111; display: block; }
+#tower-popup {
+  position: absolute; display: none; background: #1a1a2e; border: 1px solid #c084fc;
+  border-radius: 10px; padding: 10px; z-index: 10; min-width: 140px; pointer-events: all;
+  box-shadow: 0 4px 20px #c084fc44;
+}
+#tower-popup button {
+  display: block; width: 100%; padding: 7px 12px; margin: 3px 0; border-radius: 6px;
+  border: none; cursor: pointer; font-size: 0.85rem; font-weight: bold; text-align: left;
+}
+.popup-upgrade { background: #2d1f4e; color: #c084fc; }
+.popup-upgrade:hover { background: #3d2a6e; }
+.popup-sell { background: #2d1010; color: #f87171; }
+.popup-sell:hover { background: #4d1a1a; }
+#canvasWrap { position: relative; display: inline-block; }
 #tower-select { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; justify-content: center; }
 .tower-btn {
   padding: 8px 14px; border-radius: 8px; border: 2px solid transparent;
@@ -47,10 +61,17 @@ h1 { margin: 16px 0 8px; font-size: 1.6rem; color: #c084fc; text-shadow: 0 0 20p
   <button class="tower-btn" data-type="ice" onclick="selectTower('ice',this)">❄️ 얼음탑 <span class="cost">(70G)</span></button>
 </div>
 <div id="msg"></div>
-<canvas id="canvas"></canvas>
+<div id="canvasWrap">
+  <canvas id="canvas"></canvas>
+  <div id="tower-popup">
+    <div id="popup-title" style="color:#fff;font-size:0.8rem;margin-bottom:6px;"></div>
+    <button class="popup-upgrade" onclick="popupUpgrade()">⬆ 업그레이드</button>
+    <button class="popup-sell" onclick="popupSell()">💰 판매 (60%)</button>
+  </div>
+</div>
 <div style="margin:10px;">
   <button id="start-btn" onclick="startWave()">▶ 웨이브 시작</button>
-  <button id="start-btn" onclick="sellMode()" style="background:linear-gradient(135deg,#dc2626,#f87171)">🔨 판매 모드</button>
+  
 
   <button id="speed-btn" onclick="cycleSpeed()" style="background:linear-gradient(135deg,#d97706,#fbbf24);min-width:60px">⚡ 1x</button>
 </div>
@@ -89,6 +110,7 @@ let dragging = null;
 let dragX = 0, dragY = 0;
 let mouseDownTower = null;
 let mouseDownTime = 0;
+let selectedTower = null; // 팝업 대상
 let waveRunning = false;
 let autoStartTimer = 0;
 let gameSpeed = 1; // 1x, 2x, 3x
@@ -120,6 +142,38 @@ function moveMode() {
 function cycleSpeed() {
   gameSpeed = gameSpeed === 1 ? 2 : gameSpeed === 2 ? 3 : 1;
   document.getElementById('speed-btn').textContent = `⚡ ${gameSpeed}x`;
+}
+
+const popup = document.getElementById('tower-popup');
+function showPopup(t) {
+  const def = TOWER_DEF[t.type];
+  const rect = canvas.getBoundingClientRect();
+  const px = t.col * CELL + CELL;
+  const py = t.row * CELL;
+  popup.style.left = Math.min(px, W - 160) + 'px';
+  popup.style.top = Math.max(0, py - 10) + 'px';
+  popup.style.display = 'block';
+  const cost = t.level < 3 ? upgradeCost(t) : null;
+  document.getElementById('popup-title').textContent =
+    `${def.emoji} Lv.${t.level} | HP: ${Math.round(def.dmg*(1+(t.level-1)*0.4))}dmg`;
+  popup.querySelector('.popup-upgrade').textContent =
+    t.level >= 3 ? '⬆ 최대 레벨' : `⬆ 업그레이드 (${cost}G)`;
+  popup.querySelector('.popup-upgrade').disabled = t.level >= 3;
+}
+function hidePopup() { popup.style.display = 'none'; selectedTower = null; }
+function popupUpgrade() {
+  if (!selectedTower) return;
+  upgradeMode(selectedTower.col, selectedTower.row);
+  showPopup(selectedTower);
+}
+function popupSell() {
+  if (!selectedTower) return;
+  const refund = Math.floor(TOWER_DEF[selectedTower.type].cost * 0.6);
+  gold += refund;
+  towers = towers.filter(t => t !== selectedTower);
+  showMsg(`💰 +${refund}G 판매 완료`);
+  updateUI();
+  hidePopup();
 }
 
 function upgradeCost(t) {
@@ -194,9 +248,9 @@ canvas.addEventListener('mouseup', e => {
       showMsg('✅ 이동 완료!');
     } else showMsg('⚠️ 그 위치엔 놓을 수 없어!');
     dragging = null; mouseDownTower = null;
-  } else if (mouseDownTower && !isSelling) {
-    // 짧게 클릭 = 업그레이드
-    upgradeMode(mouseDownTower.col, mouseDownTower.row);
+  } else if (mouseDownTower) {
+    selectedTower = mouseDownTower;
+    showPopup(selectedTower);
     mouseDownTower = null;
   }
 });
@@ -214,6 +268,8 @@ canvas.addEventListener('contextmenu', e => {
 canvas.addEventListener('click', e => {
   if (gameOver || dragging) return;
   const { col, row } = getCell(e);
+
+  if (selectedTower) { hidePopup(); return; }
 
   if (isSelling) {
     const idx = towers.findIndex(t => t.col === col && t.row === row);
