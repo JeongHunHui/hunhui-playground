@@ -366,13 +366,6 @@
       -webkit-text-fill-color: transparent;
     }
 
-    .star-bar {
-      display: flex; gap: 3px; margin-bottom: 0.75rem;
-    }
-
-    .star { font-size: 1rem; transition: transform 0.2s; }
-    .star.lit { filter: drop-shadow(0 0 4px rgba(245,158,11,0.8)); }
-
     .fortune-text {
       font-size: 0.92rem;
       line-height: 1.75;
@@ -663,16 +656,6 @@
     }
 
     // ── 별 그리기 ──
-    function renderStars(score) {
-      const full = Math.round(score / 20);
-      let html = '<div class="star-bar">';
-      for (let i = 0; i < 5; i++) {
-        html += `<span class="star ${i < full ? 'lit' : ''}">${i < full ? '⭐' : '☆'}</span>`;
-      }
-      html += '</div>';
-      return html;
-    }
-
     // ── 로딩 메시지 순환 ──
     const loadingMsgs = [
       '신기(神氣) 채널 연결 중...',
@@ -736,7 +719,6 @@
             <div class="fortune-category">${FORTUNES[cat].label}</div>
             <div class="fortune-score">${item.score}점</div>
           </div>
-          ${renderStars(item.score)}
           <div class="fortune-text">${item.texts[textIdx]}</div>
           <div>
             ${item.keys.map(k => `<span class="fortune-keyword">#${k}</span>`).join('')}
