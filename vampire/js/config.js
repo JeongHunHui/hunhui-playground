@@ -34,9 +34,9 @@ const EVOLUTION_DEFS = [
 const ENEMY_TYPES = [
   // === 초반 (0~30초) ===
   {minT:0,   em:'🟢',color:'#22c55e',name:'슬라임',     hpM:1,   spdM:1,   rM:1,   xpM:1,   dmgM:1,   type:'normal'},
-  {minT:15,  em:'🦇',color:'#7c3aed',name:'박쥐',       hpM:0.22,spdM:2.4, rM:0.7, xpM:0.7, dmgM:0.55,type:'bat', spawnCount:3},
+  {minT:15,  em:'🦇',color:'#7c3aed',name:'박쥐',       hpM:0.22,spdM:1.6, rM:0.7, xpM:0.7, dmgM:0.55,type:'bat', spawnCount:3},
   // === 초중반 (30~90초) ===
-  {minT:30,  em:'💀',color:'#d4d4d4',name:'해골',       hpM:0.65,spdM:1.6, rM:0.9, xpM:1.2, dmgM:0.85,type:'normal'},
+  {minT:30,  em:'💀',color:'#d4d4d4',name:'해골',       hpM:0.65,spdM:1.3, rM:0.9, xpM:1.2, dmgM:0.85,type:'normal'},
   {minT:30,  em:'⚡',color:'#fde047',name:'전기 슬라임', hpM:0.9, spdM:1.1, rM:0.95,xpM:1.3, dmgM:1.1, type:'elec'},
   {minT:45,  em:'🧟',color:'#65a30d',name:'좀비',       hpM:3.0, spdM:0.45,rM:1.2, xpM:1.6, dmgM:1.3, type:'zombie'},
   // === 중반 (60~150초) ===
@@ -45,7 +45,7 @@ const ENEMY_TYPES = [
   {minT:90,  em:'👹',color:'#7f1d1d',name:'오거',        hpM:4.2, spdM:0.35,rM:1.5, xpM:2.2, dmgM:2.0, type:'ogre'},
   // === 후반 (120~210초) ===
   {minT:120, em:'🧙',color:'#1e40af',name:'마법사',     hpM:1.5, spdM:0.6, rM:1.0, xpM:2.0, dmgM:1.8, type:'mage', teleportCool:220, shootDmg:20, shootCool:90},
-  {minT:150, em:'😈',color:'#dc2626',name:'데몬',       hpM:2,   spdM:1.4, rM:1.1, xpM:2.5, dmgM:1.7, type:'normal'},
+  {minT:150, em:'😈',color:'#dc2626',name:'데몬',       hpM:2,   spdM:1.2, rM:1.1, xpM:2.5, dmgM:1.7, type:'normal'},
   // === 최후반 (210초+) ===
   {minT:210, em:'🐉',color:'#7c3aed',name:'드래곤',     hpM:4,   spdM:0.9, rM:1.4, xpM:4,   dmgM:2.2, type:'normal'},
 ];
