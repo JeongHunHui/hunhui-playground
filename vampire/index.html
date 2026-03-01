@@ -235,9 +235,9 @@ function update(){
   if(player.invincible>0)player.invincible--;
 
   // 스폰
-  const spawnRate=Math.max(5,Math.floor(50*Math.pow(0.965,gameTime/10)));
+  const spawnRate=Math.max(5,Math.floor(60*Math.pow(0.97,gameTime/10)));
   if(frameCount%spawnRate===0){
-    const cnt=Math.floor(1+Math.pow(gameTime/40,1.6));
+    const cnt=Math.floor(1+Math.pow(gameTime/60,1.5));
     for(let i=0;i<cnt;i++)spawnEnemy();
   }
   if(gameTime>0&&gameTime%60===0&&frameCount%60===1)spawnBoss();
