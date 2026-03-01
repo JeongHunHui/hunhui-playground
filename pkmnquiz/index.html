@@ -59,9 +59,11 @@
       height: 150px;
       image-rendering: pixelated;
       transition: filter 0.5s ease;
+      filter: brightness(0);
     }
-    .pkmn-img.hidden { filter: brightness(0); }
-    .pkmn-img.revealed { filter: brightness(1); }
+    .pkmn-img.hidden { filter: brightness(0); visibility: hidden; }
+    .pkmn-img.ready { filter: brightness(0); visibility: visible; }
+    .pkmn-img.revealed { filter: brightness(1); visibility: visible; }
     .question {
       font-size: 1.1rem;
       margin-bottom: 1.25rem;
@@ -229,6 +231,8 @@
 
       const img = document.getElementById('pkmn-img');
       img.className = 'pkmn-img hidden';
+      img.src = '';
+      img.onload = () => { img.className = 'pkmn-img ready'; };
       img.src = q.img;
 
       document.getElementById('question').textContent = '이 포켓몬의 이름은?';
@@ -251,6 +255,7 @@
       const q = questions[current];
       const img = document.getElementById('pkmn-img');
       img.className = 'pkmn-img revealed';
+      
 
       const btns = document.querySelectorAll('.opt-btn');
       btns.forEach(b => {
