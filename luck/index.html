@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🔮 신점 | MZ 무당의 오늘 운세</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+
+    :root {
+      --purple: #9333ea;
+      --pink: #ec4899;
+      --cyan: #06b6d4;
+      --gold: #f59e0b;
+      --dark: #0d0d1a;
+      --card: #13131f;
+      --border: rgba(147,51,234,0.3);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--dark);
+      color: #e2e8f0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── 배경 별 파티클 ── */
+    .stars {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 80% 10%, rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 50% 80%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 10% 60%, rgba(255,255,255,0.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 90% 70%, rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(2px 2px at 35% 15%, rgba(147,51,234,0.8) 0%, transparent 100%),
+        radial-gradient(2px 2px at 70% 50%, rgba(236,72,153,0.6) 0%, transparent 100%);
+    }
+
+    .bg-glow {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 20% 20%, rgba(147,51,234,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(236,72,153,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 60% 30%, rgba(6,182,212,0.08) 0%, transparent 60%);
+    }
+
+    /* ── 헤더 ── */
+    header {
+      position: relative; z-index: 10;
+      text-align: center;
+      padding: 3rem 1.5rem 1rem;
+    }
+
+    .badge-top {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: rgba(147,51,234,0.15);
+      border: 1px solid rgba(147,51,234,0.4);
+      color: #c084fc;
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 0.3rem 0.8rem; border-radius: 999px;
+      margin-bottom: 1.2rem;
+      animation: pulse-border 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-border {
+      0%,100% { box-shadow: 0 0 0 0 rgba(147,51,234,0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(147,51,234,0); }
+    }
+
+    .title-main {
+      font-size: clamp(2.2rem, 8vw, 4rem);
+      font-weight: 900;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #e879f9 0%, #c084fc 40%, #818cf8 70%, #67e8f9 100%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.6rem;
+    }
+
+    .title-sub {
+      font-size: clamp(0.85rem, 2.5vw, 1rem);
+      color: #94a3b8;
+      font-weight: 400;
+      margin-bottom: 0.5rem;
+    }
+
+    .shaman-emoji {
+      font-size: 3.5rem;
+      display: block;
+      margin-bottom: 0.8rem;
+      animation: float-emoji 3s ease-in-out infinite;
+    }
+
+    @keyframes float-emoji {
+      0%,100% { transform: translateY(0) rotate(-3deg); }
+      50% { transform: translateY(-10px) rotate(3deg); }
+    }
+
+    /* ── 메인 컨테이너 ── */
+    .container {
+      position: relative; z-index: 10;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem 4rem;
+    }
+
+    /* ── 카드 ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 40px rgba(147,51,234,0.1);
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #c084fc;
+      margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+
+    /* ── 폼 ── */
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.05em;
+    }
+
+    input[type="text"],
+    select {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(147,51,234,0.25);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      color: #e2e8f0;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: all 0.2s;
+      outline: none;
+      appearance: none;
+    }
+
+    input[type="text"]:focus,
+    select:focus {
+      border-color: var(--purple);
+      background: rgba(147,51,234,0.08);
+      box-shadow: 0 0 0 3px rgba(147,51,234,0.15);
+    }
+
+    select option {
+      background: #1e1e2e;
+      color: #e2e8f0;
+    }
+
+    .date-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.6rem;
+    }
+
+    .gender-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+    }
+
+    .gender-btn {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(147,51,234,0.25);
+      border-radius: 12px;
+      padding: 0.85rem;
+      color: #94a3b8;
+      font-size: 0.9rem;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .gender-btn:hover { border-color: var(--purple); color: #c084fc; }
+    .gender-btn.active {
+      background: rgba(147,51,234,0.2);
+      border-color: var(--purple);
+      color: #e879f9;
+      box-shadow: 0 0 15px rgba(147,51,234,0.2);
+    }
+
+    /* ── 카테고리 선택 ── */
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+
+    .cat-btn {
+      background: rgba(255,255,255,0.03);
+      border: 1.5px solid rgba(147,51,234,0.2);
+      border-radius: 14px;
+      padding: 1rem 0.75rem;
+      cursor: pointer;
+      transition: all 0.25s;
+      text-align: center;
+      font-family: inherit;
+      color: #94a3b8;
+    }
+
+    .cat-btn .cat-emoji { font-size: 1.8rem; display: block; margin-bottom: 0.4rem; }
+    .cat-btn .cat-label { font-size: 0.8rem; font-weight: 600; }
+
+    .cat-btn:hover {
+      border-color: var(--purple);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(147,51,234,0.2);
+    }
+
+    .cat-btn.active {
+      background: rgba(147,51,234,0.18);
+      border-color: var(--purple);
+      color: #e879f9;
+      box-shadow: 0 0 20px rgba(147,51,234,0.25);
+    }
+
+    /* ── 제출 버튼 ── */
+    .submit-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #9333ea, #ec4899);
+      border: none;
+      border-radius: 16px;
+      padding: 1.1rem;
+      color: white;
+      font-size: 1.05rem;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.3s;
+      letter-spacing: 0.02em;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .submit-btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, #a855f7, #f472b6);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .submit-btn:hover::before { opacity: 1; }
+    .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(147,51,234,0.4); }
+    .submit-btn:active { transform: translateY(0); }
+
+    .submit-btn span { position: relative; z-index: 1; }
+
+    /* ── 로딩 ── */
+    #loading {
+      display: none;
+      text-align: center;
+      padding: 3rem 1rem;
+    }
+
+    .crystal-ball {
+      font-size: 4rem;
+      display: block;
+      animation: spin-glow 1.5s ease-in-out infinite;
+      margin-bottom: 1rem;
+    }
+
+    @keyframes spin-glow {
+      0% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 10px rgba(147,51,234,0.5)); }
+      50% { transform: scale(1.15) rotate(10deg); filter: drop-shadow(0 0 25px rgba(236,72,153,0.8)); }
+      100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 10px rgba(147,51,234,0.5)); }
+    }
+
+    .loading-text {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      animation: blink 1.2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .loading-msgs { color: #c084fc; font-weight: 600; font-size: 1rem; margin-bottom: 0.5rem; }
+
+    /* ── 결과 ── */
+    #result { display: none; }
+
+    .result-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .result-name {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #e879f9, #818cf8);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.3rem;
+    }
+
+    .result-date { color: #64748b; font-size: 0.85rem; }
+
+    .fortune-card {
+      background: linear-gradient(135deg, rgba(147,51,234,0.12), rgba(236,72,153,0.08));
+      border: 1px solid rgba(147,51,234,0.35);
+      border-radius: 20px;
+      padding: 1.75rem;
+      margin-bottom: 1rem;
+      position: relative;
+      overflow: hidden;
+      animation: card-in 0.5s ease both;
+    }
+
+    .fortune-card::before {
+      content: '';
+      position: absolute; top: 0; right: 0;
+      width: 120px; height: 120px;
+      background: radial-gradient(circle, rgba(147,51,234,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    @keyframes card-in {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fortune-card:nth-child(2) { animation-delay: 0.1s; }
+    .fortune-card:nth-child(3) { animation-delay: 0.2s; }
+    .fortune-card:nth-child(4) { animation-delay: 0.3s; }
+
+    .fortune-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .fortune-category {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.95rem; font-weight: 700; color: #c084fc;
+    }
+
+    .fortune-score {
+      font-size: 1.4rem; font-weight: 900;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .star-bar {
+      display: flex; gap: 3px; margin-bottom: 0.75rem;
+    }
+
+    .star { font-size: 1rem; transition: transform 0.2s; }
+    .star.lit { filter: drop-shadow(0 0 4px rgba(245,158,11,0.8)); }
+
+    .fortune-text {
+      font-size: 0.92rem;
+      line-height: 1.75;
+      color: #cbd5e1;
+    }
+
+    .fortune-keyword {
+      display: inline-block;
+      background: rgba(147,51,234,0.2);
+      border: 1px solid rgba(147,51,234,0.4);
+      color: #c084fc;
+      font-size: 0.72rem; font-weight: 700;
+      padding: 0.2rem 0.6rem; border-radius: 999px;
+      margin: 0.6rem 0.2rem 0;
+    }
+
+    .lucky-items {
+      display: flex; flex-wrap: wrap; gap: 0.5rem;
+      margin-top: 1rem; padding-top: 1rem;
+      border-top: 1px solid rgba(147,51,234,0.2);
+    }
+
+    .lucky-chip {
+      background: rgba(6,182,212,0.1);
+      border: 1px solid rgba(6,182,212,0.3);
+      color: #67e8f9;
+      font-size: 0.75rem; font-weight: 600;
+      padding: 0.3rem 0.7rem; border-radius: 999px;
+    }
+
+    /* ── 오늘의 한마디 ── */
+    .shaman-quote {
+      background: linear-gradient(135deg, rgba(236,72,153,0.1), rgba(147,51,234,0.1));
+      border: 1px solid rgba(236,72,153,0.3);
+      border-radius: 20px;
+      padding: 1.5rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      animation: card-in 0.5s 0.4s ease both;
+    }
+
+    .quote-label { font-size: 0.75rem; color: #f472b6; font-weight: 700; margin-bottom: 0.8rem; letter-spacing: 0.1em; }
+    .quote-text { font-size: 1.05rem; font-weight: 600; color: #f1f5f9; line-height: 1.6; }
+    .quote-emoji { font-size: 2rem; display: block; margin-top: 0.8rem; }
+
+    /* ── 다시하기 버튼 ── */
+    .retry-btn {
+      width: 100%;
+      background: transparent;
+      border: 1.5px solid rgba(147,51,234,0.4);
+      border-radius: 14px;
+      padding: 0.9rem;
+      color: #c084fc;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+      animation: card-in 0.5s 0.5s ease both;
+    }
+
+    .retry-btn:hover {
+      background: rgba(147,51,234,0.1);
+      border-color: var(--purple);
+      transform: translateY(-1px);
+    }
+
+    /* ── 푸터 문구 ── */
+    .disclaimer {
+      text-align: center;
+      color: #374151;
+      font-size: 0.72rem;
+      margin-top: 2rem;
+      line-height: 1.6;
+    }
+
+    /* ── 반응형 ── */
+    @media (max-width: 400px) {
+      .category-grid { grid-template-columns: repeat(2, 1fr); }
+      .card { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stars"></div>
+  <div class="bg-glow"></div>
+
+  <header>
+    <div class="badge-top">✨ AI 신점 · 무료 운세</div>
+    <span class="shaman-emoji">🔮</span>
+    <h1 class="title-main">신점닷컴</h1>
+    <p class="title-sub">MZ 무당이 직접 보는 오늘의 운세</p>
+  </header>
+
+  <div class="container">
+
+    <!-- 입력 폼 -->
+    <div id="formSection">
+      <div class="card">
+        <div class="card-title">🧿 내 정보 입력</div>
+
+        <div class="form-group">
+          <label>이름 (닉네임도 OK)</label>
+          <input type="text" id="userName" placeholder="예) 김운세" maxlength="10" />
+        </div>
+
+        <div class="form-group">
+          <label>성별</label>
+          <div class="gender-row">
+            <button class="gender-btn active" onclick="selectGender('남')" id="btn-남">🙋‍♂️ 남자</button>
+            <button class="gender-btn" onclick="selectGender('여')" id="btn-여">🙋‍♀️ 여자</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>생년월일</label>
+          <div class="date-row">
+            <select id="birthYear"></select>
+            <select id="birthMonth"></select>
+            <select id="birthDay"></select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>태어난 시간 <span style="color:#4b5563;font-weight:400;">(모르면 패스)</span></label>
+          <select id="birthHour">
+            <option value="-1">🤷 모름</option>
+            <option value="0">자시 (23~01시)</option>
+            <option value="1">축시 (01~03시)</option>
+            <option value="2">인시 (03~05시)</option>
+            <option value="3">묘시 (05~07시)</option>
+            <option value="4">진시 (07~09시)</option>
+            <option value="5">사시 (09~11시)</option>
+            <option value="6">오시 (11~13시)</option>
+            <option value="7">미시 (13~15시)</option>
+            <option value="8">신시 (15~17시)</option>
+            <option value="9">유시 (17~19시)</option>
+            <option value="10">술시 (19~21시)</option>
+            <option value="11">해시 (21~23시)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🎴 무엇이 궁금해?</div>
+        <div class="category-grid">
+          <button class="cat-btn active" onclick="selectCat(this, 'total')" data-cat="total">
+            <span class="cat-emoji">🌟</span>
+            <span class="cat-label">오늘의 총운</span>
+          </button>
+          <button class="cat-btn" onclick="selectCat(this, 'love')" data-cat="love">
+            <span class="cat-emoji">💕</span>
+            <span class="cat-label">연애운</span>
+          </button>
+          <button class="cat-btn" onclick="selectCat(this, 'money')" data-cat="money">
+            <span class="cat-emoji">💰</span>
+            <span class="cat-label">재물운</span>
+          </button>
+          <button class="cat-btn" onclick="selectCat(this, 'career')" data-cat="career">
+            <span class="cat-emoji">🔥</span>
+            <span class="cat-label">직장/학업운</span>
+          </button>
+        </div>
+      </div>
+
+      <button class="submit-btn" onclick="runFortune()">
+        <span>🔮 지금 바로 운세 보기</span>
+      </button>
+    </div>
+
+    <!-- 로딩 -->
+    <div id="loading" class="card" style="text-align:center; padding:3rem 1rem;">
+      <span class="crystal-ball">🔮</span>
+      <div class="loading-msgs" id="loadingMsg">신기(神氣) 채널 연결 중...</div>
+      <div class="loading-text">잠시만 기다려줘 👁️</div>
+    </div>
+
+    <!-- 결과 -->
+    <div id="result"></div>
+  </div>
+
+  <script>
+    // ── 셀렉트 채우기 ──
+    const yearSel = document.getElementById('birthYear');
+    const monthSel = document.getElementById('birthMonth');
+    const daySel = document.getElementById('birthDay');
+
+    for (let y = 2010; y >= 1940; y--) {
+      const o = document.createElement('option');
+      o.value = y; o.textContent = y + '년';
+      if (y === 1995) o.selected = true;
+      yearSel.appendChild(o);
+    }
+    for (let m = 1; m <= 12; m++) {
+      const o = document.createElement('option');
+      o.value = m; o.textContent = m + '월';
+      if (m === 1) o.selected = true;
+      monthSel.appendChild(o);
+    }
+    for (let d = 1; d <= 31; d++) {
+      const o = document.createElement('option');
+      o.value = d; o.textContent = d + '일';
+      if (d === 1) o.selected = true;
+      daySel.appendChild(o);
+    }
+
+    let selectedGender = '남';
+    let selectedCat = 'total';
+
+    function selectGender(g) {
+      selectedGender = g;
+      document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('btn-' + g).classList.add('active');
+    }
+
+    function selectCat(el, cat) {
+      selectedCat = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+    }
+
+    // ── 운세 데이터 ──
+    const FORTUNES = {
+      total: {
+        label: '🌟 오늘의 총운',
+        pools: [
+          { score: 92, texts: ['오늘은 완전 레전드 날이야. 뭘 해도 다 풀리는 에너지가 흐르고 있어. 아침에 눈 뜨는 순간부터 우주가 너 편이거든?', '그동안 묵혀뒀던 거 오늘 다 터져나올 준비 됐어. 두려워하지 말고 그냥 질러봐. 후회 없을 하루.'], keys: ['대길', '행운폭발', '레전드데이'], lucky: ['💎 흰색 아이템', '☕ 아이스 아메리카노', '🕙 오전 10시'] },
+          { score: 78, texts: ['오늘 에너지 꽤 좋아. 약간 충전이 필요한 배터리가 80%쯤 된 느낌? 큰 결정은 내일로 미루고 오늘은 관계에 집중해봐.', '주변 사람들이 너한테 관심 많은 날이야. SNS 올리면 반응 폭발할 수도 있어. 자신감 뿜뿜하게 가봐!'], keys: ['소확행', '관계운UP', '긍정에너지'], lucky: ['💜 보라색 소품', '🍵 따뜻한 차', '🌙 오후 2시'] },
+          { score: 55, texts: ['오늘은 좀 버텨야 하는 날이야. 근데 이거 알지? 이런 날 잘 버티면 나중에 진짜 크게 터져. 오늘은 에너지 아껴두는 날.', '감정 기복 주의. 중요한 결정이나 말은 일단 메모해두고 내일 다시 봐. 오늘은 관찰하는 날.'], keys: ['인내력테스트', '에너지충전'], lucky: ['🖤 검정 패션', '🎵 좋아하는 플리', '🌆 저녁 시간'] },
+          { score: 45, texts: ['솔직히 오늘은 집에 있는 게 제일 좋은 날. 억지로 나가면 피곤하기만 해. 넷플릭스 틀고 배달 시켜. 그게 최선임.', '오늘 뭔가 꼬이는 기분 들면 그냥 그거 맞아. 대신 이게 바닥이니까 이제 올라갈 일만 남았어!'], keys: ['홈충전', '바닥찍고반등'], lucky: ['🏠 집에서 쉬기', '🛁 따뜻한 샤워', '📱 유튜브 삼매경'] },
+        ]
+      },
+      love: {
+        label: '💕 연애운',
+        pools: [
+          { score: 95, texts: ['이번 달 중에 제일 연애운 좋은 날이야. 솔로라면 오늘 만나는 사람한테 먼저 연락해봐. 100% 확률은 아니지만 신기가 감지하는 거 있어.', '커플이라면 오늘 상대방이 더 좋아하게 될 것 같아. 평소에 못했던 말 오늘 해봐. 분위기 완전 좋을 거야.'], keys: ['핑크무드', '설렘폭발', '연애대길'], lucky: ['🌹 빨간 포인트', '🍓 딸기 디저트', '💌 문자 한통'] },
+          { score: 72, texts: ['연애운 나쁘지 않아. 근데 너무 기대하면 실망하니까 그냥 자연스럽게 흘러가봐. 억지로 만들려고 하면 오히려 역효과.', '솔로라면 앱보다는 지인 소개가 맞는 루트야 오늘은. 커플이라면 작은 서프라이즈 하나 준비해봐.'], keys: ['자연스럽게', '소개팅OK'], lucky: ['🌸 핑크 계열', '☕ 카페 데이트', '📸 사진 한 장'] },
+          { score: 38, texts: ['오늘은 연애보다 나 자신에게 집중하는 게 맞아. 상대한테 집착하거나 확인하려 하면 오히려 멀어질 수 있어. 조금 쉬어가자.', '썸타는 중이라면 오늘은 좀 연락 줄여봐. 애타게 하는 것도 전략이야 ㅎㅎ 오늘의 키워드는 여백.'], keys: ['여백의미학', '나먼저챙기기'], lucky: ['💛 노란색 아이템', '🎨 취미 시간', '🧘 혼자 쉬기'] },
+        ]
+      },
+      money: {
+        label: '💰 재물운',
+        pools: [
+          { score: 88, texts: ['재물운 완전 터짐 ㅋㅋ 오늘 뭔가 예상치 못한 수익이나 기회가 올 수 있어. 주변 사람 말 잘 들어봐. 진짜 금맥이 숨어있을 수도.', '투자 관련 결정 오늘 하면 나중에 잘 됐다 할 가능성 높아. 단, 너무 큰 리스크는 NO. 중간 정도가 딱이야.'], keys: ['금맥발견', '예상수익', '재물대길'], lucky: ['💚 초록색 지갑', '🪙 동전 챙기기', '📈 재테크 공부'] },
+          { score: 60, texts: ['재물운은 보통이야. 지금 있는 걸 지키는 게 우선이야 오늘은. 새로운 투자보다 기존 것 관리에 집중해봐.', '불필요한 소비 줄이면 오히려 복이 돌아올 수 있어. 오늘 하루 지출 체크해봐. 새는 돈 있을 수도.'], keys: ['절약이곧재테크', '관리중요'], lucky: ['🟤 갈색 소품', '📒 가계부 작성', '🍀 클로버'] },
+          { score: 35, texts: ['오늘 돈 쓸 일 생기면 일단 참아봐. 충동구매 특히 조심. 나중에 후회할 확률 높아. 신중하게, 천천히.', '남한테 돈 빌려주거나 보증 서는 것도 오늘은 NO. 신기가 경고하는 거야. 내 돈 지키는 날.'], keys: ['절약최우선', '충동구매주의'], lucky: ['⚫ 검정 지갑', '🏦 저축', '🙅 소비 NO'] },
+        ]
+      },
+      career: {
+        label: '🔥 직장/학업운',
+        pools: [
+          { score: 90, texts: ['오늘 직장/학업 완전 불태우는 날이야. 집중력 미쳤을 거고 뭘 해도 결과가 잘 나올 것 같아. 어떤 도전이든 GO!', '발표, 면접, 시험, 미팅 오늘 잡혀있다면 대길이야. 준비한 만큼 빛날 거야. 자신감 있게 가봐!'], keys: ['집중력MAX', '성과폭발', '도전대길'], lucky: ['🟣 보라색 펜', '🎯 목표 세우기', '⏰ 아침 루틴'] },
+          { score: 65, texts: ['무난하게 잘 굴러가는 날이야. 특별히 잘 되진 않지만 망하지도 않아. 그냥 꾸준히 하던 거 계속 하면 돼.', '동료나 선후배와의 관계 챙기는 게 오늘 포인트야. 결과물보다 관계가 중요한 날.'], keys: ['꾸준함이답', '관계챙기기'], lucky: ['☕ 커피 한 잔', '📝 메모 습관', '🤝 인간관계'] },
+          { score: 40, texts: ['오늘은 혼자 열심히 하기보다 도움 받을 수 있는 사람 찾아봐. 혼자 끙끙 앓지 말고 물어보면 의외로 쉽게 풀려.', '실수 주의. 중요한 문서나 메일 보내기 전에 두 번 확인하는 습관 오늘 꼭 필요해. 디테일이 중요한 날.'], keys: ['협력이답', '디테일체크'], lucky: ['🔵 파란 아이템', '✅ 체크리스트', '👀 재검토'] },
+        ]
+      }
+    };
+
+    const QUOTES = [
+      { text: '"지금 힘들다고 포기하지 마. 신기가 감지하기론 진짜 터지기 직전이야."', emoji: '⚡' },
+      { text: '"오늘 하루 최선을 다한 너, 이미 레전드야. 우주가 다 알고 있어."', emoji: '🌌' },
+      { text: '"걱정은 딱 5분만. 그다음은 그냥 해. 안 되면 그때 또 생각해."', emoji: '💫' },
+      { text: '"너 생각보다 훨씬 잘하고 있어. 신기가 증언함 👁️"', emoji: '🧿' },
+      { text: '"지금 이 순간이 나중에 보면 다 뜻이 있었던 거야. 조금만 더 버텨봐."', emoji: '🌙' },
+      { text: '"오늘 하루 너한테 일어나는 모든 일은 다 너가 성장하는 과정이야."', emoji: '🌱' },
+    ];
+
+    // ── 시드 기반 랜덤 ──
+    function seededRandom(seed) {
+      let s = seed;
+      return function() {
+        s = (s * 1664525 + 1013904223) & 0xffffffff;
+        return (s >>> 0) / 0xffffffff;
+      };
+    }
+
+    function pickFortune(cat, name, year, month, day, gender) {
+      const today = new Date();
+      const seed = (year * 31 + month * 7 + day * 3 + today.getFullYear() * 365 + today.getMonth() * 30 + today.getDate())
+        + name.split('').reduce((a,c)=>a+c.charCodeAt(0),0) + (gender==='남' ? 0 : 1000);
+      const rng = seededRandom(Math.abs(seed));
+      const pool = FORTUNES[cat].pools;
+      const idx = Math.floor(rng() * pool.length);
+      const item = pool[idx];
+      const textIdx = Math.floor(rng() * item.texts.length);
+      const quoteIdx = Math.floor(rng() * QUOTES.length);
+      return { item, textIdx, quoteIdx };
+    }
+
+    // ── 별 그리기 ──
+    function renderStars(score) {
+      const full = Math.round(score / 20);
+      let html = '<div class="star-bar">';
+      for (let i = 0; i < 5; i++) {
+        html += `<span class="star ${i < full ? 'lit' : ''}">${i < full ? '⭐' : '☆'}</span>`;
+      }
+      html += '</div>';
+      return html;
+    }
+
+    // ── 로딩 메시지 순환 ──
+    const loadingMsgs = [
+      '신기(神氣) 채널 연결 중...',
+      '사주팔자 분석 중... 🧮',
+      '우주 에너지 수신 중... 📡',
+      '신점봐드리는 중... 👁️',
+      '결과 정리 중... ✨',
+    ];
+
+    let loadTimer = null;
+
+    function startLoading() {
+      let i = 0;
+      const el = document.getElementById('loadingMsg');
+      el.textContent = loadingMsgs[0];
+      loadTimer = setInterval(() => {
+        i = (i + 1) % loadingMsgs.length;
+        el.textContent = loadingMsgs[i];
+      }, 600);
+    }
+
+    function stopLoading() {
+      if (loadTimer) { clearInterval(loadTimer); loadTimer = null; }
+    }
+
+    // ── 메인 실행 ──
+    function runFortune() {
+      const name = document.getElementById('userName').value.trim() || '친구';
+      const year = parseInt(yearSel.value);
+      const month = parseInt(monthSel.value);
+      const day = parseInt(daySel.value);
+
+      // UI 전환
+      document.getElementById('formSection').style.display = 'none';
+      document.getElementById('loading').style.display = 'block';
+      startLoading();
+
+      setTimeout(() => {
+        stopLoading();
+        document.getElementById('loading').style.display = 'none';
+        showResult(name, year, month, day, selectedGender, selectedCat);
+        document.getElementById('result').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 2500);
+    }
+
+    function showResult(name, year, month, day, gender, cat) {
+      const { item, textIdx, quoteIdx } = pickFortune(cat, name, year, month, day, gender);
+      const quote = QUOTES[quoteIdx];
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
+
+      let html = `
+        <div class="result-header">
+          <div class="result-name">✨ ${name}의 오늘 운세</div>
+          <div class="result-date">${dateStr} · ${year}년생 ${gender}자</div>
+        </div>
+
+        <div class="fortune-card">
+          <div class="fortune-top">
+            <div class="fortune-category">${FORTUNES[cat].label}</div>
+            <div class="fortune-score">${item.score}점</div>
+          </div>
+          ${renderStars(item.score)}
+          <div class="fortune-text">${item.texts[textIdx]}</div>
+          <div>
+            ${item.keys.map(k => `<span class="fortune-keyword">#${k}</span>`).join('')}
+          </div>
+          <div class="lucky-items">
+            ${item.lucky.map(l => `<span class="lucky-chip">${l}</span>`).join('')}
+          </div>
+        </div>
+
+        <div class="shaman-quote">
+          <div class="quote-label">🔮 MZ 무당의 한마디</div>
+          <div class="quote-text">${quote.text}</div>
+          <span class="quote-emoji">${quote.emoji}</span>
+        </div>
+
+        <button class="retry-btn" onclick="resetForm()">🔄 다시 운세 보기</button>
+
+        <div class="disclaimer">
+          이 운세는 재미와 긍정적인 에너지를 위한 콘텐츠입니다.<br>
+          실제 의사결정에 참고하지 마세요. 신기는 책임 못 짐 👁️
+        </div>
+      `;
+
+      document.getElementById('result').innerHTML = html;
+    }
+
+    function resetForm() {
+      document.getElementById('result').style.display = 'none';
+      document.getElementById('result').innerHTML = '';
+      document.getElementById('formSection').style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>
