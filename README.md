@@ -11,7 +11,7 @@
 ### Vercel (메인 배포)
 ```bash
 # 직접 배포
-vercel --token YOUR_VERCEL_TOKEN_HERE --prod --yes
+vercel --token YOUR_VERCEL_TOKEN --prod --yes
 
 # 또는 main 브랜치에 push하면 GitHub Actions가 자동 배포
 git push origin main
