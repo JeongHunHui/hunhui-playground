@@ -39,7 +39,7 @@ module.exports = async function(req, res) {
     }
 
     const d = await (await fetch(baseUrl,{headers:hdrs})).json();
-    const ranking = (d.values||[])
+    const ranking = (d.values||[]).slice(1)
       .map(r=>({initials:r[0]||'',time:+r[1]||0,kills:+r[2]||0,level:+r[3]||0,date:r[4]||'',version:r[5]||'',difficulty:r[6]||''}))
       .sort((a,b)=>b.kills-a.kills||b.time-a.time).slice(0,10);
     return res.status(200).json({ranking});
