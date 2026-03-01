@@ -56,6 +56,7 @@ canvas{display:block;}
   83%{border-color:#8b5cf6;box-shadow:0 0 12px #8b5cf6aa;}
   100%{border-color:#ef4444;box-shadow:0 0 12px #ef4444aa;}
 }
+.grade-common{border-color:#9ca3af !important;}
 .grade-transcend{animation:rainbow-border 1s linear infinite !important;background:#1a0510 !important;}
 .grade-transcend:hover{background:#2a0820 !important;}
 </style>
@@ -131,44 +132,44 @@ const WEAPON_DEFS={
   freeze:{name:'❄️ 냉기장',desc:'주변 적 빙결',color:'#7dd3fc',cooldown:250,damage:10,r:120,wtype:'aura'},
   holy:{name:'✝️ 성스러운 오라',desc:'성광 오브가 적을 태움',color:'#fef08a',cooldown:2,damage:20,r:14,wtype:'holy',orbitR:110,count:4},
   poison:{name:'☠️ 독구름',desc:'독 지대를 생성해 데미지',color:'#4ade80',cooldown:180,damage:7,r:40,wtype:'poison'},
-  ghost:{name:'👻 유령 소환',desc:'유령이 주위를 맴돌며 공격',color:'#a5b4fc',cooldown:2,damage:30,r:13,wtype:'ghost',orbitR:140,count:2},
+  ghost:{name:'👻 유령 소환',desc:'유령이 주위를 맴돌며 공격',color:'#a5b4fc',cooldown:2,damage:20,r:13,wtype:'ghost',orbitR:130,count:2},
 };
 
 // ── 업그레이드 풀 ──
 const STAT_UPGRADES=[
-  {uid:'spd',name:'💨 이동속도+',desc:'이동속도 20% 증가',icon:'💨',utype:'stat'},
-  {uid:'hp',name:'❤️ 최대 HP+',desc:'최대 HP 30 증가',icon:'❤️',utype:'stat'},
-  {uid:'dmg',name:'⚔️ 공격력+',desc:'모든 무기 공격력 20% 증가',icon:'⚔️',utype:'stat'},
-  {uid:'pierce',name:'🎯 관통+',desc:'단검/파이어볼 관통 +1',icon:'🎯',utype:'stat'},
-  {uid:'xpboost',name:'🌟 경험치+',desc:'XP 획득량 30% 증가',icon:'🌟',utype:'stat'},
-  {uid:'magnet',name:'🧲 자석 범위+',desc:'XP 흡수 범위 +50',icon:'🧲',utype:'stat'},
-  {uid:'regen',name:'💚 재생력+',desc:'초당 HP 1 추가 회복',icon:'💚',utype:'stat'},
-  {uid:'luck',name:'🍀 행운+',desc:'XP 드롭량 25% 증가',icon:'🍀',utype:'stat'},
+  {uid:'spd',name:'💨 이동속도+',desc:'이동속도 증가',icon:'💨',utype:'stat',tier:0},
+  {uid:'hp',name:'❤️ 최대 HP+',desc:'최대 HP 증가',icon:'❤️',utype:'stat',tier:0},
+  {uid:'xpboost',name:'🌟 경험치+',desc:'XP 획득량 증가',icon:'🌟',utype:'stat',tier:0},
+  {uid:'magnet',name:'🧲 자석 범위+',desc:'XP 흡수 범위 증가',icon:'🧲',utype:'stat',tier:0},
+  {uid:'dmg',name:'⚔️ 공격력+',desc:'모든 무기 공격력 증가',icon:'⚔️',utype:'stat',tier:1},
+  {uid:'regen',name:'💚 재생력+',desc:'초당 HP 회복',icon:'💚',utype:'stat',tier:1},
+  {uid:'luck',name:'🍀 행운+',desc:'XP 드롭량 증가',icon:'🍀',utype:'stat',tier:0},
+  {uid:'pierce',name:'🎯 관통+',desc:'단검/파이어볼 관통 +1',icon:'🎯',utype:'stat',tier:1},
 ];
 
 const WEAPON_NEW=[
-  {uid:'w_knife',wid:'knife',name:'🗡 단검',desc:'빠른 단검 발사',icon:'🗡',utype:'new'},
-  {uid:'w_axe',wid:'axe',name:'🪓 도끼',desc:'되돌아오는 도끼',icon:'🪓',utype:'new'},
-  {uid:'w_magic',wid:'magic',name:'✨ 마법진',desc:'주변 회전 공격',icon:'✨',utype:'new'},
-  {uid:'w_fireball',wid:'fireball',name:'🔥 파이어볼',desc:'강력 폭발 투사체',icon:'🔥',utype:'new'},
-  {uid:'w_lightning',wid:'lightning',name:'⚡ 번개',desc:'자동 타격 번개',icon:'⚡',utype:'new'},
-  {uid:'w_freeze',wid:'freeze',name:'❄️ 냉기장',desc:'주변 적 빙결',icon:'❄️',utype:'new'},
-  {uid:'w_holy',wid:'holy',name:'✝️ 성스러운 오라',desc:'성광이 적을 태움',icon:'✝️',utype:'new'},
-  {uid:'w_poison',wid:'poison',name:'☠️ 독구름',desc:'독 지대 생성',icon:'☠️',utype:'new'},
-  {uid:'w_ghost',wid:'ghost',name:'👻 유령 소환',desc:'공격하는 유령 소환',icon:'👻',utype:'new'},
+  {uid:'w_knife',wid:'knife',name:'🗡 단검',desc:'빠른 단검 발사',icon:'🗡',utype:'new',tier:0},
+  {uid:'w_axe',wid:'axe',name:'🪓 도끼',desc:'되돌아오는 도끼',icon:'🪓',utype:'new',tier:0},
+  {uid:'w_magic',wid:'magic',name:'✨ 마법진',desc:'주변 회전 공격',icon:'✨',utype:'new',tier:1},
+  {uid:'w_freeze',wid:'freeze',name:'❄️ 냉기장',desc:'주변 적 빙결',icon:'❄️',utype:'new',tier:1},
+  {uid:'w_poison',wid:'poison',name:'☠️ 독구름',desc:'독 지대 생성',icon:'☠️',utype:'new',tier:1},
+  {uid:'w_fireball',wid:'fireball',name:'🔥 파이어볼',desc:'강력 폭발 투사체',icon:'🔥',utype:'new',tier:2},
+  {uid:'w_lightning',wid:'lightning',name:'⚡ 번개',desc:'자동 타격 번개',icon:'⚡',utype:'new',tier:2},
+  {uid:'w_holy',wid:'holy',name:'✝️ 성스러운 오라',desc:'성광이 적을 태움',icon:'✝️',utype:'new',tier:2},
+  {uid:'w_ghost',wid:'ghost',name:'👻 유령 소환',desc:'공격하는 유령 소환',icon:'👻',utype:'new',tier:3},
 ];
 
 const WEAPON_UPGRADES=[
-  {uid:'up_knife_dmg',wid:'knife',name:'🗡 단검 강화',desc:'단검 DMG+30%, 쿨다운-',icon:'🗡',utype:'wupgrade'},
-  {uid:'up_knife_cnt',wid:'knife',name:'🗡 다연사',desc:'단검 발사 수 +1',icon:'🗡',utype:'wupgrade'},
-  {uid:'up_axe_dmg',wid:'axe',name:'🪓 도끼 강화',desc:'도끼 DMG+40%',icon:'🪓',utype:'wupgrade'},
-  {uid:'up_magic_orb',wid:'magic',name:'✨ 마법진 확장',desc:'궤도 반경+30, DMG+',icon:'✨',utype:'wupgrade'},
-  {uid:'up_fireball_splash',wid:'fireball',name:'🔥 폭발 강화',desc:'폭발 범위+25, DMG+',icon:'🔥',utype:'wupgrade'},
-  {uid:'up_lightning_chain',wid:'lightning',name:'⚡ 연쇄 번개+',desc:'번개 대상 +2명',icon:'⚡',utype:'wupgrade'},
-  {uid:'up_freeze_range',wid:'freeze',name:'❄️ 냉기장 확장',desc:'냉기 범위+40',icon:'❄️',utype:'wupgrade'},
-  {uid:'up_holy_cnt',wid:'holy',name:'✝️ 성광 오브+',desc:'성광 오브 +1, DMG+',icon:'✝️',utype:'wupgrade'},
-  {uid:'up_poison_size',wid:'poison',name:'☠️ 독구름 강화',desc:'독구름 범위+20, DMG+',icon:'☠️',utype:'wupgrade'},
-  {uid:'up_ghost_cnt',wid:'ghost',name:'👻 유령 추가소환',desc:'유령 +1, DMG+30%',icon:'👻',utype:'wupgrade'},
+  {uid:'up_knife_dmg',wid:'knife',name:'🗡 단검 강화',desc:'단검 강화',icon:'🗡',utype:'wupgrade',tier:0},
+  {uid:'up_knife_cnt',wid:'knife',name:'🗡 다연사',desc:'단검 발사 수 +1',icon:'🗡',utype:'wupgrade',tier:1},
+  {uid:'up_axe_dmg',wid:'axe',name:'🪓 도끼 강화',desc:'도끼 강화',icon:'🪓',utype:'wupgrade',tier:0},
+  {uid:'up_magic_orb',wid:'magic',name:'✨ 마법진 확장',desc:'마법진 확장',icon:'✨',utype:'wupgrade',tier:1},
+  {uid:'up_fireball_splash',wid:'fireball',name:'🔥 폭발 강화',desc:'폭발 강화',icon:'🔥',utype:'wupgrade',tier:2},
+  {uid:'up_lightning_chain',wid:'lightning',name:'⚡ 연쇄 번개+',desc:'번개 강화',icon:'⚡',utype:'wupgrade',tier:2},
+  {uid:'up_freeze_range',wid:'freeze',name:'❄️ 냉기장 확장',desc:'냉기장 강화',icon:'❄️',utype:'wupgrade',tier:1},
+  {uid:'up_holy_cnt',wid:'holy',name:'✝️ 성광 오브+',desc:'성광 강화',icon:'✝️',utype:'wupgrade',tier:2},
+  {uid:'up_poison_size',wid:'poison',name:'☠️ 독구름 강화',desc:'독구름 강화',icon:'☠️',utype:'wupgrade',tier:1},
+  {uid:'up_ghost_cnt',wid:'ghost',name:'👻 유령 추가소환',desc:'유령 강화',icon:'👻',utype:'wupgrade',tier:3},
 ];
 
 // ── 적 타입 ──
@@ -487,16 +488,45 @@ function doSplash(x,y,r,dmg){
 
 // ── 등급 시스템 ──
 const GRADES=[
-  {name:'레어',   color:'#3b82f6', bg:'#0d1f4e', prob:0.35, mult:1.0,  cls:'grade-rare'},
-  {name:'에픽',   color:'#8b5cf6', bg:'#1a0d4e', prob:0.30, mult:1.3,  cls:'grade-epic'},
-  {name:'유니크', color:'#f97316', bg:'#2a1500', prob:0.20, mult:1.6,  cls:'grade-unique'},
-  {name:'레전드', color:'#eab308', bg:'#1f1a00', prob:0.12, mult:2.0,  cls:'grade-legend'},
-  {name:'초월',   color:'#ef4444', bg:'#1a0510', prob:0.03, mult:2.5,  cls:'grade-transcend'},
+  {name:'커먼',   color:'#9ca3af', bg:'#151515',  prob:0.40, idx:0, cls:'grade-common'},
+  {name:'레어',   color:'#3b82f6', bg:'#0d1f4e',  prob:0.28, idx:1, cls:'grade-rare'},
+  {name:'에픽',   color:'#8b5cf6', bg:'#1a0d4e',  prob:0.18, idx:2, cls:'grade-epic'},
+  {name:'레전드', color:'#eab308', bg:'#1f1a00',  prob:0.11, idx:3, cls:'grade-legend'},
+  {name:'초월',   color:'#ef4444', bg:'#1a0510',  prob:0.03, idx:4, cls:'grade-transcend'},
 ];
-function rollGrade(){
-  const r=Math.random();let acc=0;
-  for(const g of GRADES){acc+=g.prob;if(r<acc)return g;}
-  return GRADES[0];
+const GRADE_MULT=[1.0,1.4,1.9,2.6,3.5];
+function rollGradeFrom(minTier=0){
+  const sub=GRADES.slice(minTier);
+  const total=sub.reduce((s,g)=>s+g.prob,0);
+  let r=Math.random()*total,acc=0;
+  for(const g of sub){acc+=g.prob;if(r<acc)return g;}
+  return sub[sub.length-1];
+}
+function rv(base,range){return base+Math.floor(Math.random()*range);}
+function computeUpgradeValues(u,grade){
+  const m=GRADE_MULT[grade.idx];
+  const rv2=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+  if(u.utype==='stat'){
+    if(u.uid.startsWith('spd')){const v=rv2(15,30);u._vals={spd:v/100};u.desc='이동속도 +'+v+'%';}
+    else if(u.uid.startsWith('hp')){const v=Math.round(rv2(25,50)*m);u._vals={hp:v};u.desc='최대 HP +'+v;}
+    else if(u.uid.startsWith('dmg')){const v=rv2(15,30);u._vals={dmg:v/100};u.desc='공격력 +'+Math.round(v*m)+'%';}
+    else if(u.uid.startsWith('xpboost')){const v=rv2(20,40);u._vals={xp:v/100};u.desc='경험치 획득 +'+v+'%';}
+    else if(u.uid.startsWith('magnet')){const v=Math.round(rv2(40,80)*m);u._vals={mag:v};u.desc='자석 범위 +'+v;}
+    else if(u.uid.startsWith('regen')){const v=Math.max(1,Math.round(m*rv2(1,2)));u._vals={regen:v};u.desc='초당 HP +'+v+' 회복';}
+    else if(u.uid.startsWith('luck')){const v=rv2(20,35);u._vals={luck:v/100};u.desc='드롭 +'+v+'%';}
+    else if(u.uid.startsWith('pierce')){u._vals={};u.desc='관통 +1';}
+  } else if(u.utype==='wupgrade'){
+    if(u.uid==='up_knife_dmg'){const v=Math.round(rv2(25,45)*m);u._vals={d:v/100};u.desc='단검 DMG +'+v+'%, 쿨다운↓';}
+    else if(u.uid==='up_knife_cnt'){u._vals={};u.desc='단검 발사 수 +1';}
+    else if(u.uid==='up_axe_dmg'){const v=Math.round(rv2(35,60)*m);u._vals={d:v/100};u.desc='도끼 DMG +'+v+'%';}
+    else if(u.uid==='up_magic_orb'){const r2=Math.round(rv2(25,45)*m),v=Math.round(rv2(15,30)*m);u._vals={r:r2,d:v/100};u.desc='궤도 반경 +'+r2+', DMG +'+v+'%';}
+    else if(u.uid==='up_fireball_splash'){const sp=Math.round(rv2(20,40)*m),v=Math.round(rv2(15,30)*m);u._vals={sp,d:v/100};u.desc='폭발범위 +'+sp+', DMG +'+v+'%';}
+    else if(u.uid==='up_lightning_chain'){const ch=Math.round(rv2(1,3)*m);u._vals={ch};u.desc='번개 연쇄 +'+ch+'명';}
+    else if(u.uid==='up_freeze_range'){const r2=Math.round(rv2(30,60)*m);u._vals={r:r2};u.desc='냉기 범위 +'+r2;}
+    else if(u.uid==='up_holy_cnt'){const v=Math.round(rv2(20,40)*m);u._vals={d:v/100};u.desc='성광 오브 +1, DMG +'+v+'%';}
+    else if(u.uid==='up_poison_size'){const r2=Math.round(rv2(15,30)*m),v=Math.round(rv2(20,35)*m);u._vals={r:r2,d:v/100};u.desc='독 범위 +'+r2+', DMG +'+v+'%';}
+    else if(u.uid==='up_ghost_cnt'){const v=Math.round(rv2(20,40)*m);u._vals={d:v/100};u.desc='유령 +1, DMG +'+v+'%';}
+  }
 }
 
 // ── 레벨업 ──
@@ -533,19 +563,20 @@ function levelUp(){
   }
 
   for(let u of picks){
-    const grade=rollGrade();
+    const grade=rollGradeFrom(u.tier||0);
     u._grade=grade;
+    computeUpgradeValues(u,grade);
     const d=document.createElement('div');
     const isWupgrade=u.utype==='wupgrade';
     d.className='upg-card '+(isWupgrade?'is-upgrade ':'')+grade.cls;
     d.style.borderColor=grade.color;
     d.style.background=grade.bg;
-    // 초월이 아닌 경우 box-shadow 설정
     if(grade.cls!=='grade-transcend'){d.style.boxShadow='0 0 8px '+grade.color+'66';}
+    const gradeStars={'커먼':'','레어':'★','에픽':'★★','레전드':'★★★','초월':'✦'};
     d.innerHTML='<div class="upg-icon">'+u.icon+'</div>'
       +'<div class="upg-name" style="color:'+grade.color+'">'+u.name+'</div>'
       +'<div class="upg-desc">'+u.desc+'</div>'
-      +'<div class="grade-badge" style="background:'+grade.color+'22;color:'+grade.color+';border:1px solid '+grade.color+'88">'+grade.name+'</div>';
+      +'<div class="grade-badge" style="background:'+grade.color+'22;color:'+grade.color+';border:1px solid '+grade.color+'88">'+(gradeStars[grade.name]?gradeStars[grade.name]+' ':'')+grade.name+'</div>';
     const uu=u;
     d.onclick=()=>{applyUpgrade(uu);el.style.display='none';paused=false;};
     cards.appendChild(d);
@@ -553,35 +584,35 @@ function levelUp(){
 }
 
 function applyUpgrade(u){
-  const gm=(u._grade?u._grade.mult:1.0);
+  const v=u._vals||{};
   if(u.utype==='stat'){
-    if(u.uid.startsWith('spd'))player.spd*=(1+0.2*gm);
-    else if(u.uid.startsWith('hp')){const add=Math.round(30*gm);player.maxHp+=add;player.hp=Math.min(player.hp+add,player.maxHp);}
-    else if(u.uid.startsWith('dmg'))player.dmgMult*=(1+0.2*gm);
+    if(u.uid.startsWith('spd'))player.spd*=(1+(v.spd||0.2));
+    else if(u.uid.startsWith('hp')){const add=v.hp||30;player.maxHp+=add;player.hp=Math.min(player.hp+add,player.maxHp);}
+    else if(u.uid.startsWith('dmg'))player.dmgMult*=(1+(v.dmg||0.2));
     else if(u.uid.startsWith('pierce')){
       const k=weapons.find(w=>w.wid==='knife');if(k)k.pierce=(k.pierce||1)+1;
       const f=weapons.find(w=>w.wid==='fireball');if(f)f.pierce=(f.pierce||1)+1;
     }
-    else if(u.uid.startsWith('xpboost'))player.xpMult*=(1+0.3*gm);
-    else if(u.uid.startsWith('magnet'))player.magnetR+=Math.round(50*gm);
-    else if(u.uid.startsWith('regen'))player.regen=(player.regen||0)+Math.max(1,Math.round(gm));
-    else if(u.uid.startsWith('luck'))player.luck*=(1+0.25*gm);
+    else if(u.uid.startsWith('xpboost'))player.xpMult*=(1+(v.xp||0.3));
+    else if(u.uid.startsWith('magnet'))player.magnetR+=(v.mag||50);
+    else if(u.uid.startsWith('regen'))player.regen=(player.regen||0)+(v.regen||1);
+    else if(u.uid.startsWith('luck'))player.luck*=(1+(v.luck||0.25));
   } else if(u.utype==='new'){
     const def=WEAPON_DEFS[u.wid];
     if(def)weapons.push({...def,wid:u.wid,timer:0,pierce:def.pierce||1,count:def.count||1,chainCount:def.chainCount||3,orbitR:def.orbitR||80});
   } else if(u.utype==='wupgrade'){
     const w=weapons.find(x=>x.wid===u.wid);
     if(!w)return;
-    if(u.uid==='up_knife_dmg'){w.damage*=(1+0.3*gm);w.cooldown=Math.max(10,w.cooldown*(1-0.15*gm));}
-    else if(u.uid==='up_knife_cnt')w.count=(w.count||1)+Math.max(1,Math.floor(gm));
-    else if(u.uid==='up_axe_dmg')w.damage*=(1+0.4*gm);
-    else if(u.uid==='up_magic_orb'){w.orbitR=(w.orbitR||80)+Math.round(30*gm);w.damage*=(1+0.2*gm);bullets=bullets.filter(b=>b.ownerWid!==w.wid);}
-    else if(u.uid==='up_fireball_splash'){w.splash=(w.splash||50)+Math.round(25*gm);w.damage*=(1+0.2*gm);}
-    else if(u.uid==='up_lightning_chain')w.chainCount=(w.chainCount||3)+Math.round(2*gm);
-    else if(u.uid==='up_freeze_range'){w.r=(w.r||120)+Math.round(40*gm);}
-    else if(u.uid==='up_holy_cnt'){w.count=(w.count||4)+1;w.damage*=(1+0.3*gm);bullets=bullets.filter(b=>b.ownerWid!==w.wid);}
-    else if(u.uid==='up_poison_size'){w.r=(w.r||40)+Math.round(20*gm);w.damage*=(1+0.3*gm);}
-    else if(u.uid==='up_ghost_cnt'){w.count=(w.count||2)+1;w.damage*=(1+0.3*gm);bullets=bullets.filter(b=>b.ownerWid!==w.wid);}
+    if(u.uid==='up_knife_dmg'){w.damage*=(1+(v.d||0.3));w.cooldown=Math.max(10,w.cooldown*0.85);}
+    else if(u.uid==='up_knife_cnt')w.count=(w.count||1)+1;
+    else if(u.uid==='up_axe_dmg')w.damage*=(1+(v.d||0.4));
+    else if(u.uid==='up_magic_orb'){w.orbitR=(w.orbitR||80)+(v.r||30);w.damage*=(1+(v.d||0.2));bullets=bullets.filter(b=>b.ownerWid!==w.wid);}
+    else if(u.uid==='up_fireball_splash'){w.splash=(w.splash||50)+(v.sp||25);w.damage*=(1+(v.d||0.2));}
+    else if(u.uid==='up_lightning_chain')w.chainCount=(w.chainCount||3)+(v.ch||2);
+    else if(u.uid==='up_freeze_range'){w.r=(w.r||120)+(v.r||40);}
+    else if(u.uid==='up_holy_cnt'){w.count=(w.count||4)+1;w.damage*=(1+(v.d||0.3));bullets=bullets.filter(b=>b.ownerWid!==w.wid);}
+    else if(u.uid==='up_poison_size'){w.r=(w.r||40)+(v.r||20);w.damage*=(1+(v.d||0.3));}
+    else if(u.uid==='up_ghost_cnt'){w.count=(w.count||2)+1;w.damage*=(1+(v.d||0.3));bullets=bullets.filter(b=>b.ownerWid!==w.wid);}
   }
 }
 
