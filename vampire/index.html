@@ -68,10 +68,29 @@ canvas{display:block;}
 .grade-unique:hover{background:#3d1f00 !important;}
 .grade-transcend{animation:rainbow-border 1s linear infinite !important;background:#1a0510 !important;}
 .grade-transcend:hover{background:#2a0820 !important;}
+/* Character select */
+.char-cards{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin:10px 0 20px;}
+.char-card{background:#1a1030;border:2px solid #3d2a5e;border-radius:14px;padding:16px;width:140px;cursor:pointer;text-align:center;transition:all 0.2s;}
+.char-card:hover{border-color:#c084fc;background:#2d1f4e;transform:translateY(-4px);}
+.char-card.selected{border-color:#7c3aed;background:#2d1f4e;box-shadow:0 0 14px #7c3aedaa;}
+.char-icon{font-size:38px;margin-bottom:6px;}
+.char-name{font-weight:700;color:#e2d4ff;font-size:0.9rem;margin-bottom:4px;}
+.char-stat{font-size:0.7rem;color:#9f8ab8;line-height:1.4;}
+/* Weapon level HUD */
+.wlv-hud{position:fixed;bottom:10px;right:80px;z-index:10;display:flex;flex-direction:column;gap:3px;pointer-events:none;}
+.wlv-row{display:flex;align-items:center;gap:4px;background:rgba(13,10,26,0.88);border:1px solid #3d2a5e;border-radius:7px;padding:3px 8px;font-size:0.7rem;color:#e2d4ff;}
+.wlv-pips{display:flex;gap:2px;margin-left:4px;}
+.wlv-pip{width:7px;height:7px;border-radius:2px;background:#2d2040;}
+.wlv-pip.filled{background:#c084fc;}
+.wlv-pip.maxed{background:#fde047;}
+/* Evolution card */
+.upg-card.is-evo{border-color:#ff6ac1 !important;background:#1a0520 !important;}
+.upg-card.is-evo:hover{background:#2a0830 !important;}
 </style>
 </head>
 <body>
 <div id="item-hud"></div>
+<div class="wlv-hud" id="wlv-hud"></div>
 <div id="ver-badge">v1.2 / bp-1.0</div>
 <div id="tut-btn" onclick="document.getElementById('tut-modal').classList.add('open')">❓ 도움말</div>
 <div id="tut-modal" onclick="if(event.target===this)this.classList.remove('open')">
@@ -108,6 +127,24 @@ canvas{display:block;}
 <div id="overlay">
   <h1>🧛 훈희 서바이벌</h1>
   <p>WASD / 방향키 / 조이스틱으로 이동<br>무기는 자동 발사 — 생존하라!</p>
+  <p style="color:#c084fc;font-size:0.85rem;margin-bottom:8px">🧙 캐릭터 선택</p>
+  <div class="char-cards" id="char-cards">
+    <div class="char-card selected" onclick="selectChar('warrior',this)">
+      <div class="char-icon">⚔️</div>
+      <div class="char-name">전사</div>
+      <div class="char-stat">시작: 도끼<br>HP +50%<br>이동속도 -10%</div>
+    </div>
+    <div class="char-card" onclick="selectChar('mage',this)">
+      <div class="char-icon">🧙</div>
+      <div class="char-name">마법사</div>
+      <div class="char-stat">시작: 단검+마법진<br>경험치 +30%<br>HP -20%</div>
+    </div>
+    <div class="char-card" onclick="selectChar('rogue',this)">
+      <div class="char-icon">🗡️</div>
+      <div class="char-name">도적</div>
+      <div class="char-stat">시작: 단검+독구름<br>이동속도 +30%<br>공격력 -10%</div>
+    </div>
+  </div>
   <p style="color:#c084fc;font-size:0.85rem;margin-bottom:8px">⚔️ 난이도 선택</p>
   <div style="display:flex;gap:10px;margin-bottom:4px">
     <button class="start" style="background:linear-gradient(135deg,#22c55e,#16a34a)" onclick="startGame(0.7)">🌿 쉬움</button>
@@ -129,11 +166,35 @@ resize();window.addEventListener('resize',resize);
 
 let player,enemies,bullets,xpOrbs,particles,weapons;
 let kills,gameTime,level,xp,xpNeeded,running,paused,diffMult=1,diffName='보통';
+let evolvedWeapons=new Set();
 let healthItems=[];let chests=[];let chestSpawnTimer=0;let activeItems=[];let droppedItems=[];
 let keys={};let touch={dx:0,dy:0};let animId;
 let frameCount=0,lastSecond=Date.now();
 
 // ── 무기 정의 ──
+// ── 캐릭터 정의 ──
+let selectedChar='warrior';
+function selectChar(id,el){
+  selectedChar=id;
+  document.querySelectorAll('.char-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+const CHARACTERS={
+  warrior:{icon:'⚔️',name:'전사',emoji:'⚔️',startWeapons:['axe'],hpMult:1.5,spdMult:0.9,dmgMult:1.0,xpMult:1.0},
+  mage:{icon:'🧙',name:'마법사',emoji:'🧙',startWeapons:['knife','magic'],hpMult:0.8,spdMult:1.0,dmgMult:1.0,xpMult:1.3},
+  rogue:{icon:'🗡️',name:'도적',emoji:'🗡️',startWeapons:['knife','poison'],hpMult:1.0,spdMult:1.3,dmgMult:0.9,xpMult:1.0},
+};
+
+// ── 진화(Evolution) 정의 ──
+// {id, name, icon, desc, baseWid, reqItemId, reqLevel, newWid}
+const EVOLUTION_DEFS=[
+  {id:'evo_holy_blade',name:'⚔️ 성검',desc:'단검Lv8+공격 반지 → 강력한 성스러운 검',baseWid:'knife',reqItemId:'ring_dmg',reqLevel:8,icon:'⚔️',color:'#fde047'},
+  {id:'evo_black_hole',name:'🌀 블랙홀',desc:'마법진Lv8+자석 보석 → 적을 빨아들이는 블랙홀',baseWid:'magic',reqItemId:'magnet_gem',reqLevel:8,icon:'🌀',color:'#8b5cf6'},
+  {id:'evo_storm_axe',name:'🌪️ 폭풍 도끼',desc:'도끼Lv8+루비 아뮬렛 → 폭풍처럼 회전하는 도끼',baseWid:'axe',reqItemId:'ruby',reqLevel:8,icon:'🌪️',color:'#ef4444'},
+  {id:'evo_blizzard',name:'❄️ 블리자드',desc:'냉기장Lv8+서리 결정 → 필드 전체 냉동',baseWid:'freeze',reqItemId:'frost_gem',reqLevel:8,icon:'❄️',color:'#7dd3fc'},
+  {id:'evo_death_cloud',name:'💀 죽음의 독',desc:'독구름Lv8+흡혈 반지 → 생명력 흡수 독구름',baseWid:'poison',reqItemId:'lifesteal',reqLevel:8,icon:'💀',color:'#4ade80'},
+];
+
 const WEAPON_DEFS={
   knife:{name:'🗡 단검',desc:'빠른 단검 발사',color:'#e2d4ff',cooldown:80,damage:15,speed:8,r:6,wtype:'bullet',pierce:1,count:1},
   axe:{name:'🪓 도끼',desc:'되돌아오는 도끼',color:'#f97316',cooldown:160,damage:28,speed:5,r:10,wtype:'boomerang'},
@@ -240,13 +301,17 @@ async function startGame(diff){
       if(cfg.BALANCE_PATCH)document.getElementById('ver-badge').textContent='v1.2 / bp-'+cfg.BALANCE_PATCH;
     }
   }catch(e){}
+  const ch=CHARACTERS[selectedChar]||CHARACTERS.warrior;
+  const baseHp=Math.round(100*ch.hpMult);
   player={
-    x:0,y:0,r:16,hp:100,maxHp:100,spd:2.5,
-    invincible:0,dmgMult:1,
-    magnetR:80,xpMult:1,regen:0,luck:1,dodge:0,armor:0,barrierMax:0,barrier:0,barrierCooldown:0,thorns:0,durationMult:1,
+    x:0,y:0,r:16,hp:baseHp,maxHp:baseHp,spd:2.5*ch.spdMult,
+    invincible:0,dmgMult:ch.dmgMult,
+    magnetR:80,xpMult:ch.xpMult,regen:0,luck:1,dodge:0,armor:0,barrierMax:0,barrier:0,barrierCooldown:0,thorns:0,durationMult:1,
+    charEmoji:ch.emoji,
   };
   enemies=[];bullets=[];xpOrbs=[];particles=[];healthItems=[];chests=[];chestSpawnTimer=0;activeItems=[];droppedItems=[];
-  weapons=[{...WEAPON_DEFS.knife,wid:'knife',timer:0,pierce:1,count:1}];
+  evolvedWeapons=new Set();
+  weapons=ch.startWeapons.map(wid=>{const def=WEAPON_DEFS[wid];return{...def,wid,timer:0,pierce:def.pierce||1,count:def.count||1,chainCount:def.chainCount||3,orbitR:def.orbitR||80,durationLeft:def.duration||0,active:!def.duration,wlevel:1};});
   kills=0;gameTime=0;level=1;xp=0;xpNeeded=20;
   running=true;paused=false;
   frameCount=0;lastSecond=Date.now();
@@ -328,7 +393,8 @@ function update(){
       }
     } else {
       w.timer++;
-      if(w.timer>=w.cooldown){w.timer=0;fireWeapon(w);}
+      const effCool=Math.max(5,Math.floor(w.cooldown*(player.cooldownMult||1)));
+      if(w.timer>=effCool){w.timer=0;fireWeapon(w);}
     }
   }
 
@@ -520,7 +586,7 @@ function gainXp(amt){
 
 function killEnemy(e){
   e.dead=true;kills++;
-  spawnXpOrb(e.x,e.y,Math.round(e.xpVal*player.luck),e);
+  spawnXpOrb(e.x,e.y,Math.round((e.xpVal+(player.xpPerKill||0))*player.luck),e);
   if(Math.random()<0.05)spawnHealthItem(e.x,e.y);
   // 아이템 드롭: 보스 15%, 일반 3%
   const itemChance=e.isBoss?0.15:0.03;
@@ -700,6 +766,17 @@ function levelUp(){
 
   const ownedWids=new Set(weapons.map(w=>w.wid));
   let pool=[];
+  // 진화 체크
+  const collectedItemIds=new Set(activeItems.map(i=>i.id||i.name));
+  // Also track by item id from the ITEM_DEFS
+  const collectedRealItemIds=new Set(activeItems.filter(i=>i.id).map(i=>i.id));
+  for(const evo of EVOLUTION_DEFS){
+    if(evolvedWeapons.has(evo.id))continue;
+    const w=weapons.find(x=>x.wid===evo.baseWid);
+    if(w&&(w.wlevel||1)>=evo.reqLevel&&collectedRealItemIds.has(evo.reqItemId)){
+      pool.unshift({uid:evo.id,name:evo.name,desc:evo.desc,icon:evo.icon,utype:'evo',tier:6,evoData:evo,_forcePick:true});
+    }
+  }
   // 신규 무기 (미보유만)
   for(let u of WEAPON_NEW){if(!ownedWids.has(u.wid))pool.push({...u});}
   // 무기 강화 (보유 중인 무기만, wid당 1개)
@@ -713,12 +790,16 @@ function levelUp(){
   // 스탯
   pool.push(...STAT_UPGRADES.map(u=>({...u})));
 
-  // 랜덤 셔플 후 3개 선택 (uid 중복 방지)
-  pool.sort(()=>Math.random()-0.5);
+  // 진화 선택지 먼저 강제 포함
   const picks=[];const usedU=new Set();
   for(let u of pool){
+    if(u._forcePick&&picks.length<3){picks.push(u);usedU.add(u.uid);}
+  }
+  // 랜덤 셔플 후 나머지 선택
+  pool.filter(u=>!u._forcePick).sort(()=>Math.random()-0.5);
+  for(let u of pool){
     if(picks.length>=3)break;
-    if(!usedU.has(u.uid)){picks.push(u);usedU.add(u.uid);}
+    if(!u._forcePick&&!usedU.has(u.uid)){picks.push(u);usedU.add(u.uid);}
   }
   while(picks.length<3){
     const fb=STAT_UPGRADES[picks.length%STAT_UPGRADES.length];
@@ -736,7 +817,8 @@ function levelUp(){
     computeUpgradeValues(u,grade);
     const d=document.createElement('div');
     const isWupgrade=u.utype==='wupgrade';
-    d.className='upg-card '+(isWupgrade?'is-upgrade ':'')+grade.cls;
+    const isEvo=u.utype==='evo';
+    d.className='upg-card '+(isWupgrade?'is-upgrade ':'')+(isEvo?'is-evo ':'')+grade.cls;
     d.style.borderColor=grade.color;
     d.style.background=grade.bg;
     if(grade.cls!=='grade-transcend'){d.style.boxShadow='0 0 8px '+grade.color+'66';}
@@ -772,10 +854,28 @@ function applyUpgrade(u){
     else if(u.uid.startsWith('duration')){const mult=1+(v.dur||0.2);for(let w of weapons){if(w.duration)w.duration=Math.round(w.duration*mult);}}
   } else if(u.utype==='new'){
     const def=WEAPON_DEFS[u.wid];
-    if(def){const dur=def.duration;weapons.push({...def,wid:u.wid,timer:0,pierce:def.pierce||1,count:def.count||1,chainCount:def.chainCount||3,orbitR:def.orbitR||80,durationLeft:dur||0,active:!dur});}
+    if(def){const dur=def.duration;weapons.push({...def,wid:u.wid,timer:0,pierce:def.pierce||1,count:def.count||1,chainCount:def.chainCount||3,orbitR:def.orbitR||80,durationLeft:dur||0,active:!dur,wlevel:1});}
+  } else if(u.utype==='evo'){
+    const evo=u.evoData;
+    if(!evo)return;
+    evolvedWeapons.add(evo.id);
+    const w=weapons.find(x=>x.wid===evo.baseWid);
+    if(w){
+      // Evolve: massively boost the base weapon
+      w.damage*=3.5;w.wlevel=9;w.evolved=true;w.evolvedName=evo.name;
+      if(w.wid==='knife'){w.count=(w.count||1)+3;w.pierce=99;w.cooldown=Math.max(10,w.cooldown*0.5);}
+      else if(w.wid==='magic'){w.orbitR=(w.orbitR||80)+120;w.count=(w.count||3)+3;bullets=bullets.filter(b=>b.ownerWid!==w.wid);}
+      else if(w.wid==='axe'){w.count=3;w.damage*=1.5;}
+      else if(w.wid==='freeze'){w.r=(w.r||120)*3;w.cooldown=Math.max(20,w.cooldown*0.5);}
+      else if(w.wid==='poison'){w.r=(w.r||32)*3;w.damage*=2;player.lifesteal=(player.lifesteal||0)+15;}
+      spawnParticles(player.x,player.y,'#ff6ac1',20);
+      spawnParticles(player.x,player.y,'#fde047',20);
+    }
+    return;
   } else if(u.utype==='wupgrade'){
     const w=weapons.find(x=>x.wid===u.wid);
     if(!w)return;
+    w.wlevel=Math.min(8,(w.wlevel||1)+1);
     if(u.uid==='up_knife_dmg'){w.damage*=(1+(v.d||0.3));w.cooldown=Math.max(10,w.cooldown*0.85);}
     else if(u.uid==='up_knife_cnt')w.count=(w.count||1)+1;
     else if(u.uid==='up_axe_dmg')w.damage*=(1+(v.d||0.4));
