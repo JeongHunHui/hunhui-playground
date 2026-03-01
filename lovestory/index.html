@@ -22,8 +22,12 @@ body{background:#0d0a1a;color:#f0e6ff;font-family:'Noto Sans KR',sans-serif;min-
 .char-card:hover{border-color:#c084fc;transform:translateY(-6px);box-shadow:0 12px 40px #c084fc44;}
 .char-img-wrap{width:180px;height:220px;overflow:hidden;position:relative;background:#1a1030;}
 .char-img-wrap img{width:100%;height:100%;object-fit:cover;object-position:top center;transition:opacity 0.5s;}
-.char-img-wrap .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.8rem;animation:spin 1.5s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
+.char-img-wrap .loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:1.5rem;}
+.char-img-wrap .loading span{font-size:0.65rem;color:#7c6a9a;animation:pulse 1.2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:0.4;}50%{opacity:1;}}
+.load-bar{width:80%;height:3px;background:#1a1030;border-radius:99px;overflow:hidden;margin-top:4px;}
+.load-bar-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#ec4899);border-radius:99px;animation:loadanim 2s ease-in-out infinite;}
+@keyframes loadanim{0%{width:0%}60%{width:90%}100%{width:95%}}
 .char-info{padding:12px 14px;}
 .char-name{font-weight:700;font-size:1rem;color:#e2d4ff;margin-bottom:4px;}
 .char-sub{font-size:0.74rem;color:#7c6a9a;line-height:1.5;}
@@ -99,22 +103,22 @@ body{background:#0d0a1a;color:#f0e6ff;font-family:'Noto Sans KR',sans-serif;min-
   <div class="chars">
     <div class="char-card" onclick="startGame('yuna')">
       <div class="char-img-wrap">
-        <div class="loading" id="load-yuna">🌸</div>
-        <img id="img-card-yuna" src="" alt="박유나" style="opacity:0" onload="showCardImg('yuna')" onerror="hideLoader('yuna')">
+        <div class="loading" id="load-yuna">🌸<span>AI 이미지 생성 중...</span><div class="load-bar"><div class="load-bar-fill"></div></div></div>
+        <img id="img-card-yuna" src="" alt="박유나" style="opacity:0" onload="showCardImg('yuna')" onerror="retryImg('yuna')">
       </div>
       <div class="char-info"><div class="char-name">🌸 박유나</div><div class="char-sub">카페 알바생<br>조용하고 감성적</div></div>
     </div>
     <div class="char-card" onclick="startGame('jiyeon')">
       <div class="char-img-wrap">
-        <div class="loading" id="load-jiyeon">⚡</div>
-        <img id="img-card-jiyeon" src="" alt="김지연" style="opacity:0" onload="showCardImg('jiyeon')" onerror="hideLoader('jiyeon')">
+        <div class="loading" id="load-jiyeon">⚡<span>AI 이미지 생성 중...</span><div class="load-bar"><div class="load-bar-fill"></div></div></div>
+        <img id="img-card-jiyeon" src="" alt="김지연" style="opacity:0" onload="showCardImg('jiyeon')" onerror="retryImg('jiyeon')">
       </div>
       <div class="char-info"><div class="char-name">⚡ 김지연</div><div class="char-sub">컴공과 과탑<br>쿨하고 직설적</div></div>
     </div>
     <div class="char-card" onclick="startGame('minjun')">
       <div class="char-img-wrap">
-        <div class="loading" id="load-minjun">🌙</div>
-        <img id="img-card-minjun" src="" alt="이민준" style="opacity:0" onload="showCardImg('minjun')" onerror="hideLoader('minjun')">
+        <div class="loading" id="load-minjun">🌙<span>AI 이미지 생성 중...</span><div class="load-bar"><div class="load-bar-fill"></div></div></div>
+        <img id="img-card-minjun" src="" alt="이민준" style="opacity:0" onload="showCardImg('minjun')" onerror="retryImg('minjun')">
       </div>
       <div class="char-info"><div class="char-name">🌙 이민준</div><div class="char-sub">밴드부 보컬<br>낭만적이고 신중</div></div>
     </div>
@@ -126,7 +130,7 @@ body{background:#0d0a1a;color:#f0e6ff;font-family:'Noto Sans KR',sans-serif;min-
   <div id="scene-wrap">
     <img id="scene-bg-img" src="" alt="">
     <img id="char-img-main" src="" alt="" style="opacity:0">
-    <div id="char-loading">✨</div>
+    <div id="char-loading" style="flex-direction:column;gap:8px;">✨<span style="font-size:0.7rem;color:#7c6a9a;animation:pulse 1.2s ease-in-out infinite;">AI 이미지 생성 중...</span></div>
     <div id="expr-tag"></div>
   </div>
   <div id="aff-bar-wrap">
@@ -261,14 +265,24 @@ function getScript(id) {
 // ── 게임 상태 ──
 let curChar, affection, scriptIdx, script, curImg = {};
 
+const retryCounts = {};
 function showCardImg(id) {
   const img = document.getElementById(`img-card-${id}`);
   img.style.opacity = '1';
   document.getElementById(`load-${id}`).style.display = 'none';
 }
-function hideLoader(id) {
-  document.getElementById(`load-${id}`).style.display = 'none';
-  document.getElementById(`img-card-${id}`).src = '';
+function retryImg(id) {
+  retryCounts[id] = (retryCounts[id] || 0) + 1;
+  if (retryCounts[id] > 4) {
+    document.getElementById(`load-${id}`).innerHTML = '😢<span style="font-size:0.6rem;color:#7c6a9a">로딩 실패 (클릭하면 시작 가능)</span>';
+    return;
+  }
+  // 잠시 후 재시도 (seed 변경)
+  setTimeout(() => {
+    const c = CHARS[id];
+    const img = document.getElementById(`img-card-${id}`);
+    img.src = imgUrl(c.cardPrompt, 360, 440, c.seed + retryCounts[id] * 7);
+  }, 3000 * retryCounts[id]);
 }
 
 function preloadCards() {
