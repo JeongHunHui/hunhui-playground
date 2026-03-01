@@ -36,8 +36,12 @@ function updateHUD() {
     }
     const itemChips = activeItems.map(i => ({ icon: i.icon, name: i.name, timer: '' }));
     const allChips = [...chips, ...itemChips];
-    iHud.innerHTML = allChips.slice(0, 8).map(c =>
-      `<div class="item-chip"><span class="ic-icon">${c.icon}</span><span>${c.name}</span>${c.timer ? `<span class="ic-timer">${c.timer}</span>` : ''}</div>`
+    // Show icons-only when many items; full chip when ≤4
+    const compact = allChips.length > 4;
+    iHud.innerHTML = allChips.slice(0, compact ? 16 : 8).map(c =>
+      compact
+        ? `<div class="item-chip item-chip-sm" title="${c.name}${c.timer?' '+c.timer:''}">${c.icon}${c.timer?`<span class="ic-timer-sm">${c.timer}</span>`:''}</div>`
+        : `<div class="item-chip"><span class="ic-icon">${c.icon}</span><span>${c.name}</span>${c.timer ? `<span class="ic-timer">${c.timer}</span>` : ''}</div>`
     ).join('');
   }
 

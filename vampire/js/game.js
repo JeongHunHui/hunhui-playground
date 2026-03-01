@@ -3,7 +3,17 @@ const cv  = document.getElementById('c');
 const ctx = cv.getContext('2d');
 let W, H;
 
-function resize() { W = cv.width = Math.min(window.innerWidth, 700); H = cv.height = window.innerHeight; }
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = Math.min(window.innerWidth, 700);
+  const cssH = window.innerHeight;
+  W = cssW; H = cssH;
+  cv.width = cssW * dpr;
+  cv.height = cssH * dpr;
+  cv.style.width = cssW + 'px';
+  cv.style.height = cssH + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
 resize(); window.addEventListener('resize', resize);
 
 // Game state globals (window-level so all files access them)
@@ -194,7 +204,7 @@ function draw() {
     const gradeColor = it.grade ? it.grade.color : '#fde047';
     ctx.fillStyle = gradeColor + '22'; ctx.fill();
     ctx.strokeStyle = gradeColor; ctx.lineWidth = 2; ctx.stroke();
-    ctx.font = '22px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '22px "Apple Color Emoji","Segoe UI Emoji",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(it.icon, 0, 0);
     // Grade label
     if (it.grade && it.grade.prob < 0.38) {
@@ -208,7 +218,7 @@ function draw() {
   for (const c of chests) {
     const pulse = Math.sin(c.pulse || 0) * 0.15 + 0.9;
     ctx.save(); ctx.translate(c.x, c.y); ctx.scale(pulse, pulse);
-    ctx.font = '28px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '28px "Apple Color Emoji","Segoe UI Emoji",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('📦', 0, 0);
     ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2);
     ctx.strokeStyle = '#fde047'; ctx.lineWidth = 2; ctx.globalAlpha = 0.6 + Math.sin(c.pulse || 0) * 0.4;
@@ -271,7 +281,7 @@ function draw() {
     ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
     ctx.fillStyle = e.frozen ? '#93c5fd22' : e.color + '44'; ctx.fill();
     ctx.strokeStyle = e.frozen ? '#93c5fd' : e.color; ctx.lineWidth = e.boss ? 3 : 2; ctx.stroke();
-    ctx.font = e.r * 1.3 + 'px sans-serif'; ctx.textAlign = 'center'; ctx.globalAlpha = 1;
+    ctx.font = e.r * 1.3 + 'px "Apple Color Emoji","Segoe UI Emoji",sans-serif'; ctx.textAlign = 'center'; ctx.globalAlpha = 1;
     ctx.fillText(e.emoji, e.x, e.y + e.r * 0.42);
     const bw = e.r * 2.6;
     ctx.fillStyle = '#33333388'; ctx.fillRect(e.x - bw / 2, e.y - e.r - 10, bw, 5);
