@@ -28,8 +28,29 @@ canvas{display:block;width:100%;height:100%;}
 .song-btn .diff{font-size:0.72rem;color:#7c6a9a;}
 #combo-flash{position:absolute;top:30%;left:50%;transform:translateX(-50%);font-size:1.4rem;color:#fde047;font-weight:700;pointer-events:none;opacity:0;transition:opacity 0.2s;z-index:5;}
 </style>
+<style>
+#tut-btn{position:fixed;top:10px;right:10px;z-index:998;padding:5px 12px;border-radius:99px;background:rgba(13,10,26,0.85);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;cursor:pointer;backdrop-filter:blur(8px);}
+#tut-modal{display:none;position:fixed;inset:0;background:#0009;z-index:1000;align-items:center;justify-content:center;padding:16px;}
+#tut-modal.open{display:flex;}
+#tut-inner{background:#120a28;border:1px solid #3d2a5e;border-radius:16px;max-width:440px;width:100%;padding:20px;max-height:80vh;overflow-y:auto;}
+#tut-inner h3{color:#c084fc;font-size:1.1rem;margin-bottom:12px;}
+.tut-ctrl{background:#1a1030;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a78bfa;}
+.tut-ctrl b{color:#c084fc;display:block;margin-bottom:4px;}
+.tut-tips{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.tut-tips li{font-size:0.82rem;color:#9f8ab8;padding:6px 10px;background:#1a1030;border-radius:8px;border-left:3px solid #3d2a5e;}
+.tut-close{width:100%;margin-top:14px;padding:10px;border-radius:8px;border:none;background:#2d1f4e;color:#e2d4ff;cursor:pointer;font-size:0.9rem;}
+</style>
 </head>
 <body>
+<div id="tut-btn" onclick="document.getElementById('tut-modal').classList.add('open')">❓ 도움말</div>
+<div id="tut-modal" onclick="if(event.target===this)this.classList.remove('open')">
+<div id="tut-inner">
+  <h3>🎹 피아노 타일</h3>
+  <div class="tut-ctrl"><b>🎮 조작법</b>D/F/J/K 키 또는 화면 하단 버튼</div>
+  <ul class="tut-tips"><li>💡 4개 레인에 맞게 타이밍에 눌러요</li><li>💡 정확할수록 점수가 높아요 (300점 만점)</li><li>💡 곡 선택 화면에서 BPM으로 난이도 확인</li><li>💡 리듬에 맞게 치면 콤보가 올라가요!</li></ul>
+  <button class="tut-close" onclick="document.getElementById('tut-modal').classList.remove('open')">✕ 닫기</button>
+</div>
+</div>
 <a href="/" style="position:fixed;top:10px;left:10px;z-index:999;display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;background:rgba(13,10,26,0.85);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;text-decoration:none;backdrop-filter:blur(8px);transition:all 0.2s;" onmouseover="this.style.background='rgba(45,31,78,0.95)'" onmouseout="this.style.background='rgba(13,10,26,0.85)'">🏠 홈</a>
 <div id="hud">
   <div class="hstat"><label>점수</label><span id="score-txt">0</span></div>

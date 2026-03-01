@@ -29,8 +29,29 @@ canvas{display:block;}
 .upg-card .upg-name{font-weight:700;color:#e2d4ff;margin-bottom:4px;}
 .upg-card .upg-desc{font-size:0.75rem;color:#7c6a9a;}
 </style>
+<style>
+#tut-btn{position:fixed;top:10px;right:10px;z-index:998;padding:5px 12px;border-radius:99px;background:rgba(13,10,26,0.85);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;cursor:pointer;backdrop-filter:blur(8px);}
+#tut-modal{display:none;position:fixed;inset:0;background:#0009;z-index:1000;align-items:center;justify-content:center;padding:16px;}
+#tut-modal.open{display:flex;}
+#tut-inner{background:#120a28;border:1px solid #3d2a5e;border-radius:16px;max-width:440px;width:100%;padding:20px;max-height:80vh;overflow-y:auto;}
+#tut-inner h3{color:#c084fc;font-size:1.1rem;margin-bottom:12px;}
+.tut-ctrl{background:#1a1030;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a78bfa;}
+.tut-ctrl b{color:#c084fc;display:block;margin-bottom:4px;}
+.tut-tips{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.tut-tips li{font-size:0.82rem;color:#9f8ab8;padding:6px 10px;background:#1a1030;border-radius:8px;border-left:3px solid #3d2a5e;}
+.tut-close{width:100%;margin-top:14px;padding:10px;border-radius:8px;border:none;background:#2d1f4e;color:#e2d4ff;cursor:pointer;font-size:0.9rem;}
+</style>
 </head>
 <body>
+<div id="tut-btn" onclick="document.getElementById('tut-modal').classList.add('open')">❓ 도움말</div>
+<div id="tut-modal" onclick="if(event.target===this)this.classList.remove('open')">
+<div id="tut-inner">
+  <h3>🧛 뱀파이어 서바이벌</h3>
+  <div class="tut-ctrl"><b>🎮 조작법</b>WASD 또는 방향키로 이동 (모바일: 드래그)</div>
+  <ul class="tut-tips"><li>💡 무기는 자동 발사돼요 — 이동에 집중!</li><li>💡 레벨업 시 무기 또는 능력치를 선택해요</li><li>💡 ⚡ 번개는 가장 가까운 적 3명을 자동 타격</li><li>💡 ❄️ 냉기장은 주변 적을 얼려서 느리게 해요</li><li>💡 60초마다 보스가 등장하니 조심!</li><li>💡 XP 오브(보라색)를 가까이 가면 자동 흡수</li></ul>
+  <button class="tut-close" onclick="document.getElementById('tut-modal').classList.remove('open')">✕ 닫기</button>
+</div>
+</div>
 <a href="/" style="position:fixed;top:10px;left:10px;z-index:999;display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;background:rgba(13,10,26,0.85);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;text-decoration:none;backdrop-filter:blur(8px);transition:all 0.2s;" onmouseover="this.style.background='rgba(45,31,78,0.95)'" onmouseout="this.style.background='rgba(13,10,26,0.85)'">🏠 홈</a>
 <div id="hud">
   <span class="hud-t">❤️</span>

@@ -22,8 +22,29 @@ canvas{max-width:700px;width:100%;display:block;}
 #overlay{position:fixed;inset:0;background:#000d;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;}
 .start{padding:12px 32px;border-radius:99px;border:none;background:linear-gradient(135deg,#f97316,#fde047);color:#1a1a1a;font-size:1rem;font-weight:700;cursor:pointer;}
 </style>
+<style>
+#tut-btn{position:fixed;top:10px;right:10px;z-index:998;padding:5px 12px;border-radius:99px;background:rgba(13,10,26,0.85);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;cursor:pointer;backdrop-filter:blur(8px);}
+#tut-modal{display:none;position:fixed;inset:0;background:#0009;z-index:1000;align-items:center;justify-content:center;padding:16px;}
+#tut-modal.open{display:flex;}
+#tut-inner{background:#120a28;border:1px solid #3d2a5e;border-radius:16px;max-width:440px;width:100%;padding:20px;max-height:80vh;overflow-y:auto;}
+#tut-inner h3{color:#c084fc;font-size:1.1rem;margin-bottom:12px;}
+.tut-ctrl{background:#1a1030;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a78bfa;}
+.tut-ctrl b{color:#c084fc;display:block;margin-bottom:4px;}
+.tut-tips{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.tut-tips li{font-size:0.82rem;color:#9f8ab8;padding:6px 10px;background:#1a1030;border-radius:8px;border-left:3px solid #3d2a5e;}
+.tut-close{width:100%;margin-top:14px;padding:10px;border-radius:8px;border:none;background:#2d1f4e;color:#e2d4ff;cursor:pointer;font-size:0.9rem;}
+</style>
 </head>
 <body>
+<div id="tut-btn" onclick="document.getElementById('tut-modal').classList.add('open')">❓ 도움말</div>
+<div id="tut-modal" onclick="if(event.target===this)this.classList.remove('open')">
+<div id="tut-inner">
+  <h3>⚔️ 전쟁시대</h3>
+  <div class="tut-ctrl"><b>🎮 조작법</b>하단 버튼으로 유닛 파견</div>
+  <ul class="tut-tips"><li>💡 유닛을 쓰러뜨릴수록 XP 획득 → 시대 진화!</li><li>💡 원거리 유닛(궁수/마법사 등)은 뒤에서 쏴요</li><li>💡 근접+원거리 혼합이 최강 전략이에요</li><li>💡 미래 시대 로켓병은 범위 공격으로 무적!</li><li>💡 적보다 시대가 앞서면 압도적으로 유리해요</li></ul>
+  <button class="tut-close" onclick="document.getElementById('tut-modal').classList.remove('open')">✕ 닫기</button>
+</div>
+</div>
 <a href="/" style="position:fixed;top:10px;left:10px;z-index:999;display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;background:rgba(13,10,26,0.85);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;text-decoration:none;backdrop-filter:blur(8px);transition:all 0.2s;" onmouseover="this.style.background='rgba(45,31,78,0.95)'" onmouseout="this.style.background='rgba(13,10,26,0.85)'">🏠 홈</a>
 <div id="era-bar">
   <div class="era-name" id="era-name">⛏️ 석기시대</div>

@@ -71,8 +71,29 @@ a.home{position:fixed;top:10px;left:10px;z-index:999;display:flex;align-items:ce
 .stat-card .lbl{font-size:0.75rem;color:#7c6a9a;}
 .continue-btn{padding:14px 32px;border-radius:99px;border:none;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-size:1rem;font-weight:700;cursor:pointer;margin-top:8px;}
 </style>
+<style>
+#tut-btn{position:fixed;top:10px;right:10px;z-index:998;padding:5px 12px;border-radius:99px;background:rgba(13,10,26,0.85);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;cursor:pointer;backdrop-filter:blur(8px);}
+#tut-modal{display:none;position:fixed;inset:0;background:#0009;z-index:1000;align-items:center;justify-content:center;padding:16px;}
+#tut-modal.open{display:flex;}
+#tut-inner{background:#120a28;border:1px solid #3d2a5e;border-radius:16px;max-width:440px;width:100%;padding:20px;max-height:80vh;overflow-y:auto;}
+#tut-inner h3{color:#c084fc;font-size:1.1rem;margin-bottom:12px;}
+.tut-ctrl{background:#1a1030;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a78bfa;}
+.tut-ctrl b{color:#c084fc;display:block;margin-bottom:4px;}
+.tut-tips{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.tut-tips li{font-size:0.82rem;color:#9f8ab8;padding:6px 10px;background:#1a1030;border-radius:8px;border-left:3px solid #3d2a5e;}
+.tut-close{width:100%;margin-top:14px;padding:10px;border-radius:8px;border:none;background:#2d1f4e;color:#e2d4ff;cursor:pointer;font-size:0.9rem;}
+</style>
 </head>
 <body>
+<div id="tut-btn" onclick="document.getElementById('tut-modal').classList.add('open')">❓ 도움말</div>
+<div id="tut-modal" onclick="if(event.target===this)this.classList.remove('open')">
+<div id="tut-inner">
+  <h3>🦜 영어 공부</h3>
+  <div class="tut-ctrl"><b>🎮 조작법</b>카테고리 선택 후 퀴즈 풀기</div>
+  <ul class="tut-tips"><li>💡 뜻 고르기 / 영어 고르기 / 직접 타이핑 3종류</li><li>💡 타이핑 문제는 정확히 입력해야 정답!</li><li>💡 매일 풀면 연속 스트릭(🔥)이 올라가요</li><li>💡 XP를 모아 레벨업하세요</li><li>💡 진행도는 브라우저에 저장돼요</li></ul>
+  <button class="tut-close" onclick="document.getElementById('tut-modal').classList.remove('open')">✕ 닫기</button>
+</div>
+</div>
 <a class="home" href="/">🏠 홈</a>
 
 <div id="progress-bar">
