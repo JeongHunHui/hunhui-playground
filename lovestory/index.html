@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>훈희의 연애 시뮬레이션 💕</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0d0a1a; color:#f0e6ff; font-family:'Noto Sans KR',sans-serif; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:16px; }
+#game { width:100%; max-width:640px; }
+
+/* 캐릭터 선택 */
+#char-select { text-align:center; }
+#char-select h1 { font-size:1.8rem; color:#c084fc; margin-bottom:4px; }
+#char-select p { color:#7c6a9a; margin-bottom:28px; font-size:0.9rem; }
+.chars { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+.char-card {
+  background:linear-gradient(135deg,#1a1030,#251540);
+  border:2px solid #3d2a5e; border-radius:16px; padding:20px;
+  cursor:pointer; width:170px; text-align:center; transition:all 0.25s;
+}
+.char-card:hover { border-color:#c084fc; transform:translateY(-4px); box-shadow:0 8px 30px #c084fc33; }
+.char-avatar { font-size:56px; margin-bottom:10px; display:block; }
+.char-name { font-weight:700; font-size:1.1rem; color:#e2d4ff; }
+.char-desc { font-size:0.78rem; color:#7c6a9a; margin-top:6px; line-height:1.5; }
+
+/* 게임 화면 */
+#game-screen { display:none; }
+#scene-box {
+  background:linear-gradient(135deg,#0f0820,#1a1030);
+  border:1px solid #3d2a5e; border-radius:16px;
+  padding:24px; margin-bottom:16px; min-height:200px;
+  position:relative; overflow:hidden;
+}
+#scene-box::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(circle at 80% 20%, #7c3aed11 0%, transparent 70%);
+}
+#char-name-badge {
+  display:inline-block; background:#2d1f4e; border:1px solid #7c3aed;
+  border-radius:20px; padding:4px 14px; font-size:0.85rem; color:#c084fc;
+  margin-bottom:12px; font-weight:700;
+}
+#scene-emoji { font-size:40px; margin-bottom:12px; display:block; }
+#scene-text {
+  font-size:1rem; line-height:1.8; color:#e2d4ff;
+  position:relative; z-index:1; white-space:pre-wrap;
+}
+
+/* 호감도 */
+#affection-bar-wrap { margin-bottom:16px; }
+#affection-label { font-size:0.8rem; color:#7c6a9a; margin-bottom:4px; display:flex; justify-content:space-between; }
+#affection-bar-bg { background:#1a1030; border-radius:99px; height:10px; overflow:hidden; }
+#affection-bar { height:100%; border-radius:99px; background:linear-gradient(90deg,#7c3aed,#ec4899); transition:width 0.5s ease; }
+
+/* 선택지 */
+#choices { display:flex; flex-direction:column; gap:10px; }
+.choice-btn {
+  padding:14px 18px; border-radius:12px; border:1px solid #3d2a5e;
+  background:#1a1030; color:#e2d4ff; cursor:pointer; font-size:0.9rem;
+  text-align:left; transition:all 0.2s; line-height:1.4;
+}
+.choice-btn:hover { background:#2d1f4e; border-color:#c084fc; transform:translateX(4px); }
+
+/* 엔딩 */
+#ending { display:none; text-align:center; padding:32px; }
+#ending h2 { font-size:2rem; margin-bottom:12px; }
+#ending p { color:#9f8ab8; line-height:1.8; margin-bottom:24px; }
+#restart-btn {
+  padding:12px 32px; border-radius:99px; border:none;
+  background:linear-gradient(135deg,#7c3aed,#ec4899);
+  color:#fff; font-size:1rem; cursor:pointer; font-weight:700;
+}
+.heart { color:#ec4899; }
+</style>
+</head>
+<body>
+<div id="game">
+
+<!-- 캐릭터 선택 -->
+<div id="char-select">
+  <h1>💕 훈희의 연애 시뮬</h1>
+  <p>마음에 드는 상대를 골라봐</p>
+  <div class="chars">
+    <div class="char-card" onclick="startGame('yuna')">
+      <span class="char-avatar">🌸</span>
+      <div class="char-name">박유나</div>
+      <div class="char-desc">카페 알바생<br>조용하고 감성적<br>독서를 좋아함</div>
+    </div>
+    <div class="char-card" onclick="startGame('jiyeon')">
+      <span class="char-avatar">⚡</span>
+      <div class="char-name">김지연</div>
+      <div class="char-desc">스타트업 개발자<br>에너지 넘치고 직설적<br>코딩이 취미</div>
+    </div>
+    <div class="char-card" onclick="startGame('minjun')">
+      <span class="char-avatar">🌙</span>
+      <div class="char-name">이민준</div>
+      <div class="char-desc">음악 프로듀서<br>신비롭고 감성적<br>밤을 좋아함</div>
+    </div>
+  </div>
+</div>
+
+<!-- 게임 화면 -->
+<div id="game-screen">
+  <div id="affection-bar-wrap">
+    <div id="affection-label"><span>💜 호감도</span><span id="affection-num">0 / 100</span></div>
+    <div id="affection-bar-bg"><div id="affection-bar" style="width:0%"></div></div>
+  </div>
+  <div id="scene-box">
+    <div id="char-name-badge"></div>
+    <span id="scene-emoji"></span>
+    <div id="scene-text"></div>
+  </div>
+  <div id="choices"></div>
+</div>
+
+<!-- 엔딩 -->
+<div id="ending">
+  <div id="ending-emoji" style="font-size:72px;margin-bottom:16px;"></div>
+  <h2 id="ending-title"></h2>
+  <p id="ending-text"></p>
+  <button class="restart-btn" id="restart-btn" onclick="restart()">🔄 다시 시작</button>
+</div>
+
+</div>
+
+<script>
+let affection = 0;
+let charId = '';
+let sceneIdx = 0;
+
+const CHARS = {
+  yuna:   { name:'박유나', emoji:'🌸', color:'#f9a8d4' },
+  jiyeon: { name:'김지연', emoji:'⚡', color:'#818cf8' },
+  minjun: { name:'이민준', emoji:'🌙', color:'#67e8f9' },
+};
+
+const SCENARIOS = {
+  yuna: [
+    {
+      emoji:'🌸', text:'카페에서 책을 읽고 있는 유나를 발견했어.\n조용히 앉아 있는 모습이 뭔가 끌렸어.',
+      choices:[
+        { text:'🙋 말을 걸어봐 — "혹시 그 책 재밌어요?"', delta:15 },
+        { text:'👀 그냥 멀리서 바라봤어', delta:3 },
+        { text:'😅 실수로 음료를 쏟았어...', delta:-5 },
+      ]
+    },
+    {
+      emoji:'🍵', text:'유나가 고개를 들어 미소를 지었어.\n"이 책이요? 되게 슬픈 결말이에요. 읽어보셨어요?"',
+      choices:[
+        { text:'📚 "아니요, 추천해 주실래요? 같이 읽어요"', delta:20 },
+        { text:'😊 "읽었어요! 결말에서 저도 울었어요"', delta:12 },
+        { text:'📱 "아, 요즘 책 잘 안 읽어서요..."', delta:-3 },
+      ]
+    },
+    {
+      emoji:'🌅', text:'어느 날 유나에게서 연락이 왔어.\n"저 오늘 기분이 별로예요. 그냥 얘기 하고 싶었어요."',
+      choices:[
+        { text:'💬 "지금 바로 나갈게요. 어디 있어요?"', delta:25 },
+        { text:'🤙 "전화하면서 얘기할까요?"', delta:15 },
+        { text:'⏰ "저도 지금 좀 바빠서..."', delta:-10 },
+      ]
+    },
+    {
+      emoji:'🎆', text:'한강 공원에서 둘이 나란히 앉았어.\n유나가 조용히 말했어. "오늘 와줘서 고마워요."',
+      choices:[
+        { text:'❤️ "유나씨 생각이 많이 났어요. 솔직히 말하면..."', delta:30 },
+        { text:'😊 "친구잖아요. 당연하죠"', delta:10 },
+        { text:'🎵 "저도 심심했어요 ㅋㅋ"', delta:5 },
+      ]
+    },
+    {
+      emoji:'🌸', text:'유나가 살짝 얼굴을 붉히며 물었어.\n"저한테... 어떻게 생각해요?"',
+      choices:[
+        { text:'💕 "좋아해요. 처음부터요."', delta:25 },
+        { text:'🤔 "친구로서 소중해요"', delta:0 },
+        { text:'😬 "갑자기 왜요...?"', delta:-15 },
+      ]
+    },
+  ],
+  jiyeon: [
+    {
+      emoji:'⚡', text:'스터디 카페에서 지연이 랩탑을 두드리고 있어.\n뭔가를 엄청 집중해서 치고 있는데 표정이 무서워.',
+      choices:[
+        { text:'💻 "무슨 코드 짜고 있어요? 저도 개발자예요"', delta:20 },
+        { text:'☕ "커피 드실래요? 집중하시는 것 같아서"', delta:10 },
+        { text:'🤫 그냥 조용히 옆자리에 앉았어', delta:5 },
+      ]
+    },
+    {
+      emoji:'😤', text:'지연이 갑자기 "아 진짜!!" 하고 소리쳤어.\n에러가 6시간째래.',
+      choices:[
+        { text:'🔍 "어디 봐봐요, 같이 찾아드릴게요"', delta:25 },
+        { text:'😂 "ㅋㅋㅋ 그런 날 있죠"', delta:8 },
+        { text:'😰 "...도와드릴까요?" (떨리는 목소리)', delta:5 },
+      ]
+    },
+    {
+      emoji:'🎉', text:'버그를 같이 잡았어! 지연이 기뻐서 하이파이브를 했는데...\n손이 맞닿는 순간 둘 다 어색해졌어.',
+      choices:[
+        { text:'😏 "오늘 기념으로 밥이나 사줘요"', delta:20 },
+        { text:'😊 "고생했어요 진짜! 실력 대박이에요"', delta:15 },
+        { text:'😳 얼굴이 빨개져서 딴 데 봤어', delta:10 },
+      ]
+    },
+    {
+      emoji:'🍺', text:'치킨 집에서 둘이 얘기하다 보니 새벽 2시.\n지연이 "나 사실 외로울 때 많아" 하고 툭 내뱉었어.',
+      choices:[
+        { text:'🫂 "나도. 그래서 오늘 같이 있는 거 되게 좋았어"', delta:30 },
+        { text:'😮 "겉으로는 전혀 그렇게 안 보이던데"', delta:15 },
+        { text:'😅 "아... 그렇구나"', delta:3 },
+      ]
+    },
+    {
+      emoji:'⚡', text:'지연이 갑자기 말했어.\n"있잖아, 나 너 되게 좋아하는 것 같아. 직접 말하는 게 낫겠다 싶어서."',
+      choices:[
+        { text:'💕 "나도. 근데 먼저 말할까 봐 며칠 고민했잖아"', delta:25 },
+        { text:'😊 "솔직하게 말해줘서 고마워"', delta:15 },
+        { text:'😬 "갑자기 그게 무슨..."', delta:-20 },
+      ]
+    },
+  ],
+  minjun: [
+    {
+      emoji:'🌙', text:'밤 11시, SNS에서 민준의 음악을 발견했어.\n댓글을 달았더니 바로 DM이 왔어. "제 음악 들었어요?"',
+      choices:[
+        { text:'🎵 "처음부터 끝까지 세 번 들었어요. 소름이었어요"', delta:20 },
+        { text:'😊 "우연히 알고리즘에 떠서요. 좋더라고요"', delta:12 },
+        { text:'🤷 "그냥 들어봤어요"', delta:3 },
+      ]
+    },
+    {
+      emoji:'🎹', text:'민준이 작업실에 초대했어.\n방음부스 안에서 새로 만드는 곡을 들려줬어. 아직 미완성이래.',
+      choices:[
+        { text:'🌊 "이 부분에서 감정이 확 올라왔어요. 뭔가 잃어버린 느낌?"', delta:25 },
+        { text:'✨ "진짜 좋은데요... 말로 표현이 안 돼요"', delta:18 },
+        { text:'🎶 "신기하다, 어떻게 이런 걸 만들어요?"', delta:10 },
+      ]
+    },
+    {
+      emoji:'🌃', text:'새벽 2시, 민준에게서 문자가 왔어.\n"지금 옥상에 올라왔는데 별이 되게 많아요."',
+      choices:[
+        { text:'🌟 "저도 보고 싶다. 지금 갈 수 있어요?"', delta:28 },
+        { text:'🤔 "새벽에 혼자요? 거기 어딘가요"', delta:15 },
+        { text:'😴 "저 자야 해서요... 다음에 같이 봐요"', delta:-5 },
+      ]
+    },
+    {
+      emoji:'🎸', text:'민준이 공연이 있다며 와달라고 했어.\n공연이 끝나고 뒤풀이 자리. 민준이 네 옆에 앉았어.',
+      choices:[
+        { text:'💫 "오늘 공연, 눈이 맞을 때마다 나만 보는 것 같았어요"', delta:25 },
+        { text:'🎵 "진짜 대단해요. 저 팬 됐어요 완전히"', delta:15 },
+        { text:'🥂 그냥 같이 분위기를 즐겼어', delta:8 },
+      ]
+    },
+    {
+      emoji:'🌙', text:'민준이 새 곡 제목을 보여줬어.\n제목이 네 이름을 가리키는 것 같았어.',
+      choices:[
+        { text:'❤️ "설마... 저 생각하면서 만든 거예요?"', delta:30 },
+        { text:'✨ "제목이 되게 예뻐요"', delta:12 },
+        { text:'😳 아무 말도 못하고 그냥 웃었어', delta:5 },
+      ]
+    },
+  ]
+};
+
+const ENDINGS = [
+  { min:0,  max:29,  emoji:'💔', title:'짝사랑으로 끝...',       text:'인연이 닿지 않았어. 그래도 잊지 못할 기억이 됐어.\n다음엔 더 용감하게 해봐!' },
+  { min:30, max:59,  emoji:'🌱', title:'소중한 인연',             text:'친구 이상, 연인 미만. 뭔가 아쉬운 관계가 됐어.\n한 걸음만 더 다가갔더라면...' },
+  { min:60, max:84,  emoji:'💜', title:'설레는 시작 ✨',          text:'서로에게 마음이 생겼어. 아직 고백은 안 했지만\n모두가 아는 사실이 됐어. 곧 되겠지? 💕' },
+  { min:85, max:100, emoji:'💕', title:'러브러브 커플! 🎉',       text:'완벽한 해피엔딩! 두 사람이 공식 커플이 됐어 💑\n오래오래 행복하게 살았답니다 ✨' },
+];
+
+function startGame(id) {
+  charId = id;
+  affection = 0;
+  sceneIdx = 0;
+  document.getElementById('char-select').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'block';
+  document.getElementById('char-name-badge').textContent = CHARS[id].emoji + ' ' + CHARS[id].name;
+  document.getElementById('char-name-badge').style.color = CHARS[id].color;
+  renderScene();
+}
+
+function renderScene() {
+  const scenes = SCENARIOS[charId];
+  if (sceneIdx >= scenes.length) { showEnding(); return; }
+  const s = scenes[sceneIdx];
+  document.getElementById('scene-emoji').textContent = s.emoji;
+  document.getElementById('scene-text').textContent = s.text;
+  updateBar();
+
+  const choicesEl = document.getElementById('choices');
+  choicesEl.innerHTML = '';
+  s.choices.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = c.text;
+    btn.onclick = () => choose(c.delta);
+    choicesEl.appendChild(btn);
+  });
+}
+
+function choose(delta) {
+  affection = Math.min(100, Math.max(0, affection + delta));
+  sceneIdx++;
+  updateBar();
+  if (sceneIdx >= SCENARIOS[charId].length) { showEnding(); return; }
+  // 잠깐 딜레이
+  document.getElementById('choices').innerHTML = '<div style="color:#7c6a9a;text-align:center;padding:20px;">...</div>';
+  setTimeout(renderScene, 600);
+}
+
+function updateBar() {
+  document.getElementById('affection-bar').style.width = affection + '%';
+  document.getElementById('affection-num').textContent = affection + ' / 100';
+}
+
+function showEnding() {
+  document.getElementById('game-screen').style.display = 'none';
+  const endEl = document.getElementById('ending');
+  endEl.style.display = 'block';
+  const e = ENDINGS.find(e => affection >= e.min && affection <= e.max) || ENDINGS[0];
+  document.getElementById('ending-emoji').textContent = e.emoji;
+  document.getElementById('ending-title').textContent = e.title;
+  document.getElementById('ending-text').textContent = e.text;
+}
+
+function restart() {
+  affection = 0; sceneIdx = 0;
+  document.getElementById('ending').style.display = 'none';
+  document.getElementById('char-select').style.display = 'block';
+}
+</script>
+</body>
+</html>
