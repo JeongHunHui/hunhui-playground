@@ -17,6 +17,7 @@
 body{background:#0d0a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;height:100svh;}
 canvas{display:block;}
 #hud{position:fixed;top:0;left:0;right:0;pointer-events:none;padding:8px 12px;display:flex;gap:10px;align-items:center;background:linear-gradient(#000a,transparent);z-index:5;}
+#ver-badge{position:fixed;top:10px;right:60px;z-index:6;font-size:0.6rem;color:#4a3a6a;pointer-events:none;}
 .hbar{height:12px;border-radius:6px;background:#333;overflow:hidden;flex:1;max-width:180px;}
 .hfill{height:100%;border-radius:6px;background:linear-gradient(90deg,#ef4444,#f87171);transition:width 0.2s;}
 .xfill{height:100%;border-radius:6px;background:linear-gradient(90deg,#7c3aed,#c084fc);transition:width 0.3s;}
@@ -71,6 +72,7 @@ canvas{display:block;}
 </head>
 <body>
 <div id="item-hud"></div>
+<div id="ver-badge">v1.2 / bp-1.0</div>
 <div id="tut-btn" onclick="document.getElementById('tut-modal').classList.add('open')">❓ 도움말</div>
 <div id="tut-modal" onclick="if(event.target===this)this.classList.remove('open')">
 <div id="tut-inner">
@@ -134,14 +136,14 @@ let frameCount=0,lastSecond=Date.now();
 // ── 무기 정의 ──
 const WEAPON_DEFS={
   knife:{name:'🗡 단검',desc:'빠른 단검 발사',color:'#e2d4ff',cooldown:80,damage:15,speed:8,r:6,wtype:'bullet',pierce:1,count:1},
-  axe:{name:'🪓 도끼',desc:'되돌아오는 도끼',color:'#f97316',cooldown:160,damage:40,speed:5,r:10,wtype:'boomerang'},
-  magic:{name:'✨ 마법진',desc:'주변을 회전 공격',color:'#c084fc',cooldown:200,damage:12,r:8,wtype:'orbit',orbitR:80,count:3,duration:1200},
-  fireball:{name:'🔥 파이어볼',desc:'강력한 폭발',color:'#ef4444',cooldown:180,damage:55,speed:4,r:12,wtype:'bullet',pierce:1,splash:50},
-  lightning:{name:'⚡ 번개',desc:'가장 가까운 적 공격',color:'#fde047',cooldown:140,damage:30,wtype:'lightning',chainCount:2},
-  freeze:{name:'❄️ 냉기장',desc:'주변 적 빙결',color:'#7dd3fc',cooldown:250,damage:10,r:120,wtype:'aura'},
-  holy:{name:'✝️ 성스러운 오라',desc:'성광 오브가 적을 태움',color:'#fef08a',cooldown:2,damage:18,r:14,wtype:'holy',orbitR:110,count:3,duration:1500},
+  axe:{name:'🪓 도끼',desc:'되돌아오는 도끼',color:'#f97316',cooldown:160,damage:28,speed:5,r:10,wtype:'boomerang'},
+  magic:{name:'✨ 마법진',desc:'주변을 회전 공격',color:'#c084fc',cooldown:200,damage:7,r:8,wtype:'orbit',orbitR:80,count:3,duration:1200},
+  fireball:{name:'🔥 파이어볼',desc:'강력한 폭발',color:'#ef4444',cooldown:180,damage:32,speed:4,r:12,wtype:'bullet',pierce:1,splash:50},
+  lightning:{name:'⚡ 번개',desc:'가장 가까운 적 공격',color:'#fde047',cooldown:140,damage:18,wtype:'lightning',chainCount:2},
+  freeze:{name:'❄️ 냉기장',desc:'주변 적 빙결',color:'#7dd3fc',cooldown:250,damage:6,r:120,wtype:'aura'},
+  holy:{name:'✝️ 성스러운 오라',desc:'성광 오브가 적을 태움',color:'#fef08a',cooldown:2,damage:11,r:14,wtype:'holy',orbitR:110,count:3,duration:1500},
   poison:{name:'☠️ 독구름',desc:'독 지대를 생성해 데미지',color:'#4ade80',cooldown:250,damage:4,r:32,wtype:'poison'},
-  ghost:{name:'👻 유령 소환',desc:'유령이 주위를 맴돌며 공격',color:'#a5b4fc',cooldown:2,damage:20,r:13,wtype:'ghost',orbitR:130,count:2,duration:1800},
+  ghost:{name:'👻 유령 소환',desc:'유령이 주위를 맴돌며 공격',color:'#a5b4fc',cooldown:2,damage:12,r:13,wtype:'ghost',orbitR:130,count:2,duration:1800},
 };
 
 // ── 업그레이드 풀 ──
@@ -226,10 +228,18 @@ function spawnItem(x,y){
 function getEnemyPool(t){return ENEMY_TYPES.filter(e=>t>=e.minT);}
 function getBossType(t){let r=BOSS_TYPES[0];for(let b of BOSS_TYPES){if(t>=b.minT)r=b;}return r;}
 
-function startGame(diff){
+async function startGame(diff){
   diffMult=diff||1;
   diffName=diff<=0.7?'쉬움':diff>=1.5?'어려움':'보통';
   document.getElementById('overlay').style.display='none';
+  // 밸런스 설정 로드 (비동기, 실패해도 기본값 사용)
+  try{
+    const cfg=await fetch('/api/config').then(r=>r.json());
+    if(cfg){
+      if(cfg.SPAWN_RATE_BASE){}// 향후 동적 적용
+      if(cfg.BALANCE_PATCH)document.getElementById('ver-badge').textContent='v1.2 / bp-'+cfg.BALANCE_PATCH;
+    }
+  }catch(e){}
   player={
     x:0,y:0,r:16,hp:100,maxHp:100,spd:2.5,
     invincible:0,dmgMult:1,
@@ -633,12 +643,12 @@ function doSplash(x,y,r,dmg){
 
 // ── 등급 시스템 ──
 const GRADES=[
-  {name:'커먼',   color:'#9ca3af', bg:'#151515',  prob:0.35, idx:0, cls:'grade-common'},
-  {name:'언커먼', color:'#4ade80', bg:'#051a0d',  prob:0.24, idx:1, cls:'grade-uncommon'},
-  {name:'레어',   color:'#3b82f6', bg:'#0d1f4e',  prob:0.18, idx:2, cls:'grade-rare'},
-  {name:'에픽',   color:'#8b5cf6', bg:'#1a0d4e',  prob:0.12, idx:3, cls:'grade-epic'},
-  {name:'유니크', color:'#f97316', bg:'#2a1500',  prob:0.07, idx:4, cls:'grade-unique'},
-  {name:'레전드', color:'#eab308', bg:'#1f1a00',  prob:0.03, idx:5, cls:'grade-legend'},
+  {name:'일반',   color:'#9ca3af', bg:'#151515',  prob:0.38, idx:0, cls:'grade-common'},
+  {name:'레어',   color:'#3b82f6', bg:'#0d1f4e',  prob:0.26, idx:1, cls:'grade-rare'},
+  {name:'희귀',   color:'#4ade80', bg:'#051a0d',  prob:0.18, idx:2, cls:'grade-uncommon'},
+  {name:'에픽',   color:'#8b5cf6', bg:'#1a0d4e',  prob:0.11, idx:3, cls:'grade-epic'},
+  {name:'유니크', color:'#f97316', bg:'#2a1500',  prob:0.05, idx:4, cls:'grade-unique'},
+  {name:'레전드', color:'#eab308', bg:'#1f1a00',  prob:0.02, idx:5, cls:'grade-legend'},
   {name:'초월',   color:'#ef4444', bg:'#1a0510',  prob:0.01, idx:6, cls:'grade-transcend'},
 ];
 const GRADE_MULT=[1.0,1.25,1.6,2.0,2.6,3.4,5.0];
@@ -730,7 +740,7 @@ function levelUp(){
     d.style.borderColor=grade.color;
     d.style.background=grade.bg;
     if(grade.cls!=='grade-transcend'){d.style.boxShadow='0 0 8px '+grade.color+'66';}
-    const gradeStars={'커먼':'','언커먼':'★','레어':'★★','에픽':'★★★','유니크':'◆','레전드':'◆◆','초월':'✦'};
+    const gradeStars={'일반':'','레어':'★','희귀':'★★','에픽':'★★★','유니크':'◆','레전드':'◆◆','초월':'✦'};
     d.innerHTML='<div class="upg-icon">'+u.icon+'</div>'
       +'<div class="upg-name" style="color:'+grade.color+'">'+u.name+'</div>'
       +'<div class="upg-desc">'+u.desc+'</div>'

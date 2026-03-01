@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const SHEET_ID = '1C-ZzU2SFfrQ5Wv76smw-3qsouT0c5CP9zuIB7DdvzV8';
-const SHEET_NAME = '시트1';
+const SHEET_NAME = '훈희서바이벌스코어';
 
 function b64u(str) {
   return Buffer.from(str).toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
