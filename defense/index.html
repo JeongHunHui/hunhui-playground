@@ -51,10 +51,10 @@ h1 { margin: 16px 0 8px; font-size: 1.6rem; color: #c084fc; text-shadow: 0 0 20p
 <div style="margin:10px;">
   <button id="start-btn" onclick="startWave()">▶ 웨이브 시작</button>
   <button id="start-btn" onclick="sellMode()" style="background:linear-gradient(135deg,#dc2626,#f87171)">🔨 판매 모드</button>
-  <button id="start-btn" onclick="moveMode()" style="background:linear-gradient(135deg,#0369a1,#38bdf8)">🚚 이동 모드</button>
+
   <button id="speed-btn" onclick="cycleSpeed()" style="background:linear-gradient(135deg,#d97706,#fbbf24);min-width:60px">⚡ 1x</button>
 </div>
-<div style="color:#555;font-size:0.78rem;margin-top:6px;">좌클릭: 타워 배치 | 우클릭: 타워 업그레이드 (Lv3 최대) | 경로 위 배치 불가</div>
+<div style="color:#555;font-size:0.78rem;margin-top:6px;">좌클릭: 배치 | 우클릭: 업그레이드(Lv3) | 드래그: 타워 이동 | 경로 위 배치 불가</div>
 
 <script>
 const CELL = 40;
@@ -85,6 +85,8 @@ let selectedType = 'arrow';
 let isSelling = false;
 let isMoving = false;
 let movingTower = null;
+let dragging = null;   // 드래그 중인 타워
+let dragX = 0, dragY = 0; // 마우스 현재 위치
 let waveRunning = false;
 let autoStartTimer = 0;
 let gameSpeed = 1; // 1x, 2x, 3x
@@ -147,6 +149,50 @@ function pathPixel(i) {
   return { x: c * CELL + CELL/2, y: r * CELL + CELL/2 };
 }
 
+function getCell(e) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    col: Math.floor((e.clientX - rect.left) / CELL),
+    row: Math.floor((e.clientY - rect.top) / CELL),
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top
+  };
+}
+
+canvas.addEventListener('mousedown', e => {
+  if (gameOver || e.button !== 0) return;
+  const { col, row, x, y } = getCell(e);
+  const t = towers.find(t => t.col === col && t.row === row);
+  if (t && !isSelling) {
+    dragging = t;
+    dragX = x; dragY = y;
+    e.preventDefault();
+  }
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const rect = canvas.getBoundingClientRect();
+  dragX = e.clientX - rect.left;
+  dragY = e.clientY - rect.top;
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (!dragging) return;
+  const { col, row } = getCell(e);
+  const occupied = towers.some(t => t !== dragging && t.col === col && t.row === row);
+  if (!pathSet.has(`${col},${row}`) && !occupied && col >= 0 && col < COLS && row >= 0 && row < ROWS) {
+    dragging.col = col;
+    dragging.row = row;
+    showMsg('✅ 이동 완료!');
+  } else {
+    showMsg('⚠️ 그 위치엔 놓을 수 없어!');
+  }
+  dragging = null;
+});
+
+canvas.addEventListener('mouseleave', () => { dragging = null; });
+
 canvas.addEventListener('contextmenu', e => {
   e.preventDefault();
   const rect = canvas.getBoundingClientRect();
@@ -156,12 +202,8 @@ canvas.addEventListener('contextmenu', e => {
 });
 
 canvas.addEventListener('click', e => {
-  if (gameOver) return;
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-  const col = Math.floor(mx / CELL);
-  const row = Math.floor(my / CELL);
+  if (gameOver || dragging) return;
+  const { col, row } = getCell(e);
 
   if (isSelling) {
     const idx = towers.findIndex(t => t.col === col && t.row === row);
@@ -175,22 +217,7 @@ canvas.addEventListener('click', e => {
     return;
   }
 
-  if (isMoving) {
-    const clicked = towers.find(t => t.col === col && t.row === row);
-    if (!movingTower) {
-      // 1단계: 이동할 타워 선택
-      if (clicked) { movingTower = clicked; showMsg(`🚚 ${TOWER_DEF[clicked.type].emoji} 선택됨! 이제 놓을 위치 클릭`); }
-      else showMsg('🚚 이동할 타워를 먼저 클릭해봐');
-    } else {
-      // 2단계: 목적지 선택
-      if (clicked && clicked !== movingTower) { showMsg('⚠️ 이미 타워가 있어!'); return; }
-      if (pathSet.has(`${col},${row}`)) { showMsg('⚠️ 경로 위에는 배치 불가!'); return; }
-      movingTower.col = col; movingTower.row = row;
-      movingTower = null;
-      showMsg('✅ 이동 완료!');
-    }
-    return;
-  }
+
 
   if (pathSet.has(`${col},${row}`)) { showMsg('⚠️ 경로 위에는 배치 불가!'); return; }
   if (towers.some(t => t.col === col && t.row === row)) { showMsg('⚠️ 이미 타워가 있어!'); return; }
@@ -441,6 +468,29 @@ function draw() {
     ctx.arc(b.x, b.y, b.def.size/2, 0, Math.PI*2);
     ctx.fillStyle = b.def.bullet;
     ctx.fill();
+  }
+
+  // 드래그 고스트
+  if (dragging) {
+    const def = TOWER_DEF[dragging.type];
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath();
+    ctx.arc(dragX, dragY, CELL*0.38, 0, Math.PI*2);
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fill();
+    ctx.strokeStyle = def.color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(def.emoji, dragX, dragY+6);
+    ctx.globalAlpha = 1;
+
+    // 놓을 수 있는 칸 표시
+    const hc = Math.floor(dragX/CELL), hr = Math.floor(dragY/CELL);
+    const canPlace = !pathSet.has(`${hc},${hr}`) && !towers.some(t=>t!==dragging&&t.col===hc&&t.row===hr);
+    ctx.fillStyle = canPlace ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)';
+    ctx.fillRect(hc*CELL, hr*CELL, CELL, CELL);
   }
 
   // 파티클
