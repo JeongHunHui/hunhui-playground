@@ -42,7 +42,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    const sa = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+    const saRaw = process.env.GOOGLE_SERVICE_ACCOUNT.replace(/\n/g, "\\n"); const sa = JSON.parse(saRaw);
     const token = await getAccessToken(sa);
     const authHeader = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
     const readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}!A:E`;
