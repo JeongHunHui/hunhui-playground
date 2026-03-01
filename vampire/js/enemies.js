@@ -75,6 +75,10 @@ function spawnBoss() {
 function killEnemy(e) {
   e.dead = true;
   kills++;
+  if (player.bloodMoon && player.dmgMult < (player._bloodMoonBase||1)*1.5) {
+    if (!player._bloodMoonBase) player._bloodMoonBase = player.dmgMult;
+    player.dmgMult = Math.min(player._bloodMoonBase * 1.5, player.dmgMult * 1.01);
+  }
   spawnXpOrb(e.x, e.y, Math.round((e.xpVal + (player.xpPerKill || 0)) * player.luck), e);
   if (Math.random() < 0.05) spawnHealthItem(e.x, e.y);
   const itemChance = e.boss ? 0.20 : 0.04;

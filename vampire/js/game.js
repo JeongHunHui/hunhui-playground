@@ -98,6 +98,14 @@ function update() {
   if (mx && my) { mx *= 0.707; my *= 0.707; }
   player.x += mx * player.spd; player.y += my * player.spd;
   if (player.invincible > 0) player.invincible--;
+  // DeathWish: near-death power
+  if (player.deathWish) {
+    if (player.hp <= 1 && !player._deathWishActive) {
+      player._deathWishActive = true; player.dmgMult *= 3;
+    } else if (player.hp > 1 && player._deathWishActive) {
+      player._deathWishActive = false; player.dmgMult /= 3;
+    }
+  }
 
   // Enemy spawn
   const spawnRate = Math.max(5, Math.floor(60 * Math.pow(0.97, gameTime / 10)));

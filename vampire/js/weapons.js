@@ -33,6 +33,31 @@ function fireWeapon(w) {
         maxPierce: 99, pierces: 0, color: w.color,
       });
     }
+  } else if (wt === 'meteor') {
+    for (let i = 0; i < (w.count || 5); i++) {
+      setTimeout(() => {
+        if (!running) return;
+        const tx = enemies.length > 0 ? enemies[Math.floor(Math.random()*enemies.length)].x : player.x + (Math.random()-0.5)*200;
+        const ty = enemies.length > 0 ? enemies[Math.floor(Math.random()*enemies.length)].y : player.y + (Math.random()-0.5)*200;
+        bullets.push({ x: tx, y: ty - 300, vx: 0, vy: 14, r: w.r, damage: w.damage * player.dmgMult,
+          life: 50, btype: 'meteor', color: w.color, splash: 70, maxPierce: 1, pierces: 0 });
+      }, i * 150);
+    }
+  } else if (wt === 'laser') {
+    // Fire laser in direction of nearest enemy
+    const ne = enemies.filter(e=>!e.dead).sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0];
+    const ang = ne ? Math.atan2(ne.y-player.y,ne.x-player.x) : 0;
+    const speed = w.speed || 12;
+    bullets.push({ x: player.x, y: player.y, vx: Math.cos(ang)*speed, vy: Math.sin(ang)*speed,
+      r: w.r, damage: w.damage * player.dmgMult, life: Math.round((w.range||300)/speed),
+      btype: 'laser', color: w.color, maxPierce: 5, pierces: 0 });
+  } else if (wt === 'homing') {
+    for (let i = 0; i < (w.count || 1); i++) {
+      const a = Math.random() * Math.PI * 2;
+      bullets.push({ x: player.x + Math.cos(a)*40, y: player.y + Math.sin(a)*40,
+        vx: 0, vy: 0, r: w.r, damage: w.damage * player.dmgMult,
+        life: 240, btype: 'homing', color: w.color, maxPierce: 1, pierces: 0, spd: w.speed || 4 });
+    }
   } else if (wt === 'orbit') {
     w.durationLeft = w.duration || 1200; w.active = true;
     bullets = bullets.filter(b => b.ownerWid !== w.wid);
@@ -41,7 +66,7 @@ function fireWeapon(w) {
       const ang = i * (Math.PI * 2 / cnt);
       bullets.push({
         x: player.x, y: player.y, r: w.r,
-        damage: w.damage * player.dmgMult, life: 999999, btype: 'orbit',
+        damage: w.damage * player.dmgMult, life: 999999, btype: 'orbit', id: 'orbit_'+Math.random().toString(36).slice(2,6),
         angle: ang, orbitR: w.orbitR || 80, maxPierce: 99, pierces: 0,
         color: w.color, ownerWid: w.wid,
       });
@@ -118,8 +143,26 @@ function updateWeapons() {
 
 // ─── Update Bullets ───────────────────────────────────────────────────────────
 function updateBullets() {
+  // Tick hit cooldowns for all enemies
+  for (const e of enemies) {
+    if (e._hitCooldowns) {
+      for (const k in e._hitCooldowns) {
+        if (e._hitCooldowns[k] > 0) e._hitCooldowns[k]--;
+      }
+    }
+  }
   for (const b of bullets) {
-    if (b.btype === 'orbit') {
+    if (b.btype === 'homing') {
+      const ne = enemies.filter(e=>!e.dead).sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0];
+      if (ne) {
+        const ang = Math.atan2(ne.y-b.y, ne.x-b.x);
+        b.vx += Math.cos(ang)*0.5; b.vy += Math.sin(ang)*0.5;
+        const spd = b.spd || 4;
+        const mag = Math.hypot(b.vx,b.vy)||1;
+        b.vx = b.vx/mag*spd; b.vy = b.vy/mag*spd;
+      }
+      b.x += b.vx; b.y += b.vy; b.life--;
+    } else if (b.btype === 'orbit') {
       b.angle += 0.035; b.life--;
       b.x = player.x + Math.cos(b.angle) * b.orbitR;
       b.y = player.y + Math.sin(b.angle) * b.orbitR;
@@ -141,15 +184,22 @@ function updateBullets() {
     for (const e of enemies) {
       if (e.dead) continue;
       if (Math.hypot(b.x - e.x, b.y - e.y) < b.r + e.r) {
-        const dmg = b.damage * (b.btype === 'aura' ? 0.18 : 1);
+        // Hit cooldown for persistent weapons (orbit/aura/holy/ghost/poison)
+        const isPersistent = b.btype === 'orbit' || b.btype === 'aura' || b.btype === 'holy' || b.btype === 'ghost' || b.btype === 'poison';
+        const hitKey = 'hc_' + (b.id || b.btype);
+        if (isPersistent) {
+          if (!e._hitCooldowns) e._hitCooldowns = {};
+          if ((e._hitCooldowns[hitKey] || 0) > 0) continue; // cooldown active
+          e._hitCooldowns[hitKey] = b.btype === 'aura' ? 40 : 55; // ~0.7-0.9s between hits
+        }
+        const dmg = b.damage * (b.btype === 'aura' ? 0.15 : 1);
         e.hp -= dmg;
         spawnParticles(e.x, e.y, '#f87171', 3);
         if (b.splash > 0) doSplash(b.x, b.y, b.splash, b.damage * 0.5);
-        // Fire bonus from item
         if ((player.fireBonus || 0) > 0 && Math.random() < 0.25) {
           doSplash(b.x, b.y, 40, player.fireBonus);
         }
-        if (b.btype !== 'orbit' && b.btype !== 'aura' && b.btype !== 'holy' && b.btype !== 'ghost' && b.btype !== 'poison') {
+        if (!isPersistent) {
           b.pierces = (b.pierces || 0) + 1;
           if (b.pierces >= (b.maxPierce || 1)) b.life = -1;
         }

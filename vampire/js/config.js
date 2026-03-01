@@ -19,6 +19,12 @@ const WEAPON_DEFS = {
   holy:     {name:'✝️ 성스러운 오라',desc:'성광 오브가 적을 태움',color:'#fef08a',cooldown:2, damage:11,r:14,wtype:'holy',   orbitR:110,count:3,duration:1500},
   poison:   {name:'☠️ 독구름',    desc:'독 지대를 생성해 데미지',color:'#4ade80',cooldown:250,damage:4, r:32,wtype:'poison'},
   ghost:    {name:'👻 유령 소환', desc:'유령이 주위를 공격',     color:'#a5b4fc',cooldown:2, damage:12,r:13,wtype:'ghost',  orbitR:130,count:2,duration:1800},
+  // ── 5 New Skills ──
+  meteor:   {name:'☄️ 유성우',     desc:'하늘에서 유성 연속 낙하', color:'#f97316',cooldown:300,damage:35,r:20,wtype:'meteor',   count:5},
+  shield:   {name:'🌀 보호막',     desc:'적 투사체 막는 회전 방패',color:'#3b82f6',cooldown:2,  damage:8, r:12,wtype:'orbit',   orbitR:55, count:6,duration:2000},
+  laser:    {name:'🔴 레이저',     desc:'전방 직선 광선',          color:'#ef4444',cooldown:240,damage:18,wtype:'laser',    r:8,   speed:12, range:400},
+  summon:   {name:'🧿 소환진',     desc:'자동 추적 오브 소환',     color:'#c084fc',cooldown:90, damage:20,r:10,wtype:'homing',  speed:4,   count:1},
+  quake:    {name:'💥 지진',       desc:'땅이 흔들려 주변 전체 피해',color:'#92400e',cooldown:350,damage:28,r:160,wtype:'aura'},
 };
 
 // ─── Evolution Definitions ───────────────────────────────────────────────────
