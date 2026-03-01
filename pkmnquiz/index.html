@@ -163,7 +163,8 @@
 
   <script>
     const KO_NAMES = {};
-    let questions = [];
+    let usedIds = [];
+    let currentQ = null;
     let current = 0;
     let score = 0;
     let streak = 0;
@@ -184,50 +185,49 @@
       return KO_NAMES[id];
     }
 
-    async function generateQuestions() {
-      const ids = [];
-      while (ids.length < 10) {
-        const id = Math.floor(Math.random() * TOTAL_POKEMON) + 1;
-        if (!ids.includes(id)) ids.push(id);
-      }
-
-      const qs = [];
-      for (const id of ids) {
-        const name = await fetchPokemonName(id);
-        // 오답 3개
-        const wrongIds = [];
-        while (wrongIds.length < 3) {
-          const wid = Math.floor(Math.random() * TOTAL_POKEMON) + 1;
-          if (wid !== id && !wrongIds.includes(wid)) wrongIds.push(wid);
-        }
-        const wrongNames = await Promise.all(wrongIds.map(fetchPokemonName));
-        const options = [name, ...wrongNames].sort(() => Math.random() - 0.5);
-        qs.push({ id, name, options, img: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` });
-      }
-      return qs;
+    function randomId(exclude = []) {
+      let id;
+      do { id = Math.floor(Math.random() * TOTAL_POKEMON) + 1; }
+      while (exclude.includes(id));
+      return id;
     }
 
-    async function startQuiz() {
-      document.getElementById('final-card').style.display = 'none';
-      document.getElementById('quiz-card').style.display = 'block';
-      document.getElementById('question').textContent = '로딩 중...';
+    async function loadQuestion() {
+      document.getElementById('question').textContent = '불러오는 중...';
       document.getElementById('options').innerHTML = '';
       document.getElementById('next-btn').disabled = true;
       document.getElementById('result-msg').textContent = '';
 
-      score = 0; current = 0; streak = 0;
-      updateScore();
+      const id = randomId(usedIds);
+      usedIds.push(id);
 
-      questions = await generateQuestions();
+      const name = await fetchPokemonName(id);
+
+      // 오답 3개 순차 로드
+      const wrongIds = [];
+      while (wrongIds.length < 3) wrongIds.push(randomId([id, ...wrongIds]));
+      const wrongNames = [];
+      for (const wid of wrongIds) wrongNames.push(await fetchPokemonName(wid));
+
+      const options = [name, ...wrongNames].sort(() => Math.random() - 0.5);
+      currentQ = { id, name, options, img: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png` };
+
       showQuestion();
+    }
+
+    function startQuiz() {
+      document.getElementById('final-card').style.display = 'none';
+      document.getElementById('quiz-card').style.display = 'block';
+      usedIds = [];
+      current = 0; score = 0; streak = 0;
+      updateScore();
+      loadQuestion();
     }
 
     function showQuestion() {
       answered = false;
-      const q = questions[current];
+      const q = currentQ;
       document.getElementById('q-num').textContent = current + 1;
-      document.getElementById('result-msg').textContent = '';
-      document.getElementById('next-btn').disabled = true;
 
       const img = document.getElementById('pkmn-img');
       img.className = 'pkmn-img hidden';
@@ -252,7 +252,7 @@
       if (answered) return;
       answered = true;
 
-      const q = questions[current];
+      const q = currentQ;
       const img = document.getElementById('pkmn-img');
       img.className = 'pkmn-img revealed';
       
@@ -293,7 +293,7 @@
       if (current >= 10) {
         showFinal();
       } else {
-        showQuestion();
+        loadQuestion();
       }
     };
 
