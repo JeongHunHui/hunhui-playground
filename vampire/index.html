@@ -216,8 +216,6 @@ const ITEM_DEFS=[
   {id:'angel_wing', icon:'👼', name:'천사의 날개', desc:'최대 HP +100, 재생 +2',rarity:0.04, apply:p=>{p.maxHp+=100;p.hp=Math.min(p.hp+100,p.maxHp);p.regen=(p.regen||0)+2;}},
   {id:'dragon_orb', icon:'🐉', name:'용의 구슬',  desc:'공격력 +40%, HP+80',rarity:0.02, apply:p=>{p.dmgMult*=1.4;p.maxHp+=80;p.hp=Math.min(p.hp+80,p.maxHp);}},
 ];
-let droppedItems=[];
-
 function spawnItem(x,y){
   const r=Math.random();
   let acc=0;
