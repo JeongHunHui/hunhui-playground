@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Puzzle & Dragons</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SLQMKSZ1LF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-SLQMKSZ1LF');
+</script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0a1a;
+  color: #fff;
+  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+#game-container {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+}
+#home-btn {
+  position: absolute;
+  top: 6px; left: 8px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  text-decoration: none;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+#floor-display {
+  position: absolute;
+  top: 6px; right: 8px;
+  background: rgba(255,215,0,0.15);
+  border: 1px solid rgba(255,215,0,0.3);
+  color: #ffd700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 100;
+}
+#enemies-section {
+  padding: 28px 8px 4px;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.enemy-card {
+  flex: 1;
+  max-width: 140px;
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 8px;
+  text-align: center;
+  transition: opacity 0.3s;
+}
+.enemy-card.dead { opacity: 0.3; filter: grayscale(1); }
+.enemy-sprite { font-size: 30px; line-height: 1.1; }
+.enemy-name { font-size: 10px; color: #aaa; margin-bottom: 2px; }
+.enemy-hp-bar { height: 6px; background: #333; border-radius: 3px; overflow: hidden; margin-bottom: 2px; }
+.enemy-hp-fill { height: 100%; background: linear-gradient(90deg, #ff4444, #ff8844); border-radius: 3px; transition: width 0.3s; }
+.enemy-hp-text { font-size: 9px; color: #ccc; margin-bottom: 2px; }
+.enemy-timer { font-size: 11px; font-weight: bold; color: #ffd700; }
+.enemy-atk { font-size: 9px; color: #ff8888; }
+#team-section {
+  padding: 4px 8px;
+  background: linear-gradient(135deg, #0d1b2a, #1b263b);
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+#team-hp-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+#team-hp-label { font-size: 11px; color: #aaa; white-space: nowrap; }
+#team-hp-bar { flex: 1; height: 10px; background: #222; border-radius: 5px; overflow: hidden; }
+#team-hp-fill { height: 100%; background: linear-gradient(90deg, #44ff88, #00cc66); border-radius: 5px; transition: width 0.3s; }
+#team-hp-val { font-size: 11px; color: #88ff88; white-space: nowrap; }
+#heroes-row { display: flex; gap: 6px; justify-content: center; }
+.hero-card {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  padding: 4px 6px;
+}
+.hero-sprite { font-size: 18px; }
+.hero-info { font-size: 9px; color: #bbb; }
+.hero-name { font-weight: bold; color: #eee; font-size: 10px; }
+#board-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  min-height: 0;
+}
+#board-canvas {
+  display: block;
+  touch-action: none;
+  border-radius: 12px;
+  box-shadow: 0 0 30px rgba(0,100,255,0.2);
+}
+#status-bar {
+  padding: 6px 12px;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.4);
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+#combo-text {
+  font-size: 18px;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 0 0 10px #ffd700;
+  opacity: 0;
+  transition: opacity 0.3s;
+  min-height: 24px;
+}
+#result-text { font-size: 11px; color: #aaa; margin-top: 2px; }
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+.overlay h1 { font-size: 32px; margin-bottom: 10px; }
+.overlay p { color: #aaa; margin-bottom: 20px; font-size: 14px; text-align: center; padding: 0 20px; }
+.btn {
+  background: linear-gradient(135deg, #6644ff, #4488ff);
+  border: none;
+  color: #fff;
+  padding: 12px 32px;
+  border-radius: 24px;
+  font-size: 16px;
+  cursor: pointer;
+  font-weight: bold;
+  box-shadow: 0 4px 20px rgba(100,100,255,0.4);
+  transition: transform 0.1s;
+}
+.btn:active { transform: scale(0.96); }
+.btn-red { background: linear-gradient(135deg, #ff4444, #ff8844); box-shadow: 0 4px 20px rgba(255,100,100,0.4); }
+#floating-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 50;
+}
+.float-dmg {
+  position: absolute;
+  font-size: 20px;
+  font-weight: bold;
+  text-shadow: 0 2px 4px #000;
+  animation: floatUp 1.2s ease-out forwards;
+  pointer-events: none;
+  white-space: nowrap;
+}
+@keyframes floatUp {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  60% { opacity: 1; transform: translateY(-50px) scale(1.1); }
+  100% { opacity: 0; transform: translateY(-80px) scale(0.8); }
+}
+.combo-popup {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%) scale(0);
+  font-size: 28px;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 0 0 20px #ffd700, 0 2px 4px #000;
+  animation: comboPop 1.5s ease-out forwards;
+  pointer-events: none;
+  z-index: 60;
+}
+@keyframes comboPop {
+  0% { opacity: 0; transform: translate(-50%,-50%) scale(0); }
+  20% { opacity: 1; transform: translate(-50%,-50%) scale(1.3); }
+  60% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%,-60%) scale(0.8); }
+}
+</style>
+</head>
+<body>
+<div id="game-container">
+  <a href="/" id="home-btn">🏠 Home</a>
+  <div id="floor-display">Floor 1 / 10</div>
+
+  <div id="enemies-section">
+    <div class="enemy-card" id="enemy-0">
+      <div class="enemy-sprite" id="esp-0">👹</div>
+      <div class="enemy-name" id="ename-0">Goblin</div>
+      <div class="enemy-hp-bar"><div class="enemy-hp-fill" id="ehp-bar-0" style="width:100%"></div></div>
+      <div class="enemy-hp-text" id="ehp-txt-0">500/500</div>
+      <div class="enemy-timer" id="etimer-0">⏱ 3</div>
+      <div class="enemy-atk" id="eatk-0">ATK: 150</div>
+    </div>
+    <div class="enemy-card" id="enemy-1">
+      <div class="enemy-sprite" id="esp-1">👺</div>
+      <div class="enemy-name" id="ename-1">Oni</div>
+      <div class="enemy-hp-bar"><div class="enemy-hp-fill" id="ehp-bar-1" style="width:100%"></div></div>
+      <div class="enemy-hp-text" id="ehp-txt-1">600/600</div>
+      <div class="enemy-timer" id="etimer-1">⏱ 4</div>
+      <div class="enemy-atk" id="eatk-1">ATK: 180</div>
+    </div>
+    <div class="enemy-card" id="enemy-2">
+      <div class="enemy-sprite" id="esp-2">🐲</div>
+      <div class="enemy-name" id="ename-2">Dragon</div>
+      <div class="enemy-hp-bar"><div class="enemy-hp-fill" id="ehp-bar-2" style="width:100%"></div></div>
+      <div class="enemy-hp-text" id="ehp-txt-2">800/800</div>
+      <div class="enemy-timer" id="etimer-2">⏱ 5</div>
+      <div class="enemy-atk" id="eatk-2">ATK: 220</div>
+    </div>
+  </div>
+
+  <div id="team-section">
+    <div id="team-hp-bar-wrap">
+      <div id="team-hp-label">❤️ HP</div>
+      <div id="team-hp-bar"><div id="team-hp-fill" style="width:100%"></div></div>
+      <div id="team-hp-val">5400/5400</div>
+    </div>
+    <div id="heroes-row">
+      <div class="hero-card">
+        <div class="hero-sprite">🐉</div>
+        <div class="hero-info">
+          <div class="hero-name">Dragon Knight</div>
+          <div>ATK:800 🔴Fire</div>
+        </div>
+      </div>
+      <div class="hero-card">
+        <div class="hero-sprite">🧜</div>
+        <div class="hero-info">
+          <div class="hero-name">Sea Fairy</div>
+          <div>ATK:900 🔵Water</div>
+        </div>
+      </div>
+      <div class="hero-card">
+        <div class="hero-sprite">🌿</div>
+        <div class="hero-info">
+          <div class="hero-name">Forest Elf</div>
+          <div>ATK:700 🟢Wood</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="board-wrap">
+    <canvas id="board-canvas"></canvas>
+    <div id="floating-container"></div>
+  </div>
+
+  <div id="status-bar">
+    <div id="combo-text"></div>
+    <div id="result-text">Drag an orb to begin your turn</div>
+  </div>
+
+  <div class="overlay" id="overlay-title">
+    <div style="font-size:52px;margin-bottom:8px">🐉</div>
+    <h1 style="background:linear-gradient(90deg,#ff6644,#aa44ff,#44aaff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:26px;margin-bottom:6px">Puzzle &amp; Dragons</h1>
+    <p>Match orbs · Build combos · Defeat monsters<br>across 10 floors of darkness!</p>
+    <button class="btn" onclick="startGame()">▶ Start Adventure</button>
+  </div>
+
+  <div class="overlay" id="overlay-victory" style="display:none">
+    <div style="font-size:56px">🏆</div>
+    <h1 style="color:#ffd700">Victory!</h1>
+    <p id="victory-msg">You defeated the Chaos Dragon and saved the world!</p>
+    <button class="btn" onclick="startGame()">Play Again</button>
+  </div>
+
+  <div class="overlay" id="overlay-gameover" style="display:none">
+    <div style="font-size:56px">💀</div>
+    <h1 style="color:#ff4444">Game Over</h1>
+    <p id="gameover-msg">Your team has fallen in battle...</p>
+    <button class="btn btn-red" onclick="startGame()">Try Again</button>
+  </div>
+
+  <div class="overlay" id="overlay-floor" style="display:none">
+    <div style="font-size:48px" id="floor-emoji">⚔️</div>
+    <h1 id="floor-title" style="color:#ffd700">Floor 2</h1>
+    <p id="floor-subtitle">New enemies approach!</p>
+    <button class="btn" onclick="hideFloorOverlay()">Fight!</button>
+  </div>
+</div>
+
+<script>
+const COLS = 6, ROWS = 5;
+const ORB_TYPES = ['fire','water','wood','light','dark','heart'];
+const ORB_EMOJI = { fire:'🔴', water:'🔵', wood:'🟢', light:'🟡', dark:'🟣', heart:'❤️' };
+const ORB_COLORS = {
+  fire:   { glow:'#ff6644', grad: ['#ff8855','#cc1100'] },
+  water:  { glow:'#44aaff', grad: ['#55aaff','#1133cc'] },
+  wood:   { glow:'#44ff88', grad: ['#44dd66','#117722'] },
+  light:  { glow:'#ffee44', grad: ['#ffee44','#aa8800'] },
+  dark:   { glow:'#cc66ff', grad: ['#cc66ff','#551199'] },
+  heart:  { glow:'#ff88bb', grad: ['#ff88bb','#cc1144'] },
+};
+
+const HEROES_TEMPLATE = [
+  { name:'Dragon Knight', sprite:'🐉', element:'fire',  maxHp:2000, atk:800  },
+  { name:'Sea Fairy',     sprite:'🧜', element:'water', maxHp:1800, atk:900  },
+  { name:'Forest Elf',    sprite:'🌿', element:'wood',  maxHp:1600, atk:700  },
+];
+
+const FLOOR_DATA = [
+  [{ sprite:'👹', name:'Goblin', hp:500, atk:150, timer:3 },{ sprite:'👺', name:'Oni', hp:600, atk:180, timer:4 },{ sprite:'🐲', name:'Drake', hp:800, atk:220, timer:5 }],
+  [{ sprite:'🐺', name:'Werewolf', hp:900, atk:200, timer:3 },{ sprite:'🦊', name:'Kitsune', hp:1000, atk:230, timer:3 },{ sprite:'🦅', name:'Griffin', hp:1200, atk:260, timer:4 }],
+  [{ sprite:'💀', name:'Skeleton', hp:1200, atk:280, timer:3 },{ sprite:'🧟', name:'Zombie', hp:1400, atk:300, timer:3 },{ sprite:'🧛', name:'Vampire', hp:1600, atk:320, timer:4 }],
+  [{ sprite:'🐍', name:'Serpent', hp:1800, atk:340, timer:3 },{ sprite:'🦂', name:'Scorpion', hp:2000, atk:360, timer:3 },{ sprite:'🐙', name:'Kraken', hp:2200, atk:380, timer:4 }],
+  [{ sprite:'🔥', name:'Ifrit', hp:2500, atk:400, timer:2 },{ sprite:'🌊', name:'Leviathan', hp:2800, atk:420, timer:3 },{ sprite:'⚡', name:'Raijin', hp:3000, atk:440, timer:3 }],
+  [{ sprite:'🧙', name:'Wizard', hp:3500, atk:460, timer:2 },{ sprite:'🧝', name:'Dark Elf', hp:3800, atk:480, timer:2 },{ sprite:'🦹', name:'Villain', hp:4000, atk:500, timer:3 }],
+  [{ sprite:'🐻', name:'Bear King', hp:5000, atk:520, timer:2 },{ sprite:'🦁', name:'Lion Lord', hp:5500, atk:550, timer:2 },{ sprite:'🐯', name:'Tiger God', hp:6000, atk:580, timer:3 }],
+  [{ sprite:'👁️', name:'Eye God', hp:7000, atk:600, timer:2 },{ sprite:'🌑', name:'Dark Moon', hp:7500, atk:630, timer:2 },{ sprite:'☄️', name:'Meteor', hp:8000, atk:660, timer:2 }],
+  [{ sprite:'🌋', name:'Volcano', hp:10000, atk:700, timer:2 },{ sprite:'🌪️', name:'Typhoon', hp:11000, atk:720, timer:2 },{ sprite:'🌊', name:'Tsunami', hp:12000, atk:750, timer:2 }],
+  [{ sprite:'👿', name:'Dark Lord', hp:20000, atk:800, timer:2 },{ sprite:'💀', name:'Death God', hp:25000, atk:900, timer:2 },{ sprite:'🐉', name:'Chaos Dragon', hp:30000, atk:1000, timer:3 }],
+];
+
+let gs = {};
+
+function initGameState() {
+  gs = {
+    floor: 1,
+    board: [],
+    heroes: HEROES_TEMPLATE.map(h => ({ ...h, hp: h.maxHp })),
+    enemies: [],
+    dragging: false,
+    dragOrb: null,
+    dragX: 0, dragY: 0,
+    cellSize: 0,
+    phase: 'idle',
+  };
+  gs.maxHp = gs.heroes.reduce((a,h) => a+h.maxHp, 0);
+  loadFloor(1);
+}
+
+function loadFloor(floor) {
+  gs.floor = floor;
+  document.getElementById('floor-display').textContent = `Floor ${floor} / 10`;
+  gs.enemies = FLOOR_DATA[floor-1].map(e => ({ ...e, maxHp: e.hp, timerCurrent: e.timer, dead: false }));
+  gs.board = generateBoard();
+  updateEnemyUI();
+}
+
+function generateBoard() {
+  const b = [];
+  for (let r = 0; r < ROWS; r++) {
+    b.push([]);
+    for (let c = 0; c < COLS; c++) {
+      b[r].push(ORB_TYPES[Math.floor(Math.random() * ORB_TYPES.length)]);
+    }
+  }
+  return b;
+}
+
+function updateEnemyUI() {
+  gs.enemies.forEach((e, i) => {
+    document.getElementById(`esp-${i}`).textContent = e.sprite;
+    document.getElementById(`ename-${i}`).textContent = e.name;
+    const pct = Math.max(0, e.hp / e.maxHp * 100);
+    document.getElementById(`ehp-bar-${i}`).style.width = pct + '%';
+    document.getElementById(`ehp-txt-${i}`).textContent = `${Math.max(0,e.hp)}/${e.maxHp}`;
+    document.getElementById(`etimer-${i}`).textContent = e.dead ? '💀' : `⏱ ${e.timerCurrent}`;
+    document.getElementById(`eatk-${i}`).textContent = `ATK: ${e.atk}`;
+    const card = document.getElementById(`enemy-${i}`);
+    if (e.dead) card.classList.add('dead'); else card.classList.remove('dead');
+  });
+}
+
+function updateTeamUI() {
+  const hp = gs.heroes.reduce((a,h) => a + Math.max(0, h.hp), 0);
+  const pct = Math.max(0, hp / gs.maxHp * 100);
+  document.getElementById('team-hp-fill').style.width = pct + '%';
+  document.getElementById('team-hp-val').textContent = `${hp}/${gs.maxHp}`;
+}
+
+function setResult(txt) {
+  document.getElementById('result-text').textContent = txt;
+}
+
+// ---- CANVAS ----
+const canvas = document.getElementById('board-canvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const wrap = document.getElementById('board-wrap');
+  const wr = wrap.getBoundingClientRect();
+  const cs = Math.floor(Math.min(wr.width - 8, wr.height - 8) / COLS);
+  canvas.width = cs * COLS;
+  canvas.height = cs * ROWS;
+  gs.cellSize = cs;
+  drawBoard();
+}
+
+function getBoardPos(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const x = clientX - rect.left;
+  const y = clientY - rect.top;
+  return { x, y, col: Math.floor(x / gs.cellSize), row: Math.floor(y / gs.cellSize) };
+}
+
+function drawOrb(cx, cy, r, type, alpha, glowAmt) {
+  const c = ORB_COLORS[type];
+  ctx.save();
+  ctx.globalAlpha = alpha || 1;
+  if (glowAmt) { ctx.shadowColor = c.glow; ctx.shadowBlur = glowAmt; }
+  const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.35, r*0.05, cx, cy, r);
+  grad.addColorStop(0, c.grad[0]);
+  grad.addColorStop(1, c.grad[1]);
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 1, 0, Math.PI*2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  // shine
+  const shine = ctx.createRadialGradient(cx - r*0.25, cy - r*0.3, 0, cx - r*0.1, cy - r*0.15, r*0.65);
+  shine.addColorStop(0, 'rgba(255,255,255,0.55)');
+  shine.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 1, 0, Math.PI*2);
+  ctx.fillStyle = shine;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = (alpha || 1) * 0.82;
+  ctx.font = `${Math.floor(r * 0.95)}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(ORB_EMOJI[type], cx, cy + 1);
+  ctx.restore();
+}
+
+function drawBoard() {
+  const cs = gs.cellSize;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#08081c';
+  if (ctx.roundRect) {
+    ctx.beginPath();
+    ctx.roundRect(0, 0, canvas.width, canvas.height, 12);
+    ctx.fill();
+  } else {
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  const r = cs * 0.44;
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      if (gs.dragging && gs.dragOrb && gs.dragOrb.row===row && gs.dragOrb.col===col) continue;
+      const t = gs.board[row][col];
+      if (!t) continue;
+      drawOrb(col*cs+cs/2, row*cs+cs/2, r, t, 1, 8);
+    }
+  }
+  if (gs.dragging && gs.dragOrb) {
+    const rect = canvas.getBoundingClientRect();
+    const t = gs.board[gs.dragOrb.row][gs.dragOrb.col];
+    if (t) drawOrb(gs.dragX - rect.left, gs.dragY - rect.top, r*1.18, t, 0.95, 28);
+  }
+}
+
+// ---- DRAG ----
+function getPt(e) {
+  const src = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : e);
+  return { x: src.clientX, y: src.clientY };
+}
+
+canvas.addEventListener('mousedown', e => { if (gs.phase!=='idle') return; e.preventDefault(); startDrag(getPt(e)); });
+canvas.addEventListener('mousemove', e => { if (!gs.dragging) return; e.preventDefault(); moveDrag(getPt(e)); });
+canvas.addEventListener('mouseup', e => { if (!gs.dragging) return; e.preventDefault(); endDrag(); });
+canvas.addEventListener('touchstart', e => { if (gs.phase!=='idle') return; e.preventDefault(); startDrag(getPt(e)); }, {passive:false});
+canvas.addEventListener('touchmove', e => { if (!gs.dragging) return; e.preventDefault(); moveDrag(getPt(e)); }, {passive:false});
+canvas.addEventListener('touchend', e => { if (!gs.dragging) return; e.preventDefault(); endDrag(); }, {passive:false});
+
+function startDrag(pt) {
+  const bp = getBoardPos(pt.x, pt.y);
+  if (bp.row<0||bp.row>=ROWS||bp.col<0||bp.col>=COLS) return;
+  gs.dragging = true;
+  gs.dragOrb = { row: bp.row, col: bp.col };
+  gs.dragX = pt.x; gs.dragY = pt.y;
+  setResult('Dragging...');
+  drawBoard();
+}
+
+function moveDrag(pt) {
+  gs.dragX = pt.x; gs.dragY = pt.y;
+  const bp = getBoardPos(pt.x, pt.y);
+  if (bp.row>=0&&bp.row<ROWS&&bp.col>=0&&bp.col<COLS) {
+    if (bp.row!==gs.dragOrb.row||bp.col!==gs.dragOrb.col) {
+      const tmp = gs.board[gs.dragOrb.row][gs.dragOrb.col];
+      gs.board[gs.dragOrb.row][gs.dragOrb.col] = gs.board[bp.row][bp.col];
+      gs.board[bp.row][bp.col] = tmp;
+      gs.dragOrb = { row: bp.row, col: bp.col };
+    }
+  }
+  drawBoard();
+}
+
+function endDrag() {
+  gs.dragging = false;
+  gs.dragOrb = null;
+  drawBoard();
+  resolveBoard();
+}
+
+// ---- MATCH LOGIC ----
+function findMatches() {
+  const m = Array.from({length:ROWS}, () => Array(COLS).fill(false));
+  for (let r=0;r<ROWS;r++) {
+    for (let c=0;c<=COLS-3;c++) {
+      const t=gs.board[r][c]; if(!t) continue;
+      if (gs.board[r][c+1]===t&&gs.board[r][c+2]===t) {
+        let l=3; while(c+l<COLS&&gs.board[r][c+l]===t)l++;
+        for(let k=0;k<l;k++) m[r][c+k]=true;
+      }
+    }
+  }
+  for (let c=0;c<COLS;c++) {
+    for (let r=0;r<=ROWS-3;r++) {
+      const t=gs.board[r][c]; if(!t) continue;
+      if (gs.board[r+1][c]===t&&gs.board[r+2][c]===t) {
+        let l=3; while(r+l<ROWS&&gs.board[r+l][c]===t)l++;
+        for(let k=0;k<l;k++) m[r+k][c]=true;
+      }
+    }
+  }
+  return m;
+}
+
+function getGroups(matched) {
+  const vis = Array.from({length:ROWS}, () => Array(COLS).fill(false));
+  const groups = [];
+  for (let r=0;r<ROWS;r++) {
+    for (let c=0;c<COLS;c++) {
+      if (matched[r][c]&&!vis[r][c]) {
+        const type = gs.board[r][c];
+        const cells = [];
+        const stack = [[r,c]];
+        while(stack.length) {
+          const [cr,cc]=stack.pop();
+          if(cr<0||cr>=ROWS||cc<0||cc>=COLS||vis[cr][cc]||!matched[cr][cc]||gs.board[cr][cc]!==type) continue;
+          vis[cr][cc]=true; cells.push([cr,cc]);
+          stack.push([cr+1,cc],[cr-1,cc],[cr,cc+1],[cr,cc-1]);
+        }
+        if(cells.length>=3) groups.push({type,cells});
+      }
+    }
+  }
+  return groups;
+}
+
+function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+
+async function resolveBoard() {
+  gs.phase = 'resolving';
+  let totalCombos = 0, totalDmg = 0, totalHeal = 0;
+  const dmgToEnemy = [0,0,0];
+
+  let matched = findMatches();
+  let groups = getGroups(matched);
+
+  while (groups.length > 0) {
+    totalCombos += groups.length;
+    const comboMult = 1 + (totalCombos - 1) * 0.25;
+
+    for (const g of groups) {
+      if (g.type === 'heart') {
+        totalHeal += 200 * g.cells.length;
+      } else {
+        let dmg = 0;
+        for (const h of gs.heroes) {
+          dmg += h.atk * (h.element === g.type ? 1.5 : 1.0);
+        }
+        dmg = Math.floor(dmg * comboMult * g.cells.length * 0.25);
+        totalDmg += dmg;
+        const living = gs.enemies.filter(e=>!e.dead);
+        if (living.length>0) {
+          const perE = Math.floor(dmg/living.length);
+          living.forEach(e => { dmgToEnemy[gs.enemies.indexOf(e)] += perE; });
+        }
+      }
+    }
+
+    // Flash
+    flashMatchedOrbs(matched);
+    await sleep(280);
+
+    // Clear
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(matched[r][c]) gs.board[r][c]=null;
+    drawBoard();
+    await sleep(150);
+
+    // Drop
+    for(let c=0;c<COLS;c++) {
+      let empty=ROWS-1;
+      for(let r=ROWS-1;r>=0;r--) {
+        if(gs.board[r][c]!==null) { gs.board[empty][c]=gs.board[r][c]; if(empty!==r) gs.board[r][c]=null; empty--; }
+      }
+    }
+    drawBoard();
+    await sleep(150);
+
+    // Fill
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(gs.board[r][c]===null) gs.board[r][c]=ORB_TYPES[Math.floor(Math.random()*ORB_TYPES.length)];
+    drawBoard();
+    await sleep(200);
+
+    matched = findMatches();
+    groups = getGroups(matched);
+  }
+
+  // Apply enemy damage
+  dmgToEnemy.forEach((dmg,i) => {
+    if(dmg>0&&!gs.enemies[i].dead) {
+      gs.enemies[i].hp = Math.max(0, gs.enemies[i].hp - dmg);
+      if(gs.enemies[i].hp<=0) gs.enemies[i].dead = true;
+      spawnFloat(i, `-${dmg}`, '#ff4444');
+    }
+  });
+
+  // Heal
+  if(totalHeal>0) {
+    const perH = Math.floor(totalHeal/gs.heroes.length);
+    gs.heroes.forEach(h => { h.hp = Math.min(h.maxHp, h.hp + perH); });
+    spawnHealFloat(totalHeal);
+  }
+
+  updateEnemyUI();
+  updateTeamUI();
+
+  if(totalCombos>0) {
+    const comboEl = document.getElementById('combo-text');
+    comboEl.textContent = totalCombos>1 ? `${totalCombos} Combo!` : 'Match!';
+    comboEl.style.opacity='1';
+    setTimeout(()=>comboEl.style.opacity='0', 2000);
+    if(totalCombos>=2) spawnComboPopup(totalCombos);
+    setResult(`${totalCombos} combo! Dealt ${totalDmg} dmg${totalHeal>0?' · Healed '+totalHeal:''}`);
+  } else {
+    setResult('No match. Try again!');
+  }
+
+  // Win check
+  if(gs.enemies.every(e=>e.dead)) {
+    await sleep(800);
+    if(gs.floor>=10) showOvr('overlay-victory');
+    else showFloorScreen(gs.floor+1);
+    gs.phase='idle';
+    return;
+  }
+
+  // Enemy attacks
+  await sleep(500);
+  let atkTotal = 0;
+  gs.enemies.forEach(e => {
+    if(e.dead) return;
+    e.timerCurrent--;
+    if(e.timerCurrent<=0) { atkTotal+=e.atk; e.timerCurrent=e.timer; }
+  });
+  if(atkTotal>0) {
+    const perH = Math.floor(atkTotal/gs.heroes.length);
+    gs.heroes.forEach(h => { h.hp = Math.max(0, h.hp - perH); });
+    updateTeamUI();
+    spawnAtkFloat(atkTotal);
+    setResult(`Enemies attack for ${atkTotal} damage!`);
+    const hp = gs.heroes.reduce((a,h)=>a+h.hp,0);
+    if(hp<=0) { await sleep(800); showOvr('overlay-gameover'); gs.phase='idle'; return; }
+  }
+  updateEnemyUI();
+  gs.phase = 'idle';
+}
+
+function flashMatchedOrbs(matched) {
+  const cs = gs.cellSize;
+  ctx.save();
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+    if(matched[r][c]) {
+      ctx.globalAlpha=0.85;
+      ctx.shadowColor='#fff'; ctx.shadowBlur=20;
+      ctx.beginPath();
+      ctx.arc(c*cs+cs/2, r*cs+cs/2, cs*0.44, 0, Math.PI*2);
+      ctx.fillStyle='rgba(255,255,255,0.9)';
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+// ---- FLOATING EFFECTS ----
+function spawnFloat(enemyIdx, text, color) {
+  const fc = document.getElementById('floating-container');
+  const card = document.getElementById(`enemy-${enemyIdx}`);
+  if(!card) return;
+  const cr = card.getBoundingClientRect();
+  const gr = document.getElementById('game-container').getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'float-dmg';
+  el.textContent = text;
+  el.style.color = color;
+  el.style.left = (cr.left - gr.left + cr.width/2 - 25) + 'px';
+  el.style.top = (cr.top - gr.top - 5) + 'px';
+  fc.appendChild(el);
+  setTimeout(()=>el.remove(), 1300);
+}
+
+function spawnHealFloat(amt) {
+  const fc = document.getElementById('floating-container');
+  const ts = document.getElementById('team-section');
+  const tr = ts.getBoundingClientRect();
+  const gr = document.getElementById('game-container').getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'float-dmg';
+  el.textContent = `+${amt} HP`;
+  el.style.color = '#44ff88';
+  el.style.left = (tr.width/2 - 35) + 'px';
+  el.style.top = (tr.top - gr.top - 5) + 'px';
+  fc.appendChild(el);
+  setTimeout(()=>el.remove(), 1300);
+}
+
+function spawnAtkFloat(amt) {
+  const fc = document.getElementById('floating-container');
+  const ts = document.getElementById('team-section');
+  const tr = ts.getBoundingClientRect();
+  const gr = document.getElementById('game-container').getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'float-dmg';
+  el.textContent = `⚔️ -${amt}`;
+  el.style.color = '#ff8844';
+  el.style.left = (tr.width/2 - 40) + 'px';
+  el.style.top = (tr.top - gr.top + 5) + 'px';
+  fc.appendChild(el);
+  setTimeout(()=>el.remove(), 1300);
+}
+
+function spawnComboPopup(count) {
+  const bw = document.getElementById('board-wrap');
+  const el = document.createElement('div');
+  el.className = 'combo-popup';
+  el.textContent = `${count} Combo!`;
+  bw.appendChild(el);
+  setTimeout(()=>el.remove(), 1600);
+}
+
+// ---- OVERLAYS ----
+function showOvr(id) { document.getElementById(id).style.display='flex'; }
+function hideOvr(id) { document.getElementById(id).style.display='none'; }
+
+function showFloorScreen(floor) {
+  const fd = FLOOR_DATA[floor-1];
+  document.getElementById('floor-title').textContent = `Floor ${floor}`;
+  document.getElementById('floor-emoji').textContent = floor===10 ? '💀' : '⚔️';
+  document.getElementById('floor-subtitle').textContent = floor===10
+    ? 'BOSS FLOOR! Face the ultimate darkness!'
+    : `${fd.map(e=>e.sprite).join(' ')} new enemies await!`;
+  showOvr('overlay-floor');
+}
+
+function hideFloorOverlay() {
+  hideOvr('overlay-floor');
+  loadFloor(gs.floor + 1);
+  drawBoard();
+  setResult(`Floor ${gs.floor} - Drag an orb to attack!`);
+}
+
+function startGame() {
+  ['overlay-title','overlay-victory','overlay-gameover','overlay-floor'].forEach(hideOvr);
+  initGameState();
+  updateTeamUI();
+  resizeCanvas();
+  setResult('Drag an orb to begin your turn!');
+}
+
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('load', () => { initGameState(); resizeCanvas(); });
+</script>
+</body>
+</html>

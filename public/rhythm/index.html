@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SLQMKSZ1LF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-SLQMKSZ1LF');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🎵 피아노 타일</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;}
+body{background:#0d0a1a;color:#fff;font-family:'Segoe UI',sans-serif;display:flex;flex-direction:column;align-items:center;overflow:hidden;height:100svh;}
+#hud{width:100%;max-width:400px;display:flex;gap:12px;padding:10px;justify-content:space-between;}
+.hstat{background:#1a1030;border:1px solid #3d2a5e;border-radius:8px;padding:6px 14px;text-align:center;}
+.hstat label{font-size:0.7rem;color:#7c6a9a;display:block;}
+.hstat span{font-size:1.2rem;font-weight:700;color:#c084fc;}
+#game-wrap{position:relative;flex:1;width:100%;max-width:400px;overflow:hidden;}
+canvas{display:block;width:100%;height:100%;}
+#lane-btns{width:100%;max-width:400px;display:flex;height:90px;}
+.lane-btn{flex:1;background:linear-gradient(#1a1030,#0d0820);border:1px solid #2d1f4e;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.4rem;transition:background 0.05s;-webkit-tap-highlight-color:transparent;}
+.lane-btn:active,.lane-btn.pressed{background:#3d2a5e;}
+.lane-btn:first-child{border-radius:0 0 0 12px;}
+.lane-btn:last-child{border-radius:0 0 12px 0;}
+#overlay{position:fixed;inset:0;background:#000c;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;}
+#overlay h1{font-size:2rem;color:#c084fc;margin-bottom:8px;}
+#overlay p{color:#9f8ab8;margin-bottom:20px;text-align:center;}
+.start{padding:12px 32px;border-radius:99px;border:none;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-size:1rem;font-weight:700;cursor:pointer;}
+.song-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;width:280px;}
+.song-btn{padding:10px 16px;border-radius:10px;border:1px solid #3d2a5e;background:#1a1030;color:#e2d4ff;cursor:pointer;text-align:left;transition:all 0.15s;}
+.song-btn:hover,.song-btn.active{border-color:#c084fc;background:#2d1f4e;}
+.song-btn .diff{font-size:0.72rem;color:#7c6a9a;}
+#combo-flash{position:absolute;top:30%;left:50%;transform:translateX(-50%);font-size:1.4rem;color:#fde047;font-weight:700;pointer-events:none;opacity:0;transition:opacity 0.2s;z-index:5;}
+</style>
+<style>
+#tut-btn{position:fixed;top:10px;right:10px;z-index:998;padding:5px 12px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
+#tut-modal{display:none;position:fixed;inset:0;background:#0009;z-index:1000;align-items:center;justify-content:center;padding:16px;}
+#tut-modal.open{display:flex;}
+#tut-inner{background:#120a28;border:1px solid #3d2a5e;border-radius:16px;max-width:440px;width:100%;padding:20px;max-height:80vh;overflow-y:auto;}
+#tut-inner h3{color:#c084fc;font-size:1.1rem;margin-bottom:12px;}
+.tut-ctrl{background:#1a1030;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a78bfa;}
+.tut-ctrl b{color:#c084fc;display:block;margin-bottom:4px;}
+.tut-tips{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.tut-tips li{font-size:0.82rem;color:#9f8ab8;padding:6px 10px;background:#1a1030;border-radius:8px;border-left:3px solid #3d2a5e;}
+.tut-close{width:100%;margin-top:14px;padding:10px;border-radius:8px;border:none;background:#2d1f4e;color:#e2d4ff;cursor:pointer;font-size:0.9rem;}
+</style>
+</head>
+<body>
+<div id="tut-btn" onclick="document.getElementById('tut-modal').classList.add('open')">❓ 도움말</div>
+<div id="tut-modal" onclick="if(event.target===this)this.classList.remove('open')">
+<div id="tut-inner">
+  <h3>🎹 피아노 타일</h3>
+  <div class="tut-ctrl"><b>🎮 조작법</b>D/F/J/K 키 또는 화면 하단 버튼</div>
+  <ul class="tut-tips"><li>💡 4개 레인에 맞게 타이밍에 눌러요</li><li>💡 정확할수록 점수가 높아요 (300점 만점)</li><li>💡 곡 선택 화면에서 BPM으로 난이도 확인</li><li>💡 리듬에 맞게 치면 콤보가 올라가요!</li></ul>
+  <button class="tut-close" onclick="document.getElementById('tut-modal').classList.remove('open')">✕ 닫기</button>
+</div>
+</div>
+<a href="/" style="position:fixed;top:10px;left:10px;z-index:999;display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;text-decoration:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:all 0.2s;" onmouseover="this.style.background='rgba(45,31,78,0.95)'" onmouseout="this.style.background='rgba(13,10,26,0.85)'">🏠 홈</a>
+<div id="hud">
+  <div class="hstat"><label>점수</label><span id="score-txt">0</span></div>
+  <div class="hstat"><label>콤보</label><span id="combo-txt">0</span></div>
+  <div class="hstat"><label>정확도</label><span id="acc-txt">100%</span></div>
+  <div class="hstat"><label>속도</label><span id="spd-txt">1.0x</span></div>
+</div>
+<div id="game-wrap"><canvas id="c"></canvas><div id="combo-flash"></div></div>
+<div id="lane-btns">
+  <div class="lane-btn" id="b0">D</div>
+  <div class="lane-btn" id="b1">F</div>
+  <div class="lane-btn" id="b2">J</div>
+  <div class="lane-btn" id="b3">K</div>
+</div>
+<div id="overlay">
+  <h1>🎹 피아노 타일</h1>
+  <div class="song-list" id="song-list"></div>
+  <button class="start" id="start-btn" onclick="startGame()">시작!</button>
+</div>
+<script>
+const cv=document.getElementById('c');
+const ctx=cv.getContext('2d');
+const LANES=4;
+const LANE_COLORS=['#7c3aed','#ec4899','#3b82f6','#10b981'];
+const HIT_Y_RATIO=0.85;
+const NOTE_H=80;
+
+// 패턴 생성기 (BPM 기반)
+function genPattern(bpm,bars,density=0.6){
+  const notes=[];
+  const beatMs=60000/bpm;
+  const subdiv=4; // 16분음표
+  const total=bars*4*subdiv;
+  const usedLane=Array(LANES).fill(-Infinity);
+  for(let i=0;i<total;i++){
+    if(Math.random()<density){
+      // 겹치지 않도록
+      const available=[];
+      for(let l=0;l<LANES;l++){if(i-usedLane[l]>=subdiv*0.5)available.push(l);}
+      if(available.length){
+        const lane=available[Math.floor(Math.random()*available.length)];
+        usedLane[lane]=i;
+        notes.push({time:i*(beatMs/subdiv),lane,hit:false,miss:false});
+      }
+    }
+  }
+  return notes;
+}
+
+const SONGS=[
+  {name:'🎵 봄날',artist:'BTS',bpm:76,bars:32,density:0.55,color:'#c084fc'},
+  {name:'⚡ Dynamite',artist:'BTS',bpm:114,bars:32,density:0.6,color:'#fde047'},
+  {name:'🔥 FIRE',artist:'BTS',bpm:155,bars:28,density:0.65,color:'#f97316'},
+  {name:'💎 FANCY',artist:'TWICE',bpm:110,bars:32,density:0.58,color:'#ec4899'},
+  {name:'🌙 밤편지',artist:'IU',bpm:72,bars:36,density:0.5,color:'#a78bfa'},
+  {name:'⚔️ Savage',artist:'aespa',bpm:138,bars:28,density:0.7,color:'#2dd4bf'},
+];
+
+let selectedSong=0;
+const songList=document.getElementById('song-list');
+SONGS.forEach((s,i)=>{
+  const b=document.createElement('div');b.className='song-btn'+(i===0?' active':'');
+  b.innerHTML=`${s.name} <span style="color:#c084fc">${s.artist}</span><div class="diff">BPM ${s.bpm} · ${'★'.repeat(Math.floor(s.bpm/50))}</div>`;
+  b.onclick=()=>{selectedSong=i;document.querySelectorAll('.song-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');};
+  songList.appendChild(b);
+});
+
+let notes=[],startTime=0,score=0,combo=0,maxCombo=0,hits=0,misses=0;
+let speed=1,running=false,frameId;
+
+function resize(){
+  cv.width=cv.offsetWidth;cv.height=cv.offsetHeight;
+}
+
+function startGame(){
+  document.getElementById('overlay').style.display='none';
+  const s=SONGS[selectedSong];
+  notes=genPattern(s.bpm,s.bars,s.density).map(n=>({...n}));
+  score=0;combo=0;maxCombo=0;hits=0;misses=0;speed=1;
+  startTime=performance.now();
+  running=true;
+  resize();
+  loop();
+  // 자동 속도 증가
+  const spd=setInterval(()=>{if(!running){clearInterval(spd);return;}speed=Math.min(2,speed+0.05);},8000);
+}
+
+function loop(){
+  if(!running)return;
+  update();draw();frameId=requestAnimationFrame(loop);
+}
+
+const FALL_SPEED_BASE=400; // px/sec
+function noteY(noteTime,now){
+  const elapsed=now-startTime;
+  const remaining=noteTime-elapsed;
+  const H=cv.height;
+  const hitY=H*HIT_Y_RATIO;
+  return hitY - remaining*(FALL_SPEED_BASE*speed)/1000;
+}
+
+function update(){
+  const now=performance.now();
+  const elapsed=now-startTime;
+  // 미스 판정
+  for(let n of notes){
+    if(!n.hit&&!n.miss&&elapsed>n.time+200){
+      n.miss=true;combo=0;misses++;
+    }
+  }
+  // 끝 판정
+  const remaining=notes.filter(n=>!n.hit&&!n.miss);
+  if(remaining.length===0&&notes.length>0){
+    setTimeout(endGame,1000);running=false;
+  }
+  // HUD
+  const total=hits+misses;
+  document.getElementById('score-txt').textContent=score;
+  document.getElementById('combo-txt').textContent=combo;
+  document.getElementById('acc-txt').textContent=total?Math.round(hits/total*100)+'%':'100%';
+  document.getElementById('spd-txt').textContent=speed.toFixed(1)+'x';
+}
+
+function draw(){
+  const now=performance.now();
+  const W=cv.width,H=cv.height;
+  ctx.fillStyle='#0d0a1a';ctx.fillRect(0,0,W,H);
+  const lw=W/LANES;
+  const hitY=H*HIT_Y_RATIO;
+
+  // 레인 구분선
+  for(let i=1;i<LANES;i++){
+    ctx.strokeStyle='#2d1f4e';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(i*lw,0);ctx.lineTo(i*lw,H);ctx.stroke();
+  }
+
+  // 히트 라인
+  ctx.strokeStyle='#7c3aed88';ctx.lineWidth=3;ctx.setLineDash([8,8]);
+  ctx.beginPath();ctx.moveTo(0,hitY);ctx.lineTo(W,hitY);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 노트
+  for(let n of notes){
+    if(n.hit)continue;
+    const y=noteY(n.time,now);
+    if(y>H+NOTE_H||y<-NOTE_H*2)continue;
+    const x=n.lane*lw;
+    const c=LANE_COLORS[n.lane];
+    // 그라디언트
+    const g=ctx.createLinearGradient(x,y,x,y+NOTE_H);
+    g.addColorStop(0,c+'ff');g.addColorStop(1,c+'88');
+    ctx.fillStyle=n.miss?'#33333366':g;
+    ctx.beginPath();ctx.roundRect(x+4,y,lw-8,NOTE_H,8);ctx.fill();
+    if(!n.miss){
+      ctx.strokeStyle=c;ctx.lineWidth=2;
+      ctx.beginPath();ctx.roundRect(x+4,y,lw-8,NOTE_H,8);ctx.stroke();
+    }
+  }
+
+  // 히트존
+  for(let i=0;i<LANES;i++){
+    const x=i*lw;
+    ctx.fillStyle=LANE_COLORS[i]+'33';
+    ctx.beginPath();ctx.roundRect(x+4,hitY-15,lw-8,30,6);ctx.fill();
+    ctx.strokeStyle=LANE_COLORS[i]+'88';ctx.lineWidth=2;
+    ctx.beginPath();ctx.roundRect(x+4,hitY-15,lw-8,30,6);ctx.stroke();
+  }
+
+  // 히트 파티클
+  for(let n of notes){
+    if(n.hitFlash>0){
+      n.hitFlash--;
+      const x=n.lane*lw+lw/2;
+      ctx.globalAlpha=n.hitFlash/10;
+      ctx.fillStyle=LANE_COLORS[n.lane];
+      ctx.beginPath();ctx.arc(x,hitY,40*(1-n.hitFlash/10),0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+    }
+  }
+}
+
+function hitLane(lane){
+  const now=performance.now();
+  const elapsed=now-startTime;
+  const H=cv.height;
+  const hitY=H*HIT_Y_RATIO;
+  // 가장 가까운 미히트 노트 찾기
+  let best=null,bestDiff=Infinity;
+  for(let n of notes){
+    if(n.lane!==lane||n.hit||n.miss)continue;
+    const diff=Math.abs(elapsed-n.time);
+    if(diff<bestDiff){bestDiff=diff;best=n;}
+  }
+  if(!best||bestDiff>250)return;
+  best.hit=true;best.hitFlash=10;hits++;combo++;
+  if(combo>maxCombo)maxCombo=combo;
+  // 점수
+  const perfect=bestDiff<70,great=bestDiff<140;
+  const pts=perfect?300:great?150:80;
+  score+=pts*(1+Math.floor(combo/10)*0.1)|0;
+  // 콤보 플래시
+  if(combo>0&&combo%10===0){
+    const f=document.getElementById('combo-flash');
+    f.textContent=`${combo} COMBO! 🔥`;
+    f.style.opacity='1';setTimeout(()=>f.style.opacity='0',500);
+  }
+  // 버튼 눌림 효과
+  document.getElementById('b'+lane).classList.add('pressed');
+  setTimeout(()=>document.getElementById('b'+lane).classList.remove('pressed'),80);
+}
+
+function endGame(){
+  const total=hits+misses;
+  const acc=total?Math.round(hits/total*100):0;
+  const grade=acc>=95?'S':acc>=85?'A':acc>=70?'B':acc>=55?'C':'D';
+  const ov=document.getElementById('overlay');
+  ov.innerHTML=`
+    <h1>🎹 결과</h1>
+    <div style="background:#1a1030;border:1px solid #3d2a5e;border-radius:12px;padding:20px 32px;margin-bottom:20px;text-align:center;">
+      <div style="font-size:3rem;font-weight:700;color:#c084fc;">${grade}</div>
+      <div style="font-size:1.4rem;font-weight:700;margin:8px 0;">${score.toLocaleString()}점</div>
+      <div style="color:#7c6a9a;font-size:0.85rem;">정확도 ${acc}% · 최대 콤보 ${maxCombo}</div>
+      <div style="color:#7c6a9a;font-size:0.85rem;">완벽 ${hits}개 · 미스 ${misses}개</div>
+    </div>
+    <button class="start" onclick="location.reload()">다시 선택</button>
+  `;
+  ov.style.display='flex';
+}
+
+// 키보드
+document.addEventListener('keydown',e=>{
+  const map={KeyD:0,KeyF:1,KeyJ:2,KeyK:3};
+  if(map[e.code]!==undefined&&running){e.preventDefault();hitLane(map[e.code]);}
+});
+
+// 터치/클릭
+for(let i=0;i<LANES;i++){
+  const btn=document.getElementById('b'+i);
+  btn.addEventListener('touchstart',e=>{e.preventDefault();if(running)hitLane(i);},{passive:false});
+  btn.addEventListener('mousedown',()=>{if(running)hitLane(i);});
+}
+
+window.addEventListener('resize',()=>{if(running)resize();});
+</script>
+</body>
+</html>

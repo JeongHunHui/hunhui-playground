@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SLQMKSZ1LF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-SLQMKSZ1LF');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🧛 훈희 서바이벌</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="flash-overlay"></div>
+<div id="item-hud"></div>
+<div id="toast-container"></div>
+<div class="wlv-hud" id="wlv-hud"></div>
+<div id="ver-badge">v2.0 / bp-1.0</div>
+
+<div id="tut-btn" onclick="document.getElementById('tut-modal').classList.add('open')">❓ 도움말</div>
+<div id="tut-modal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div id="tut-inner">
+    <h3>🧛 훈희 서바이벌 v2.0</h3>
+    <div class="tut-ctrl"><b>🎮 조작법</b>WASD 또는 방향키로 이동 (모바일: 드래그)</div>
+    <ul class="tut-tips">
+      <li>💡 무기는 자동 발사 — 이동에 집중!</li>
+      <li>💡 레벨업 시 3개 선택지 중 하나를 고르세요</li>
+      <li>💡 등급: 일반 &lt; 레어 &lt; 희귀 &lt; 에픽 &lt; 유니크 &lt; 레전드 &lt; 초월</li>
+      <li>💡 레전드·초월 카드는 강력한 효과와 특별 이펙트!</li>
+      <li>💡 🧟 좀비는 죽으면 2마리로 분열해요!</li>
+      <li>💡 ⚡ 전기 슬라임은 죽으면 전기 폭발을 일으켜요!</li>
+      <li>💡 🎯 해골 궁수와 🧙 마법사는 원거리 공격을 해요!</li>
+      <li>💡 👹 오거는 느리지만 HP가 높고 광역 공격을 해요!</li>
+      <li>💡 60초마다 보스 등장. 아이템은 드롭 시 등급이 붙어요!</li>
+      <li>💡 🧲 자석 범위 업그레이드로 XP를 더 멀리서 흡수!</li>
+    </ul>
+    <button class="tut-close" onclick="document.getElementById('tut-modal').classList.remove('open')">✕ 닫기</button>
+  </div>
+</div>
+
+<a href="/" style="position:fixed;top:10px;left:10px;z-index:999;display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;text-decoration:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:all 0.2s;"
+   onmouseover="this.style.background='rgba(45,31,78,0.95)'" onmouseout="this.style.background='rgba(13,10,26,0.85)'">🏠 홈</a>
+
+<div id="hud">
+  <span class="hud-t">❤️</span>
+  <div class="hbar"><div class="hfill" id="hp-bar" style="width:100%"></div></div>
+  <span class="hud-t" id="hp-txt">100/100</span>
+  &nbsp;
+  <span class="hud-t">⬆️ Lv</span>
+  <div class="hbar"><div class="xfill" id="xp-bar" style="width:0%"></div></div>
+  <span class="hud-t" id="lv-txt">1</span>
+  <span class="hud-t" id="time-txt" style="margin-left:auto;">⏱ 0:00</span>
+  <span class="hud-t" id="kill-txt">💀 0</span>
+</div>
+
+<canvas id="c"></canvas>
+
+<div id="overlay">
+  <h1>🧛 훈희 서바이벌</h1>
+  <p>WASD / 방향키 / 조이스틱으로 이동<br>무기는 자동 발사 — 생존하라!</p>
+  <p style="color:#c084fc;font-size:0.85rem;margin-bottom:8px">🧙 캐릭터 선택</p>
+  <div class="char-cards" id="char-cards">
+    <div class="char-card selected" onclick="selectChar('warrior',this)">
+      <div class="char-icon">⚔️</div>
+      <div class="char-name">전사</div>
+      <div class="char-stat">시작: 도끼<br>HP +50%<br>이동속도 -10%</div>
+    </div>
+    <div class="char-card" onclick="selectChar('mage',this)">
+      <div class="char-icon">🧙</div>
+      <div class="char-name">마법사</div>
+      <div class="char-stat">시작: 단검+마법진<br>경험치 +30%<br>HP -20%</div>
+    </div>
+    <div class="char-card" onclick="selectChar('rogue',this)">
+      <div class="char-icon">🗡️</div>
+      <div class="char-name">도적</div>
+      <div class="char-stat">시작: 단검+독구름<br>이동속도 +30%<br>공격력 -10%</div>
+    </div>
+  </div>
+  <p style="color:#c084fc;font-size:0.85rem;margin-bottom:8px">⚔️ 난이도 선택</p>
+  <div style="display:flex;gap:10px;margin-bottom:4px">
+    <button class="start" style="background:linear-gradient(135deg,#22c55e,#16a34a)" onclick="startGame(0.7)">🌿 쉬움</button>
+    <button class="start" onclick="startGame(1)">⚔️ 보통</button>
+    <button class="start" style="background:linear-gradient(135deg,#ef4444,#b91c1c)" onclick="startGame(1.6)">💀 어려움</button>
+  </div>
+</div>
+
+<div id="level-up">
+  <h2>⬆️ 레벨 업!</h2>
+  <div class="upgrade-cards" id="upg-cards"></div>
+</div>
+
+<!-- Load scripts in dependency order -->
+<script src="js/config.js"></script>
+<script src="js/player.js"></script>
+<script src="js/enemies.js"></script>
+<script src="js/weapons.js"></script>
+<script src="js/items.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

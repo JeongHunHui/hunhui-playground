@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SLQMKSZ1LF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-SLQMKSZ1LF');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🍪 쿠키런</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0d0a1a;display:flex;flex-direction:column;align-items:center;font-family:'Segoe UI',sans-serif;color:#fff;overflow:hidden;}
+canvas{display:block;border-radius:0 0 12px 12px;}
+#hud{display:flex;gap:16px;padding:10px;background:#0a0818;width:100%;justify-content:center;}
+.hud{background:#1a1030;border:1px solid #3d2a5e;border-radius:8px;padding:4px 14px;font-size:0.85rem;}
+.hud span{color:#c084fc;font-weight:700;}
+#overlay{position:fixed;inset:0;background:rgba(13,10,26,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;}
+#overlay h1{font-size:2.5rem;margin-bottom:8px;}
+#overlay p{color:#9f8ab8;margin-bottom:24px;text-align:center;}
+.start{padding:14px 36px;border-radius:99px;border:none;background:linear-gradient(135deg,#f97316,#fbbf24);color:#fff;font-size:1.1rem;font-weight:700;cursor:pointer;}
+</style>
+<style>
+#tut-btn{position:fixed;top:10px;right:10px;z-index:998;padding:5px 12px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
+#tut-modal{display:none;position:fixed;inset:0;background:#0009;z-index:1000;align-items:center;justify-content:center;padding:16px;}
+#tut-modal.open{display:flex;}
+#tut-inner{background:#120a28;border:1px solid #3d2a5e;border-radius:16px;max-width:440px;width:100%;padding:20px;max-height:80vh;overflow-y:auto;}
+#tut-inner h3{color:#c084fc;font-size:1.1rem;margin-bottom:12px;}
+.tut-ctrl{background:#1a1030;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a78bfa;}
+.tut-ctrl b{color:#c084fc;display:block;margin-bottom:4px;}
+.tut-tips{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.tut-tips li{font-size:0.82rem;color:#9f8ab8;padding:6px 10px;background:#1a1030;border-radius:8px;border-left:3px solid #3d2a5e;}
+.tut-close{width:100%;margin-top:14px;padding:10px;border-radius:8px;border:none;background:#2d1f4e;color:#e2d4ff;cursor:pointer;font-size:0.9rem;}
+</style>
+</head>
+<body>
+<div id="tut-btn" onclick="document.getElementById('tut-modal').classList.add('open')">❓ 도움말</div>
+<div id="tut-modal" onclick="if(event.target===this)this.classList.remove('open')">
+<div id="tut-inner">
+  <h3>🍪 쿠키런</h3>
+  <div class="tut-ctrl"><b>🎮 조작법</b>클릭/스페이스바/탭으로 점프</div>
+  <ul class="tut-tips"><li>💡 두 번 점프(더블점프)도 가능해요!</li><li>💡 💎 젤리를 모아요 — 점수에 합산돼요</li><li>💡 시간이 지날수록 속도가 빨라져요</li><li>💡 장애물(보라 블록)을 피하세요</li></ul>
+  <button class="tut-close" onclick="document.getElementById('tut-modal').classList.remove('open')">✕ 닫기</button>
+</div>
+</div>
+<a href="/" style="position:fixed;top:10px;left:10px;z-index:999;display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;text-decoration:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:all 0.2s;" onmouseover="this.style.background='rgba(45,31,78,0.95)'" onmouseout="this.style.background='rgba(13,10,26,0.85)'">🏠 홈</a>
+<div id="hud">
+  <div class="hud">🏃 점수: <span id="score">0</span></div>
+  <div class="hud">❤️ 목숨: <span id="lives">3</span></div>
+  <div class="hud">⚡ 젤리: <span id="jellies">0</span></div>
+</div>
+<canvas id="c"></canvas>
+<div id="overlay">
+  <h1>🍪 쿠키런</h1>
+  <p>클릭 또는 스페이스/탭으로 점프!<br>장애물을 피하고 젤리를 먹어봐!</p>
+  <button class="start" onclick="startGame()">달려!!</button>
+</div>
+<script>
+const cv=document.getElementById('c');
+const ctx=cv.getContext('2d');
+const W=cv.width=Math.min(window.innerWidth,600);
+const H=cv.height=Math.min(window.innerHeight-60,360);
+const GH=H*0.75; // 지면 높이
+
+let player,obstacles,jellies,particles,score,lives,jellyCount,speed,running,frame,bgX;
+
+function init(){
+  player={x:80,y:GH-48,w:36,h:48,vy:0,onGround:true,jumping:false,frame:0,invincible:0};
+  obstacles=[];jellies=[];particles=[];
+  score=0;lives=3;jellyCount=0;speed=4;running=true;frame=0;bgX=0;
+}
+
+function startGame(){
+  document.getElementById('overlay').style.display='none';
+  init();
+  loop();
+}
+
+function jump(){
+  if(!running)return;
+  if(player.onGround){
+    player.vy=-13;
+    player.onGround=false;
+  } else if(!player.doubleJumped){
+    player.vy=-11;
+    player.doubleJumped=true;
+    spawnParticles(player.x+18,player.y+24,'#c084fc',5);
+  }
+}
+
+let animId;
+function loop(){
+  if(!running)return;
+  update();draw();
+  animId=requestAnimationFrame(loop);
+}
+
+function update(){
+  frame++;
+  score++;
+  speed=4+Math.floor(score/500)*0.5;
+
+  // 배경 스크롤
+  bgX=(bgX-speed*0.3+W)%W;
+
+  // 플레이어 물리
+  player.vy+=0.5;
+  player.y+=player.vy;
+  player.frame++;
+  if(player.invincible>0)player.invincible--;
+  if(player.y+player.h>=GH){
+    player.y=GH-player.h;
+    player.vy=0;
+    player.onGround=true;
+    player.doubleJumped=false;
+  }
+
+  // 장애물 스폰
+  if(frame%Math.max(60,140-Math.floor(score/300)*5)===0){
+    const type=Math.random()<0.7?'wall':'pit';
+    if(type==='wall'){
+      const h=30+Math.random()*40;
+      obstacles.push({x:W,y:GH-h,w:24,h,type:'wall'});
+    } else {
+      obstacles.push({x:W,y:GH,w:60,h:20,type:'pit',vy:0});
+    }
+  }
+
+  // 젤리 스폰
+  if(frame%45===0&&Math.random()<0.7){
+    const y2=GH-player.h-(Math.random()<0.5?0:60+Math.random()*40);
+    jellies.push({x:W+Math.random()*60,y:y2,r:10,color:`hsl(${Math.random()*360},80%,65%)`,collected:false});
+  }
+
+  // 장애물 이동
+  for(let o of obstacles)o.x-=speed;
+  obstacles=obstacles.filter(o=>o.x>-80);
+
+  // 젤리 이동
+  for(let j of jellies)j.x-=speed;
+  jellies=jellies.filter(j=>j.x>-20&&!j.collected);
+
+  // 충돌 - 장애물
+  if(player.invincible===0){
+    for(let o of obstacles){
+      if(o.type==='wall'&&player.x+player.w>o.x&&player.x<o.x+o.w&&player.y+player.h>o.y){
+        lives--;spawnParticles(player.x+18,player.y+24,'#f87171',12);
+        player.invincible=90;
+        if(lives<=0){gameOver();return;}
+        break;
+      }
+    }
+  }
+
+  // 젤리 수집
+  for(let j of jellies){
+    if(!j.collected&&Math.hypot(player.x+18-j.x,player.y+24-j.y)<j.r+18){
+      j.collected=true;jellyCount++;
+      spawnParticles(j.x,j.y,j.color,6);
+    }
+  }
+
+  // 파티클
+  for(let p of particles){p.x+=p.vx;p.y+=p.vy;p.vy+=0.15;p.life--;}
+  particles=particles.filter(p=>p.life>0);
+
+  updateHUD();
+}
+
+function draw(){
+  // 하늘
+  ctx.fillStyle='#0a0518';ctx.fillRect(0,0,W,GH);
+
+  // 별 배경
+  ctx.fillStyle='rgba(192,132,252,0.3)';
+  for(let i=0;i<20;i++){
+    const sx=((i*137+bgX*0.2)%W);
+    const sy=(i*47)%GH*0.7;
+    ctx.beginPath();ctx.arc(sx,sy,1.5,0,Math.PI*2);ctx.fill();
+  }
+
+  // 구름
+  ctx.fillStyle='rgba(60,40,100,0.5)';
+  for(let i=0;i<3;i++){
+    const cx=((i*200+bgX*0.5)%W+W)%W;
+    const cy=40+i*30;
+    ctx.beginPath();ctx.arc(cx,cy,30,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(cx+25,cy+5,22,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(cx-20,cy+8,18,0,Math.PI*2);ctx.fill();
+  }
+
+  // 지면
+  ctx.fillStyle='#1e0f3a';ctx.fillRect(0,GH,W,H-GH+10);
+  ctx.fillStyle='#3d2a5e';ctx.fillRect(0,GH,W,6);
+  // 지면 패턴
+  ctx.fillStyle='#2d1f4e';
+  for(let x=(bgX*0.8%60)-60;x<W;x+=60){ctx.fillRect(x,GH+6,40,4);}
+
+  // 장애물
+  for(let o of obstacles){
+    if(o.type==='wall'){
+      ctx.fillStyle='#7c3aed';ctx.fillRect(o.x,o.y,o.w,o.h);
+      ctx.fillStyle='#a855f7';ctx.fillRect(o.x+2,o.y+2,o.w-4,8);
+    }
+  }
+
+  // 젤리
+  for(let j of jellies){
+    ctx.beginPath();ctx.arc(j.x,j.y,j.r,0,Math.PI*2);
+    ctx.fillStyle=j.color+'88';ctx.fill();
+    ctx.strokeStyle=j.color;ctx.lineWidth=2;ctx.stroke();
+    ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillStyle='#fff';
+    ctx.fillText('💎',j.x,j.y+5);
+  }
+
+  // 플레이어
+  const pb=Math.sin(player.frame*0.3)*3;
+  const alpha=player.invincible>0?(Math.floor(player.invincible/5)%2?0.3:1):1;
+  ctx.globalAlpha=alpha;
+  // 몸통
+  ctx.fillStyle='#c084fc';
+  const legFrame=player.onGround?Math.floor(player.frame/8)%2:0;
+  ctx.beginPath();
+  ctx.roundRect(player.x,player.y+10,player.w,player.h-10,8);
+  ctx.fill();
+  // 얼굴
+  ctx.fillStyle='#f9d0ff';
+  ctx.beginPath();ctx.arc(player.x+player.w/2,player.y+14,12,0,Math.PI*2);ctx.fill();
+  // 눈
+  ctx.fillStyle='#0d0a1a';
+  ctx.beginPath();ctx.arc(player.x+player.w/2-5,player.y+12,2.5,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(player.x+player.w/2+5,player.y+12,2.5,0,Math.PI*2);ctx.fill();
+  // 달리기 다리
+  if(player.onGround){
+    ctx.fillStyle='#9333ea';
+    const lg=legFrame?4:-4;
+    ctx.fillRect(player.x+6,player.y+player.h-12,10,14+lg);
+    ctx.fillRect(player.x+player.w-16,player.y+player.h-12,10,14-lg);
+  }
+  ctx.globalAlpha=1;
+
+  // 파티클
+  for(let p of particles){
+    ctx.globalAlpha=p.life/30;
+    ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);
+    ctx.fillStyle=p.color;ctx.fill();
+  }
+  ctx.globalAlpha=1;
+}
+
+function spawnParticles(x,y,color,n){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2,s=Math.random()*4+1;
+    particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,life:30,color});
+  }
+}
+
+function gameOver(){
+  running=false;
+  const ov=document.getElementById('overlay');
+  ov.innerHTML=`<h1>💀 게임 오버</h1><p>점수: ${score}<br>젤리: ${jellyCount}개</p><button class="start" onclick="startGame()">다시 달려!</button>`;
+  ov.style.display='flex';
+}
+
+function updateHUD(){
+  document.getElementById('score').textContent=Math.floor(score/10)+'m';
+  document.getElementById('lives').textContent='❤️'.repeat(lives);
+  document.getElementById('jellies').textContent=jellyCount;
+}
+
+// 입력
+document.addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();jump();}});
+cv.addEventListener('click',jump);
+cv.addEventListener('touchstart',e=>{e.preventDefault();jump();},{passive:false});
+</script>
+</body>
+</html>

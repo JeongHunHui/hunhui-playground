@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SLQMKSZ1LF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-SLQMKSZ1LF');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💕 연애 시뮬레이션</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0d0a1a;color:#f0e6ff;font-family:'Noto Sans KR',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow-x:hidden;}
+
+/* ── 캐릭터 선택 ── */
+#char-select{text-align:center;padding:60px 24px 24px;}
+#char-select h1{font-size:2rem;color:#c084fc;margin-bottom:6px;}
+#char-select p{color:#7c6a9a;margin-bottom:32px;}
+.chars{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;}
+.char-card{
+  background:linear-gradient(160deg,#1a1030,#251540);
+  border:2px solid #3d2a5e;border-radius:20px;
+  cursor:pointer;width:180px;overflow:hidden;transition:all 0.25s;
+}
+.char-card:hover{border-color:#c084fc;transform:translateY(-6px);box-shadow:0 12px 40px #c084fc44;}
+.char-img-wrap{width:180px;height:220px;overflow:hidden;position:relative;background:#1a1030;}
+.char-img-wrap img{width:100%;height:100%;object-fit:cover;object-position:top center;transition:opacity 0.5s;}
+.char-img-wrap .loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:1.5rem;}
+.char-img-wrap .loading span{font-size:0.65rem;color:#7c6a9a;animation:pulse 1.2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:0.4;}50%{opacity:1;}}
+.load-bar{width:80%;height:3px;background:#1a1030;border-radius:99px;overflow:hidden;margin-top:4px;}
+.load-bar-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#ec4899);border-radius:99px;animation:loadanim 2s ease-in-out infinite;}
+@keyframes loadanim{0%{width:0%}60%{width:90%}100%{width:95%}}
+.char-info{padding:12px 14px;}
+.char-name{font-weight:700;font-size:1rem;color:#e2d4ff;margin-bottom:4px;}
+.char-sub{font-size:0.74rem;color:#7c6a9a;line-height:1.5;}
+
+/* ── 비주얼 노벨 ── */
+#vn{display:none;width:100%;max-width:660px;}
+#scene-wrap{
+  width:100%;height:380px;border-radius:16px 16px 0 0;
+  position:relative;overflow:hidden;background:#0a0515;
+}
+#scene-bg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.3;filter:blur(2px);}
+#char-img-main{
+  position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  height:95%;width:auto;object-fit:contain;object-position:bottom;
+  transition:opacity 0.4s;filter:drop-shadow(0 0 30px rgba(192,132,252,0.3));
+}
+#char-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.5rem;}
+#expr-tag{position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.6);border:1px solid #7c3aed;border-radius:8px;padding:3px 10px;font-size:0.72rem;color:#c084fc;}
+#aff-bar-wrap{background:#0a0818;padding:8px 16px;display:flex;align-items:center;gap:10px;}
+#aff-label{font-size:0.75rem;color:#7c6a9a;white-space:nowrap;}
+#aff-bg{flex:1;background:#1a1030;border-radius:99px;height:8px;overflow:hidden;}
+#aff-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#7c3aed,#ec4899);transition:width 0.5s;}
+#aff-num{font-size:0.75rem;color:#c084fc;white-space:nowrap;}
+#dialog-box{background:rgba(10,8,24,0.97);border:1px solid #3d2a5e;border-radius:0 0 16px 16px;padding:20px;}
+#speaker-badge{display:inline-block;background:#2d1f4e;border:1px solid #7c3aed;border-radius:20px;padding:4px 14px;font-size:0.82rem;color:#c084fc;margin-bottom:10px;font-weight:700;}
+#dialog-text{font-size:0.95rem;line-height:1.9;color:#e2d4ff;min-height:60px;white-space:pre-wrap;margin-bottom:16px;}
+#choices{display:flex;flex-direction:column;gap:8px;}
+.choice{padding:12px 16px;border-radius:10px;border:1px solid #3d2a5e;background:#120a28;color:#d4c0f8;cursor:pointer;font-size:0.88rem;text-align:left;transition:all 0.18s;}
+.choice:hover{background:#1e1040;border-color:#c084fc;transform:translateX(4px);}
+
+/* ── 엔딩 ── */
+#ending{display:none;text-align:center;padding:60px 24px 40px;max-width:480px;}
+.ending-img-wrap{width:180px;height:180px;border-radius:50%;overflow:hidden;border:3px solid #c084fc;margin:0 auto 20px;filter:drop-shadow(0 0 20px #c084fc66);}
+.ending-img-wrap img{width:100%;height:100%;object-fit:cover;object-position:top;}
+#ending h2{font-size:1.8rem;margin-bottom:12px;}
+#ending-sub{color:#9f8ab8;line-height:1.8;margin-bottom:28px;}
+.restart{padding:12px 32px;border-radius:99px;border:none;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-size:1rem;cursor:pointer;font-weight:700;}
+
+/* 튜토리얼 */
+#tut-btn{position:fixed;top:10px;right:10px;z-index:998;padding:5px 12px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
+#tut-modal{display:none;position:fixed;inset:0;background:#0009;z-index:1000;align-items:center;justify-content:center;padding:16px;}
+#tut-modal.open{display:flex;}
+#tut-inner{background:#120a28;border:1px solid #3d2a5e;border-radius:16px;max-width:440px;width:100%;padding:20px;max-height:80vh;overflow-y:auto;}
+#tut-inner h3{color:#c084fc;font-size:1.1rem;margin-bottom:12px;}
+.tut-ctrl{background:#1a1030;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a78bfa;}
+.tut-ctrl b{color:#c084fc;display:block;margin-bottom:4px;}
+.tut-tips{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.tut-tips li{font-size:0.82rem;color:#9f8ab8;padding:6px 10px;background:#1a1030;border-radius:8px;border-left:3px solid #3d2a5e;}
+.tut-close{width:100%;margin-top:14px;padding:10px;border-radius:8px;border:none;background:#2d1f4e;color:#e2d4ff;cursor:pointer;font-size:0.9rem;}
+</style>
+</head>
+<body>
+<div id="tut-btn" onclick="document.getElementById('tut-modal').classList.add('open')">❓ 도움말</div>
+<div id="tut-modal" onclick="if(event.target===this)this.classList.remove('open')">
+<div id="tut-inner">
+  <h3>💕 연애 시뮬레이션</h3>
+  <div class="tut-ctrl"><b>🎮 조작법</b>선택지를 클릭해서 스토리 진행</div>
+  <ul class="tut-tips">
+    <li>💡 선택에 따라 호감도가 올라가거나 내려가요</li>
+    <li>💡 호감도 85 이상이면 해피엔딩!</li>
+    <li>💡 3명의 캐릭터 중 한 명을 선택하세요</li>
+    <li>💡 같은 캐릭터로 여러 번 도전해 최고 엔딩 노려봐요</li>
+  </ul>
+  <button class="tut-close" onclick="document.getElementById('tut-modal').classList.remove('open')">✕ 닫기</button>
+</div>
+</div>
+<a href="/" style="position:fixed;top:10px;left:10px;z-index:999;display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;text-decoration:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:all 0.2s;" onmouseover="this.style.background='rgba(45,31,78,0.95)'" onmouseout="this.style.background='rgba(13,10,26,0.85)'">🏠 홈</a>
+
+<!-- ── 캐릭터 선택 ── -->
+<div id="char-select">
+  <h1>💕 연애 시뮬레이션</h1>
+  <p>마음에 드는 상대를 골라봐</p>
+  <div class="chars">
+    <div class="char-card" onclick="startGame('yuna')">
+      <div class="char-img-wrap">
+        <div class="loading" id="load-yuna">🌸<span>AI 이미지 생성 중...</span><div class="load-bar"><div class="load-bar-fill"></div></div></div>
+        <img id="img-card-yuna" src="" alt="하유나" style="opacity:0" onload="showCardImg('yuna')" onerror="retryImg('yuna')">
+      </div>
+      <div class="char-info"><div class="char-name">🌸 하유나</div><div class="char-sub">미술부 부원<br>따뜻하고 감성적</div></div>
+    </div>
+    <div class="char-card" onclick="startGame('jiyeon')">
+      <div class="char-img-wrap">
+        <div class="loading" id="load-jiyeon">⚡<span>AI 이미지 생성 중...</span><div class="load-bar"><div class="load-bar-fill"></div></div></div>
+        <img id="img-card-jiyeon" src="" alt="서지연" style="opacity:0" onload="showCardImg('jiyeon')" onerror="retryImg('jiyeon')">
+      </div>
+      <div class="char-info"><div class="char-name">💜 서지연</div><div class="char-sub">문학부 학생<br>신비롭고 차분한</div></div>
+    </div>
+    <div class="char-card" onclick="startGame('minjun')">
+      <div class="char-img-wrap">
+        <div class="loading" id="load-minjun">🌙<span>AI 이미지 생성 중...</span><div class="load-bar"><div class="load-bar-fill"></div></div></div>
+        <img id="img-card-minjun" src="" alt="오하린" style="opacity:0" onload="showCardImg('minjun')" onerror="retryImg('minjun')">
+      </div>
+      <div class="char-info"><div class="char-name">🧡 오하린</div><div class="char-sub">댄스부 에이스<br>활발하고 에너지 넘치는</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 비주얼 노벨 ── -->
+<div id="vn">
+  <div id="scene-wrap">
+    <img id="scene-bg-img" src="" alt="">
+    <img id="char-img-main" src="" alt="" style="opacity:0">
+    <div id="char-loading" style="flex-direction:column;gap:8px;">✨<span style="font-size:0.7rem;color:#7c6a9a;animation:pulse 1.2s ease-in-out infinite;">AI 이미지 생성 중...</span></div>
+    <div id="expr-tag"></div>
+  </div>
+  <div id="aff-bar-wrap">
+    <span id="aff-label">💕 호감도</span>
+    <div id="aff-bg"><div id="aff-fill" style="width:40%"></div></div>
+    <span id="aff-num">40</span>
+  </div>
+  <div id="dialog-box">
+    <div id="speaker-badge">???</div>
+    <div id="dialog-text">...</div>
+    <div id="choices"></div>
+  </div>
+</div>
+
+<!-- ── 엔딩 ── -->
+<div id="ending">
+  <div class="ending-img-wrap"><img id="ending-img" src="" alt=""></div>
+  <h2 id="ending-title"></h2>
+  <div id="ending-sub"></div>
+  <button class="restart" onclick="location.reload()">🔄 다시 시작</button>
+</div>
+
+<script>
+// ── Pollinations AI 이미지 생성 ──
+const BASE = 'https://image.pollinations.ai/prompt/';
+const OPT = '&nologo=true&enhance=false';
+
+function imgUrl(prompt, w, h, seed) {
+  return `${BASE}${encodeURIComponent(prompt)}?width=${w}&height=${h}&seed=${seed}${OPT}`;
+}
+
+// ── 캐릭터 정의 ──
+const CHARS = {
+  yuna: {
+    name: '하유나', badge: '🌸 하유나',
+    prompts: {
+      normal: 'beautiful anime girl, long wavy pink hair with braids, warm brown eyes, gentle soft smile, black school blazer uniform with pink ribbon bow, dark plaid skirt, knee-high black socks, clean white background, full body, high quality anime art style, Makoto Shinkai style',
+      happy:  'beautiful anime girl, long wavy pink hair with braids, warm brown eyes, bright cheerful smile, black school blazer uniform with pink ribbon bow, dark plaid skirt, clean white background, full body, high quality anime art style',
+      shy:    'beautiful anime girl, long wavy pink hair with braids, warm brown eyes, blushing shy expression, looking down, black school blazer uniform with pink ribbon bow, dark plaid skirt, clean white background, full body, high quality anime art style',
+      sad:    'beautiful anime girl, long wavy pink hair with braids, warm brown eyes, sad teary expression, black school blazer uniform with pink ribbon bow, dark plaid skirt, clean white background, full body, high quality anime art style',
+    },
+    cardPrompt: 'beautiful anime girl portrait, long wavy pink hair with braids, warm brown eyes, gentle smile, black school blazer with pink ribbon, dark plaid skirt, cherry blossoms background, high quality anime art style, upper body',
+    bgPrompt: 'japanese shrine garden cherry blossom path, spring afternoon sunlight, petals falling, anime background art, romantic atmosphere',
+    seed: 42,
+  },
+  jiyeon: {
+    name: '서지연', badge: '💜 서지연',
+    prompts: {
+      normal: 'beautiful anime girl, long dark navy blue straight hair in elegant updo bun with hair pin, sharp purple eyes, calm mysterious expression, navy purple sailor school uniform, dark navy pleated skirt with cloud pattern, clean white background, full body, high quality anime art style',
+      happy:  'beautiful anime girl, long dark navy blue straight hair in elegant updo bun, sharp purple eyes, rare gentle warm smile, navy purple sailor school uniform, dark navy pleated skirt, clean white background, full body, high quality anime art style',
+      shy:    'beautiful anime girl, long dark navy blue straight hair in elegant updo bun, sharp purple eyes, flustered slight blush surprised expression, navy purple sailor school uniform, dark navy pleated skirt, clean white background, full body, high quality anime art style',
+      sad:    'beautiful anime girl, long dark navy blue straight hair in elegant updo bun, sharp purple eyes, cold distant sad expression, navy purple sailor school uniform, dark navy pleated skirt, clean white background, full body, high quality anime art style',
+    },
+    cardPrompt: 'beautiful anime girl portrait, long dark navy blue straight hair elegant updo, sharp purple eyes, calm expression, navy purple sailor school uniform, wisteria garden background, high quality anime art style, upper body',
+    bgPrompt: 'japanese wisteria garden with waterfall, purple flowers, koi pond, anime background art, ethereal atmosphere',
+    seed: 77,
+  },
+  minjun: {
+    name: '오하린', badge: '🧡 오하린',
+    prompts: {
+      normal: 'beautiful anime girl, short coral salmon pink hair in bun with hair accessory, bright amber eyes, energetic cheerful expression, blue school blazer uniform with green bow tie, teal plaid skirt, ankle socks sneakers, clean white background, full body, high quality anime art style',
+      happy:  'beautiful anime girl, short coral salmon pink hair in bun, bright amber eyes, big happy smile laughing, blue school blazer uniform with green bow tie, teal plaid skirt, clean white background, full body, high quality anime art style',
+      shy:    'beautiful anime girl, short coral salmon pink hair in bun, bright amber eyes, surprised flustered blushing expression, blue school blazer uniform with green bow tie, teal plaid skirt, clean white background, full body, high quality anime art style',
+      sad:    'beautiful anime girl, short coral salmon pink hair in bun, bright amber eyes, pouting sad expression, blue school blazer uniform with green bow tie, teal plaid skirt, clean white background, full body, high quality anime art style',
+    },
+    cardPrompt: 'beautiful anime girl portrait, short coral pink hair in bun, bright amber eyes, cheerful smile, blue school blazer with green bow, teal plaid skirt, japanese festival background, high quality anime art style, upper body',
+    bgPrompt: 'colorful japanese summer festival marketplace, paper umbrella lanterns, food stalls, anime background art, lively atmosphere',
+    seed: 55,
+  },
+};
+
+// ── 스토리 ──
+function getScript(id) {
+  const c = CHARS[id];
+  const n = c.name;
+  return [
+    {
+      speaker: '나', text: `우연히 ${n}${id==='minjun'?'을':'를'} 만났다.`,
+      expr: 'normal', next: 1
+    },
+    {
+      speaker: c.badge, text: id==='yuna'?`"어, 안녕... 오늘 날씨 좋네요."`:id==='jiyeon'?`"뭐야, 왜 쳐다봐."`:`"...이 시간에 여기 오는 사람이 또 있었네."`,
+      expr: 'normal',
+      choices: [
+        { text: id==='yuna'?'☀️ "그러게요, 오늘 진짜 맑다!"':id==='jiyeon'?'🙂 "그냥... 멋있어 보여서."':'😄 "그러게요, 오늘 날씨 완전 좋다!"', aff: 10, next: 2, expr:'happy' },
+        { text: id==='yuna'?'😐 "네... 그렇네요."':id==='jiyeon'?'😶 "아무것도 아니야."':'😶 "아, 죄송해요."', aff: 0, next: 2, expr:'normal' },
+        { text: id==='yuna'?'😔 "저는 별로인 것 같아요."':id==='jiyeon'?'😬 "실수로 봤어."':'😔 "곧 갈게요."', aff: -5, next: 2, expr:'sad' },
+      ]
+    },
+    {
+      speaker: c.badge,
+      text: id==='yuna'?`"실은 저... 요즘 그림 그리고 있는데, 뭔가 잘 안 돼서요."`:id==='jiyeon'?`"...사실 알고리즘 문제 하나 며칠째 못 풀고 있어."`:`"사실... 대회 안무 준비 중인데 잘 안 풀려서."`,
+      expr: 'sad',
+      choices: [
+        { text: '💬 진심으로 공감해준다', aff: 15, next: 3, expr:'happy' },
+        { text: '💡 해결책을 제안한다', aff: 8, next: 3, expr:'normal' },
+        { text: '😮 "그래서요?"', aff: -5, next: 3, expr:'sad' },
+      ]
+    },
+    {
+      speaker: '나', text: '조금씩 가까워지는 느낌이 든다.',
+      expr: 'normal', next: 4
+    },
+    {
+      speaker: c.badge,
+      text: id==='yuna'?`"저랑 같이 카페 가실래요? 좋아하는 곳 있는데..."`:id==='jiyeon'?`"...같이 공부방 예약할래? 혼자보단 낫겠지."`:id==='minjun'?`"같이 연습실 가볼래? 혼자보단 신날 것 같아서."`:'',
+      expr: 'shy',
+      choices: [
+        { text: '💜 기쁘게 수락한다', aff: 15, next: 5, expr:'happy' },
+        { text: '🤔 "생각해볼게요"', aff: 3, next: 5, expr:'normal' },
+        { text: '❌ 거절한다', aff: -15, next: 5, expr:'sad' },
+      ]
+    },
+    {
+      speaker: c.badge,
+      text: id==='yuna'?`"있잖아... 당신이랑 있으면 왜 이렇게 편하지? 이상하다."`:id==='jiyeon'?`"...솔직히 말하면, 네가 신경 쓰여."`:`"있잖아... 너랑 있으면 왜 이렇게 신나지? 이상하다."`,
+      expr: 'shy',
+      choices: [
+        { text: '💕 솔직하게 고백한다', aff: 20, next: 6, expr:'happy' },
+        { text: '😊 수줍게 웃는다', aff: 10, next: 6, expr:'normal' },
+        { text: '😶 아무 말도 못 한다', aff: -5, next: 6, expr:'sad' },
+      ]
+    },
+    {
+      speaker: '나', text: `${n}가 잠시 말을 잇지 못했다. 그리고...`,
+      expr: 'normal', next: 7
+    },
+    { speaker: '__end__', text: '', expr: 'normal' },
+  ];
+}
+
+// ── 게임 상태 ──
+let curChar, affection, scriptIdx, script, curImg = {};
+
+const retryCounts = {};
+function showCardImg(id) {
+  const img = document.getElementById(`img-card-${id}`);
+  img.style.opacity = '1';
+  document.getElementById(`load-${id}`).style.display = 'none';
+}
+function retryImg(id) {
+  retryCounts[id] = (retryCounts[id] || 0) + 1;
+  if (retryCounts[id] > 4) {
+    document.getElementById(`load-${id}`).innerHTML = '😢<span style="font-size:0.6rem;color:#7c6a9a">로딩 실패 (클릭하면 시작 가능)</span>';
+    return;
+  }
+  // 잠시 후 재시도 (seed 변경)
+  setTimeout(() => {
+    const c = CHARS[id];
+    const img = document.getElementById(`img-card-${id}`);
+    img.src = imgUrl(c.cardPrompt, 360, 440, c.seed + retryCounts[id] * 7);
+  }, 3000 * retryCounts[id]);
+}
+
+function preloadCards() {
+  for (const [id, c] of Object.entries(CHARS)) {
+    const img = document.getElementById(`img-card-${id}`);
+    img.src = imgUrl(c.cardPrompt, 360, 440, c.seed);
+  }
+}
+
+function getExprImg(id, expr) {
+  const c = CHARS[id];
+  const prompt = c.prompts[expr] || c.prompts.normal;
+  const seedOffset = {normal:0, happy:1, shy:2, sad:3}[expr] || 0;
+  return imgUrl(prompt, 600, 900, c.seed + seedOffset * 100);
+}
+
+function startGame(id) {
+  curChar = id;
+  affection = 40;
+  scriptIdx = 0;
+  script = getScript(id);
+
+  document.getElementById('char-select').style.display = 'none';
+  document.getElementById('vn').style.display = 'block';
+
+  const c = CHARS[id];
+  // 배경 이미지
+  const bgImg = document.getElementById('scene-bg-img');
+  bgImg.src = imgUrl(c.bgPrompt, 660, 380, c.seed + 999);
+
+  showScene();
+}
+
+function showScene() {
+  const node = script[scriptIdx];
+  if (node.speaker === '__end__') { showEnding(); return; }
+
+  // 캐릭터 이미지 전환
+  const mainImg = document.getElementById('char-img-main');
+  const loader = document.getElementById('char-loading');
+  const expr = node.expr || 'normal';
+  const newSrc = getExprImg(curChar, expr);
+
+  if (mainImg.src !== newSrc) {
+    mainImg.style.opacity = '0';
+    loader.style.display = 'flex';
+    const tmpImg = new Image();
+    tmpImg.onload = () => {
+      mainImg.src = newSrc;
+      mainImg.style.opacity = '1';
+      loader.style.display = 'none';
+    };
+    tmpImg.onerror = () => { loader.style.display = 'none'; };
+    tmpImg.src = newSrc;
+  }
+
+  document.getElementById('expr-tag').textContent = {normal:'😐 보통', happy:'😊 기쁨', shy:'😳 수줍음', sad:'😢 슬픔'}[expr] || '';
+
+  // 대사
+  const c = CHARS[curChar];
+  document.getElementById('speaker-badge').textContent = node.speaker === '나' ? '👤 나' : c.badge;
+  typeText(node.text);
+
+  // 선택지 또는 다음으로
+  const choiceBox = document.getElementById('choices');
+  choiceBox.innerHTML = '';
+
+  if (node.choices) {
+    node.choices.forEach(ch => {
+      const btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.textContent = ch.text;
+      btn.onclick = () => {
+        affection = Math.max(0, Math.min(100, affection + ch.aff));
+        updateAff();
+        scriptIdx = ch.next;
+        showScene();
+      };
+      choiceBox.appendChild(btn);
+    });
+  } else {
+    const btn = document.createElement('button');
+    btn.className = 'choice';
+    btn.textContent = '▶ 계속';
+    btn.onclick = () => { scriptIdx = node.next; showScene(); };
+    choiceBox.appendChild(btn);
+  }
+}
+
+let typeTimer;
+function typeText(txt) {
+  clearInterval(typeTimer);
+  const el = document.getElementById('dialog-text');
+  el.textContent = '';
+  let i = 0;
+  typeTimer = setInterval(() => {
+    el.textContent += txt[i++];
+    if (i >= txt.length) clearInterval(typeTimer);
+  }, 30);
+}
+
+function updateAff() {
+  document.getElementById('aff-fill').style.width = affection + '%';
+  document.getElementById('aff-num').textContent = affection;
+}
+
+function showEnding() {
+  document.getElementById('vn').style.display = 'none';
+  const ending = document.getElementById('ending');
+  ending.style.display = 'block';
+
+  const c = CHARS[curChar];
+  const good = affection >= 85, mid = affection >= 60;
+  document.getElementById('ending-title').textContent = good ? '💕 해피엔딩!' : mid ? '🌙 보통엔딩' : '💔 배드엔딩';
+  document.getElementById('ending-title').style.color = good ? '#ec4899' : mid ? '#a78bfa' : '#6b7280';
+
+  const endText = {
+    yuna: {
+      good: `유나가 수줍게 웃으며 말했다.\n"저도... 같은 마음이에요."\n손을 맞잡고 걸어가는 두 사람. 따뜻한 오후였다.`,
+      mid: `유나는 한참 생각하더니\n"친구로 지내요. 그것도 좋잖아요"라고 했다.\n아직 끝나지 않은 이야기.`,
+      bad: `유나가 조용히 고개를 저었다.\n"미안해요... 지금은 아닌 것 같아요."`,
+    },
+    jiyeon: {
+      good: `지연이 짧게, 하지만 확실하게 말했다.\n"좋아해. 그냥 알아."\n냉정한 그녀의 첫 번째 솔직함이었다.`,
+      mid: `"친구 하자. 그것만으로도 충분할 것 같아."\n그게 지연 스타일의 배려였다.`,
+      bad: `"미안. 기대에 부응 못 했네."\n지연이 노트북을 덮고 자리를 떠났다.`,
+    },
+    minjun: {
+      good: `민준이 기타를 집어들고 말했다.\n"이 곡, 같이 완성하자."\n그건 고백보다 더 진한 말이었다.`,
+      mid: `"언제든 라이브에 와줘. 그것만으로도 괜찮아."\n민준은 조용히 웃었다.`,
+      bad: `민준이 먼 하늘을 바라보며\n"그래... 이런 결말도 노래가 되겠지"라고 중얼댔다.`,
+    },
+  };
+
+  const key = good ? 'good' : mid ? 'mid' : 'bad';
+  document.getElementById('ending-sub').textContent = endText[curChar][key];
+
+  // 엔딩 이미지
+  const prompt = good
+    ? CHARS[curChar].prompts.happy + ', romantic ending scene'
+    : CHARS[curChar].prompts[key === 'bad' ? 'sad' : 'normal'];
+  document.getElementById('ending-img').src = imgUrl(prompt, 400, 400, CHARS[curChar].seed + 500);
+}
+
+// 이미지 프리로드
+preloadCards();
+</script>
+</body>
+</html>

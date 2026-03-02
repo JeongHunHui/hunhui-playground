@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SLQMKSZ1LF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-SLQMKSZ1LF');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🐱 냥코 대전쟁</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0d0a1a;font-family:'Segoe UI',sans-serif;color:#fff;display:flex;flex-direction:column;align-items:center;overflow:hidden;}
+#hud{display:flex;gap:12px;padding:8px;background:#0a0818;width:100%;justify-content:center;flex-wrap:wrap;}
+.hud{background:#1a1030;border:1px solid #3d2a5e;border-radius:8px;padding:4px 12px;font-size:0.8rem;}
+.hud span{color:#c084fc;font-weight:700;}
+canvas{display:block;}
+#units{display:flex;gap:6px;padding:6px;background:#0a0818;width:100%;justify-content:center;flex-wrap:wrap;}
+.unit-btn{
+  padding:6px 10px;border-radius:8px;border:1px solid #3d2a5e;
+  background:#1a1030;color:#e2d4ff;cursor:pointer;font-size:0.78rem;text-align:center;min-width:60px;
+  transition:all 0.15s;
+}
+.unit-btn:hover{border-color:#c084fc;background:#2d1f4e;}
+.unit-btn .cost{color:#fbbf24;font-size:0.7rem;}
+#overlay{position:fixed;inset:0;background:rgba(13,10,26,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;}
+.start{padding:14px 36px;border-radius:99px;border:none;background:linear-gradient(135deg,#7c3aed,#c084fc);color:#fff;font-size:1.1rem;font-weight:700;cursor:pointer;}
+</style>
+<style>
+#tut-btn{position:fixed;top:10px;right:10px;z-index:998;padding:5px 12px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
+#tut-modal{display:none;position:fixed;inset:0;background:#0009;z-index:1000;align-items:center;justify-content:center;padding:16px;}
+#tut-modal.open{display:flex;}
+#tut-inner{background:#120a28;border:1px solid #3d2a5e;border-radius:16px;max-width:440px;width:100%;padding:20px;max-height:80vh;overflow-y:auto;}
+#tut-inner h3{color:#c084fc;font-size:1.1rem;margin-bottom:12px;}
+.tut-ctrl{background:#1a1030;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a78bfa;}
+.tut-ctrl b{color:#c084fc;display:block;margin-bottom:4px;}
+.tut-tips{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.tut-tips li{font-size:0.82rem;color:#9f8ab8;padding:6px 10px;background:#1a1030;border-radius:8px;border-left:3px solid #3d2a5e;}
+.tut-close{width:100%;margin-top:14px;padding:10px;border-radius:8px;border:none;background:#2d1f4e;color:#e2d4ff;cursor:pointer;font-size:0.9rem;}
+</style>
+</head>
+<body>
+<div id="tut-btn" onclick="document.getElementById('tut-modal').classList.add('open')">❓ 도움말</div>
+<div id="tut-modal" onclick="if(event.target===this)this.classList.remove('open')">
+<div id="tut-inner">
+  <h3>🐱 냥코 대전쟁</h3>
+  <div class="tut-ctrl"><b>🎮 조작법</b>하단 버튼으로 유닛 파견</div>
+  <ul class="tut-tips"><li>💡 골드는 시간이 지나면 자동으로 충전돼요</li><li>💡 🐱 기본냥을 먼저 많이 파견해서 전선 유지</li><li>💡 😸 뚱냥은 HP가 높아서 방어에 좋아요</li><li>💡 🛡 탱크냥으로 전선 고정 후 원거리 공격!</li><li>💡 적 기지 HP가 0이 되면 승리!</li></ul>
+  <button class="tut-close" onclick="document.getElementById('tut-modal').classList.remove('open')">✕ 닫기</button>
+</div>
+</div>
+<a href="/" style="position:fixed;top:10px;left:10px;z-index:999;display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;text-decoration:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:all 0.2s;" onmouseover="this.style.background='rgba(45,31,78,0.95)'" onmouseout="this.style.background='rgba(13,10,26,0.85)'">🏠 홈</a>
+<div id="hud">
+  <div class="hud">💰 <span id="money">300</span></div>
+  <div class="hud">🏰 아군: <span id="base-hp">100</span></div>
+  <div class="hud">💀 적 기지: <span id="enemy-hp">200</span></div>
+  <div class="hud">🌊 웨이브: <span id="wave">1</span></div>
+</div>
+<canvas id="c"></canvas>
+<div id="units">
+  <button class="unit-btn" onclick="deploy('normal')">🐱 기본냥<div class="cost">50G</div></button>
+  <button class="unit-btn" onclick="deploy('fat')">😸 뚱냥<div class="cost">80G</div></button>
+  <button class="unit-btn" onclick="deploy('tank')">🛡 탱크냥<div class="cost">150G</div></button>
+  <button class="unit-btn" onclick="deploy('wizard')">🔮 마법냥<div class="cost">120G</div></button>
+  <button class="unit-btn" onclick="deploy('cannon')">💣 대포냥<div class="cost">200G</div></button>
+</div>
+<div id="overlay">
+  <h2 style="font-size:2rem;color:#c084fc;margin-bottom:8px;">🐱 냥코 대전쟁</h2>
+  <p style="color:#9f8ab8;margin-bottom:24px;text-align:center;">냥코를 파견해서 적 기지를 부숴라!<br>버튼으로 유닛 파견 | 아군 기지를 지켜!</p>
+  <button class="start" onclick="startGame()">전쟁 시작!</button>
+</div>
+<script>
+const cv=document.getElementById('c');
+const ctx=cv.getContext('2d');
+const W=cv.width=Math.min(window.innerWidth,640);
+const H=cv.height=220;
+const GY=H*0.72;
+const ALLY_BASE_X=50, ENEMY_BASE_X=W-50;
+
+let units=[],projectiles=[],particles=[],money=300,wave=1,running=false;
+let baseHp=100,enemyHp=200,maxEnemyHp=200;
+let moneyTimer=0,waveTimer=0,frame=0;
+let bgScroll=0;
+
+const UNIT_DEF={
+  normal:  {emoji:'🐱',cost:50,hp:30, dmg:8, spd:1.2,atk:60,  range:55, r:14,side:'ally'},
+  fat:     {emoji:'😸',cost:80,hp:80, dmg:12,spd:0.7,atk:80,  range:50, r:18,side:'ally'},
+  tank:    {emoji:'🛡',cost:150,hp:200,dmg:20,spd:0.5,atk:90, range:45, r:20,side:'ally'},
+  wizard:  {emoji:'🔮',cost:120,hp:40, dmg:30,spd:0.9,atk:70, range:120,r:14,side:'ally',proj:true},
+  cannon:  {emoji:'💣',cost:200,hp:60, dmg:60,spd:0.3,atk:120,range:200,r:18,side:'ally',proj:true,splash:50},
+};
+
+const ENEMY_DEF=[
+  {emoji:'👾',hp:30, dmg:6, spd:0.9,atk:55,range:50, r:14},
+  {emoji:'👹',hp:100,dmg:15,spd:0.6,atk:70,range:45, r:18},
+  {emoji:'🤖',hp:250,dmg:30,spd:0.4,atk:90,range:40, r:22},
+  {emoji:'👻',hp:20, dmg:20,spd:1.5,atk:40,range:60, r:12,proj:true},
+];
+
+function startGame(){
+  document.getElementById('overlay').style.display='none';
+  units=[];projectiles=[];particles=[];
+  money=300;wave=1;running=true;frame=0;
+  baseHp=100;enemyHp=200;maxEnemyHp=200;
+  spawnEnemyWave();
+  loop();
+}
+
+function deploy(type){
+  const d=UNIT_DEF[type];
+  if(money<d.cost){showMsg('💰 골드 부족!');return;}
+  money-=d.cost;
+  units.push({
+    ...d,maxHp:d.hp,x:ALLY_BASE_X+30,y:GY-d.r,
+    atkTimer:0,type,id:Math.random()
+  });
+  updateHUD();
+}
+
+function spawnEnemyWave(){
+  const count=2+wave*2;
+  const types=ENEMY_DEF.slice(0,Math.min(wave+1,ENEMY_DEF.length));
+  for(let i=0;i<count;i++){
+    const def=types[Math.floor(Math.random()*types.length)];
+    setTimeout(()=>{
+      if(!running)return;
+      units.push({...def,maxHp:def.hp,hp:def.hp*(1+wave*0.3)|0,maxHp:def.hp*(1+wave*0.3)|0,
+        dmg:def.dmg*(1+wave*0.1)|0,
+        x:ENEMY_BASE_X-30,y:GY-def.r,atkTimer:0,side:'enemy',id:Math.random()
+      });
+    },i*1200);
+  }
+}
+
+let animId;
+function loop(){
+  if(!running)return;
+  update();draw();
+  animId=requestAnimationFrame(loop);
+}
+
+function update(){
+  frame++;
+  // 돈 충전
+  moneyTimer++;if(moneyTimer>=90){moneyTimer=0;money=Math.min(9999,money+15+(wave*3));updateHUD();}
+  // 웨이브 타이머
+  const enemies=units.filter(u=>u.side==='enemy');
+  if(enemies.length===0&&running){
+    waveTimer++;
+    if(waveTimer>120){waveTimer=0;wave++;enemyHp=maxEnemyHp;spawnEnemyWave();}
+  } else waveTimer=0;
+
+  // 유닛 업데이트
+  for(let u of units){
+    const foes=units.filter(f=>f.side!==u.side);
+    const base_x=u.side==='ally'?ENEMY_BASE_X:ALLY_BASE_X;
+    // 가장 가까운 적 찾기
+    let nearest=null,nearDist=Infinity;
+    for(let f of foes){
+      const d=Math.abs(u.x-f.x);
+      if(d<nearDist){nearDist=d;nearest=f;}
+    }
+    // 적 없으면 적 기지 향해 이동
+    const frontEnemy=foes.find(f=>Math.abs(u.x-f.x)<u.range);
+    if(frontEnemy){
+      // 공격
+      u.atkTimer++;
+      if(u.atkTimer>=u.atk){
+        u.atkTimer=0;
+        if(u.proj){
+          projectiles.push({x:u.x+(u.side==='ally'?u.r:-u.r),y:u.y,
+            vx:u.side==='ally'?6:-6,vy:0,dmg:u.dmg,side:u.side,splash:u.splash||0,r:8});
+        } else {
+          frontEnemy.hp-=u.dmg;
+          spawnParticles(frontEnemy.x,frontEnemy.y,'#f87171',3);
+          if(frontEnemy.hp<=0){frontEnemy.dead=true;money+=10;updateHUD();}
+        }
+      }
+    } else {
+      // 이동
+      const dir=u.side==='ally'?1:-1;
+      u.x+=u.spd*dir;
+      // 기지 도달 체크
+      if(u.side==='ally'&&u.x>=ENEMY_BASE_X-30){
+        enemyHp-=u.dmg; u.dead=true;
+        spawnParticles(ENEMY_BASE_X,GY-30,'#f87171',8);
+        if(enemyHp<=0){winGame();return;}
+      } else if(u.side==='enemy'&&u.x<=ALLY_BASE_X+30){
+        baseHp-=u.dmg; u.dead=true;
+        spawnParticles(ALLY_BASE_X,GY-30,'#f87171',8);
+        if(baseHp<=0){loseGame();return;}
+      }
+    }
+  }
+
+  // 투사체
+  for(let p of projectiles){
+    p.x+=p.vx;
+    const targets=units.filter(u=>u.side!==p.side);
+    for(let t of targets){
+      if(Math.abs(p.x-t.x)<p.r+t.r&&Math.abs(p.y-t.y)<t.r+p.r){
+        if(p.splash){
+          for(let tt of targets)if(Math.abs(p.x-tt.x)<p.splash)tt.hp-=p.dmg;
+          spawnParticles(p.x,p.y,'#f97316',10);
+        } else {
+          t.hp-=p.dmg;
+          spawnParticles(t.x,t.y,'#f87171',4);
+        }
+        if(t.hp<=0){t.dead=true;money+=10;updateHUD();}
+        p.dead=true;break;
+      }
+    }
+    if(p.x<0||p.x>W)p.dead=true;
+  }
+
+  units=units.filter(u=>!u.dead);
+  projectiles=projectiles.filter(p=>!p.dead);
+  for(let p of particles){p.x+=p.vx;p.y+=p.vy;p.vy+=0.1;p.life--;}
+  particles=particles.filter(p=>p.life>0);
+  updateHUD();
+}
+
+function draw(){
+  // 배경
+  ctx.fillStyle='#0a0518';ctx.fillRect(0,0,W,H);
+  // 구름
+  bgScroll=(bgScroll-0.3+W)%W;
+  ctx.fillStyle='rgba(60,30,100,0.4)';
+  for(let i=0;i<4;i++){
+    const cx=((i*180+bgScroll)%W+W)%W;
+    ctx.beginPath();ctx.arc(cx,25,20,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(cx+15,20,14,0,Math.PI*2);ctx.fill();
+  }
+  // 지면
+  ctx.fillStyle='#1e0f3a';ctx.fillRect(0,GY,W,H-GY);
+  ctx.fillStyle='#3d2a5e';ctx.fillRect(0,GY,W,5);
+
+  // 아군 기지
+  drawBase(ALLY_BASE_X,GY,baseHp,100,'#7c3aed','🏰');
+  // 적 기지
+  drawBase(ENEMY_BASE_X,GY,enemyHp,maxEnemyHp,'#dc2626','💀');
+
+  // 유닛
+  for(let u of units){
+    // HP바
+    const bw=u.r*2.5;
+    ctx.fillStyle='#333';ctx.fillRect(u.x-bw/2,u.y-u.r-10,bw,5);
+    ctx.fillStyle=u.side==='ally'?'#22c55e':'#ef4444';
+    ctx.fillRect(u.x-bw/2,u.y-u.r-10,bw*(u.hp/u.maxHp),5);
+    // 몸통
+    ctx.beginPath();ctx.arc(u.x,u.y,u.r,0,Math.PI*2);
+    ctx.fillStyle=u.side==='ally'?'#2d1f4e':'#3d1010';ctx.fill();
+    ctx.strokeStyle=u.side==='ally'?'#c084fc':'#ef4444';ctx.lineWidth=2;ctx.stroke();
+    ctx.font=`${u.r*1.3}px sans-serif`;ctx.textAlign='center';ctx.fillText(u.emoji,u.x,u.y+u.r*0.4);
+  }
+
+  // 투사체
+  for(let p of projectiles){
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r/2,0,Math.PI*2);
+    ctx.fillStyle=p.side==='ally'?'#c084fc':'#f87171';ctx.fill();
+  }
+
+  // 파티클
+  for(let p of particles){
+    ctx.globalAlpha=p.life/30;
+    ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);
+    ctx.fillStyle=p.color;ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  // 웨이브 카운트다운
+  if(waveTimer>60){
+    ctx.fillStyle='#c084fc88';ctx.font='14px sans-serif';ctx.textAlign='center';
+    ctx.fillText(`다음 웨이브 ${Math.ceil((120-waveTimer)/60)}초...`,W/2,20);
+  }
+}
+
+function drawBase(x,y,hp,maxHp,color,emoji){
+  ctx.fillStyle=color+'44';
+  ctx.fillRect(x-25,y-70,50,70);
+  ctx.strokeStyle=color;ctx.lineWidth=3;
+  ctx.strokeRect(x-25,y-70,50,70);
+  ctx.font='24px sans-serif';ctx.textAlign='center';ctx.fillText(emoji,x,y-30);
+  // HP바
+  ctx.fillStyle='#333';ctx.fillRect(x-25,y-78,50,7);
+  ctx.fillStyle=color;ctx.fillRect(x-25,y-78,50*(hp/maxHp),7);
+}
+
+function spawnParticles(x,y,color,n){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2,s=Math.random()*3+1;
+    particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,life:25,color});
+  }
+}
+function showMsg(m){document.getElementById('hud').querySelector('.hud').textContent=m;setTimeout(updateHUD,1500);}
+function updateHUD(){
+  document.getElementById('money').textContent=money;
+  document.getElementById('base-hp').textContent=Math.max(0,baseHp);
+  document.getElementById('enemy-hp').textContent=Math.max(0,enemyHp);
+  document.getElementById('wave').textContent=wave;
+}
+function winGame(){running=false;endScreen('🎉 승리!','적 기지를 함락했어! 냥코 만세!');}
+function loseGame(){running=false;endScreen('💀 패배','아군 기지가 함락당했어...');}
+function endScreen(title,msg){
+  const ov=document.getElementById('overlay');
+  ov.innerHTML=`<h2 style="font-size:2rem;color:#c084fc;margin-bottom:8px;">${title}</h2><p style="color:#9f8ab8;margin-bottom:24px;">${msg}</p><button class="start" onclick="startGame()">다시 전쟁!</button>`;
+  ov.style.display='flex';
+}
+</script>
+</body>
+</html>

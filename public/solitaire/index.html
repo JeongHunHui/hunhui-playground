@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SLQMKSZ1LF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-SLQMKSZ1LF');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🃏 솔리테어</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;}
+body{background:#065f46;display:flex;flex-direction:column;align-items:center;overflow:hidden;height:100svh;font-family:'Segoe UI',sans-serif;}
+#hud{width:100%;background:#064e3b;padding:8px 12px;display:flex;gap:10px;align-items:center;}
+#hud h2{font-size:1rem;color:#34d399;margin-right:6px;}
+.stat{background:#047857;border-radius:6px;padding:4px 12px;font-size:0.78rem;color:#a7f3d0;}
+.stat span{color:#34d399;font-weight:700;}
+#new-btn{margin-left:auto;padding:6px 14px;border-radius:8px;border:none;background:linear-gradient(135deg,#059669,#34d399);color:#fff;font-weight:700;cursor:pointer;font-size:0.82rem;}
+canvas{display:block;touch-action:none;}
+#msg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#000c;color:#fff;padding:16px 28px;border-radius:12px;font-size:1.2rem;font-weight:700;display:none;z-index:20;text-align:center;}
+</style>
+</head>
+<body>
+<a href="/" style="position:fixed;top:10px;left:10px;z-index:999;display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;text-decoration:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:all 0.2s;" onmouseover="this.style.background='rgba(45,31,78,0.95)'" onmouseout="this.style.background='rgba(13,10,26,0.85)'">🏠 홈</a>
+<div id="hud">
+  <h2>🃏 솔리테어</h2>
+  <div class="stat">⏱ <span id="t-time">0:00</span></div>
+  <div class="stat">🎯 <span id="t-moves">0</span>번</div>
+  <button id="new-btn" onclick="newGame()">새 게임</button>
+</div>
+<canvas id="c"></canvas>
+<div id="msg" id="msg"></div>
+
+<script>
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const SUITS = ['♠','♣','♥','♦'];
+const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const isRed = s => s==='♥'||s==='♦';
+
+let W, H, CW, CH, PAD, OVERLAP, HIT_H;
+
+function resize(){
+  W = cv.width = window.innerWidth;
+  H = cv.height = window.innerHeight - 48;
+  CW = Math.min(68, Math.floor((W - 16) / 7.5));
+  CH = Math.floor(CW * 1.4);
+  PAD = Math.floor((W - CW*7) / 8);
+  OVERLAP = Math.floor(CH * 0.28);
+  HIT_H = Math.floor(CH * 1.5); // 터치 영역
+}
+resize(); window.addEventListener('resize', () => { resize(); render(); });
+
+// 게임 상태
+let tableau, foundation, stock, waste, selected, selCards;
+let moves, startMs, timerID;
+
+function buildDeck(){
+  const d=[];
+  for(let s of SUITS) for(let r of RANKS) d.push({s,r,up:false});
+  return d.sort(()=>Math.random()-0.5);
+}
+function rv(r){ return RANKS.indexOf(r)+1; }
+
+function newGame(){
+  clearInterval(timerID);
+  const deck = buildDeck();
+  tableau = Array.from({length:7},()=>[]);
+  foundation = Array.from({length:4},()=>[]);
+  stock=[]; waste=[]; selected=null; selCards=null; moves=0;
+  let i=0;
+  for(let c=0;c<7;c++) for(let r=0;r<=c;r++) { const cd=deck[i++]; cd.up=r===c; tableau[c].push(cd); }
+  while(i<52){ deck[i].faceUp=false; stock.push(deck[i++]); }
+  startMs=Date.now();
+  timerID=setInterval(updateTimer,1000);
+  render();
+}
+
+function updateTimer(){
+  const s=Math.floor((Date.now()-startMs)/1000);
+  document.getElementById('t-time').textContent=`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+function updateHUD(){
+  document.getElementById('t-moves').textContent=moves;
+}
+
+// ── 레이아웃 계산 ──
+function topY(){ return PAD; }
+function tabY(){ return topY()+CH+PAD*2; }
+function stockX(){ return PAD; }
+function wasteX(){ return PAD+CW+PAD; }
+function foundX(i){ return PAD+(3+i)*(CW+PAD); }
+function tabX(c){ return PAD+c*(CW+PAD); }
+function cardY(col,idx){ return tabY()+idx*OVERLAP; }
+
+// ── 렌더링 ──
+function render(){
+  ctx.fillStyle='#065f46'; ctx.fillRect(0,0,W,H);
+
+  // Foundation 빈 칸
+  for(let i=0;i<4;i++) drawEmpty(foundX(i),topY(),SUITS[i]);
+  // Waste 빈 칸
+  drawEmpty(wasteX(),topY(),'');
+  // Stock
+  if(stock.length) drawBack(stockX(),topY());
+  else drawEmpty(stockX(),topY(),'♻');
+
+  // Waste 상단
+  if(waste.length) drawCard(waste[waste.length-1],wasteX(),topY(), selected&&selected.src==='waste');
+
+  // Foundation
+  for(let i=0;i<4;i++){
+    const p=foundation[i];
+    if(p.length) drawCard(p[p.length-1],foundX(i),topY(),false);
+  }
+
+  // Tableau
+  for(let c=0;c<7;c++){
+    const pile=tableau[c];
+    if(!pile.length){ drawEmpty(tabX(c),tabY(),''); continue; }
+    pile.forEach((cd,idx)=>{
+      const x=tabX(c), y=cardY(c,idx);
+      const isSel = selected&&selected.src==='tab'&&selected.col===c&&selected.idx<=idx;
+      if(cd.up) drawCard(cd,x,y,isSel);
+      else drawBack(x,y);
+    });
+  }
+}
+
+function drawEmpty(x,y,label){
+  ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=2;
+  ctx.beginPath(); roundRect(x,y,CW,CH,6); ctx.stroke();
+  if(label){
+    ctx.fillStyle='rgba(255,255,255,0.2)';
+    ctx.font=`${CW*0.45}px sans-serif`; ctx.textAlign='center';
+    ctx.fillText(label,x+CW/2,y+CH/2+CW*0.16);
+  }
+}
+function drawBack(x,y){
+  const g=ctx.createLinearGradient(x,y,x+CW,y+CH);
+  g.addColorStop(0,'#1e40af'); g.addColorStop(1,'#1d4ed8');
+  ctx.fillStyle=g; ctx.beginPath(); roundRect(x,y,CW,CH,6); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1;
+  ctx.beginPath(); roundRect(x+3,y+3,CW-6,CH-6,4); ctx.stroke();
+  // 패턴
+  ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=1;
+  for(let i=0;i<6;i++){
+    ctx.beginPath(); ctx.moveTo(x+i*(CW/5),y); ctx.lineTo(x,y+i*(CH/5)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+CW-i*(CW/5),y+CH); ctx.lineTo(x+CW,y+CH-i*(CH/5)); ctx.stroke();
+  }
+}
+function drawCard(cd,x,y,sel){
+  // 그림자
+  ctx.fillStyle='rgba(0,0,0,0.25)';
+  ctx.beginPath(); roundRect(x+2,y+2,CW,CH,6); ctx.fill();
+  // 카드 배경
+  ctx.fillStyle= sel?'#fef9c3':'#fffbeb';
+  ctx.beginPath(); roundRect(x,y,CW,CH,6); ctx.fill();
+  if(sel){ctx.strokeStyle='#fde047';ctx.lineWidth=2.5;}
+  else{ctx.strokeStyle='rgba(0,0,0,0.12)';ctx.lineWidth=1;}
+  ctx.beginPath(); roundRect(x,y,CW,CH,6); ctx.stroke();
+
+  const red=isRed(cd.s);
+  const color=red?'#dc2626':'#111827';
+  const fs=Math.floor(CW*0.26);
+  ctx.fillStyle=color; ctx.font=`bold ${fs}px sans-serif`; ctx.textAlign='left';
+  ctx.fillText(cd.r,x+4,y+fs+2);
+  ctx.font=`${Math.floor(fs*0.9)}px sans-serif`;
+  ctx.fillText(cd.s,x+4,y+fs*2+1);
+  // 우하단 뒤집어서
+  ctx.save(); ctx.translate(x+CW-4,y+CH-4); ctx.rotate(Math.PI);
+  ctx.font=`bold ${fs}px sans-serif`; ctx.textAlign='left';
+  ctx.fillText(cd.r,0,fs);
+  ctx.font=`${Math.floor(fs*0.9)}px sans-serif`;
+  ctx.fillText(cd.s,0,fs*2);
+  ctx.restore();
+  // 가운데 심볼
+  ctx.font=`${Math.floor(CW*0.35)}px sans-serif`; ctx.textAlign='center';
+  ctx.fillText(cd.s,x+CW/2,y+CH*0.62);
+}
+
+function roundRect(x,y,w,h,r){
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+// ── 클릭 처리 ──
+function getHitTarget(px,py){
+  // Stock
+  if(px>stockX()&&px<stockX()+CW&&py>topY()&&py<topY()+CH) return {type:'stock'};
+  // Waste
+  if(waste.length&&px>wasteX()&&px<wasteX()+CW&&py>topY()&&py<topY()+CH) return {type:'waste'};
+  // Foundation
+  for(let i=0;i<4;i++){
+    const fx=foundX(i);
+    if(px>fx&&px<fx+CW&&py>topY()&&py<topY()+CH) return {type:'found',idx:i};
+  }
+  // Tableau
+  for(let c=6;c>=0;c--){
+    const pile=tableau[c];
+    const tx=tabX(c);
+    if(px<tx||px>tx+CW) continue;
+    if(!pile.length&&py>tabY()&&py<tabY()+CH) return {type:'tab',col:c,idx:-1};
+    for(let i=pile.length-1;i>=0;i--){
+      const cy=cardY(c,i);
+      const bot=i===pile.length-1?cy+CH:cardY(c,i+1);
+      if(py>=cy&&py<=bot) return {type:'tab',col:c,idx:i};
+    }
+  }
+  return null;
+}
+
+function onClick(px,py){
+  const hit=getHitTarget(px,py);
+  if(!hit){selected=null;selCards=null;render();return;}
+
+  if(hit.type==='stock'){
+    if(stock.length){const cd=stock.pop();cd.up=true;waste.push(cd);}
+    else{waste.forEach(c=>c.up=false);stock=waste.reverse();waste=[];}
+    selected=null;selCards=null;moves++;updateHUD();render();return;
+  }
+
+  // 선택된 상태에서 목적지 클릭
+  if(selected){
+    let moved=false;
+    if(hit.type==='found'){moved=tryMoveToFund(hit.idx);}
+    else if(hit.type==='tab'){moved=tryMoveToTab(hit.col);}
+    if(moved){selected=null;selCards=null;moves++;updateHUD();checkWin();render();return;}
+    // 같은 카드 클릭 → 선택 해제
+    if(hit.type==='waste'&&selected.src==='waste'){selected=null;selCards=null;render();return;}
+    if(hit.type==='tab'&&selected.src==='tab'&&selected.col===hit.col&&selected.idx===hit.idx){selected=null;selCards=null;render();return;}
+  }
+
+  // 새 선택
+  if(hit.type==='waste'&&waste.length){
+    selected={src:'waste'};selCards=[waste[waste.length-1]];
+  } else if(hit.type==='tab'){
+    const pile=tableau[hit.col];
+    if(hit.idx<0||!pile.length){
+      // 빈 칸 클릭 — 이미 선택 상태면 이동 시도
+      if(selected){ tryMoveToTab(hit.col);selected=null;selCards=null;moves++;updateHUD();render();}
+      return;
+    }
+    const cd=pile[hit.idx];
+    if(!cd.up){// 뒷면 카드 — 마지막 카드면 뒤집기
+      if(hit.idx===pile.length-1){cd.up=true;moves++;updateHUD();render();}
+      return;
+    }
+    selected={src:'tab',col:hit.col,idx:hit.idx};
+    selCards=pile.slice(hit.idx);
+  }
+  render();
+}
+
+function tryMoveToFund(fi){
+  if(!selCards||selCards.length!==1) return false;
+  const cd=selCards[0];
+  const pile=foundation[fi];
+  const top=pile[pile.length-1];
+  if(top){if(cd.s!==top.s||rv(cd.r)!==rv(top.r)+1)return false;}
+  else{if(cd.r!=='A')return false;}
+  // 모든 foundation에 맞는 suit 찾기
+  const si=SUITS.indexOf(cd.s);
+  if(fi!==si&&foundation[si].length>0&&pile.length>0){}// ok if dropped on right pile
+  // 실제로 suit 일치 체크
+  if(pile.length>0&&pile[0].s!==cd.s)return false;
+  pile.push(cd);
+  removeFromSrc();
+  return true;
+}
+
+function tryMoveToTab(col){
+  if(!selCards)return false;
+  const pile=tableau[col];
+  const top=pile[pile.length-1];
+  const first=selCards[0];
+  if(top){
+    if(!top.up)return false;
+    if(isRed(first.s)===isRed(top.s))return false;
+    if(rv(first.r)!==rv(top.r)-1)return false;
+  } else {
+    if(first.r!=='K')return false;
+  }
+  pile.push(...selCards);
+  removeFromSrc();
+  return true;
+}
+
+function removeFromSrc(){
+  if(selected.src==='waste'){waste.pop();}
+  else{
+    const p=tableau[selected.col];
+    p.splice(selected.idx);
+    // 뒤집기
+    if(p.length&&!p[p.length-1].up)p[p.length-1].up=true;
+  }
+}
+
+// 더블클릭 → foundation 자동 이동
+function onDblClick(px,py){
+  const hit=getHitTarget(px,py);
+  if(!hit)return;
+  let cd=null;
+  if(hit.type==='waste'&&waste.length){cd=waste[waste.length-1];selected={src:'waste'};selCards=[cd];}
+  else if(hit.type==='tab'&&hit.idx>=0){
+    const pile=tableau[hit.col];
+    cd=pile[hit.idx];
+    if(!cd||!cd.up||hit.idx!==pile.length-1)return;
+    selected={src:'tab',col:hit.col,idx:hit.idx};selCards=[cd];
+  }
+  if(!cd)return;
+  const si=SUITS.indexOf(cd.s);
+  if(tryMoveToFund(si)){moves++;updateHUD();checkWin();}
+  selected=null;selCards=null;render();
+}
+
+function checkWin(){
+  if(foundation.every(p=>p.length===13)){
+    clearInterval(timerID);
+    const msg=document.getElementById('msg');
+    const s=Math.floor((Date.now()-startMs)/1000);
+    msg.innerHTML=`🎉 클리어!<br><small style="font-size:0.8rem;opacity:0.8">${moves}번 이동 · ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}</small>`;
+    msg.style.display='block';
+    setTimeout(()=>{msg.style.display='none';newGame();},3000);
+  }
+}
+
+// 이벤트
+let lastTap=0;
+function getPos(e){
+  const r=cv.getBoundingClientRect();
+  if(e.touches){return{x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top};}
+  return{x:e.clientX-r.left,y:e.clientY-r.top};
+}
+cv.addEventListener('click',e=>{
+  const {x,y}=getPos(e);
+  const now=Date.now();
+  if(now-lastTap<300){onDblClick(x,y);lastTap=0;return;}
+  lastTap=now;
+  setTimeout(()=>{if(Date.now()-lastTap>=290)onClick(x,y);},310);
+});
+cv.addEventListener('touchend',e=>{
+  e.preventDefault();
+  const r=cv.getBoundingClientRect();
+  const t=e.changedTouches[0];
+  const x=t.clientX-r.left,y=t.clientY-r.top;
+  const now=Date.now();
+  if(now-lastTap<350){onDblClick(x,y);lastTap=0;return;}
+  lastTap=now;
+  onClick(x,y);
+},{passive:false});
+
+newGame();
+</script>
+</body>
+</html>

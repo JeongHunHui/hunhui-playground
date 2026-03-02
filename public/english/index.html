@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SLQMKSZ1LF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-SLQMKSZ1LF');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📚 영어 학습</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0d0a1a;color:#f0e6ff;font-family:'Noto Sans KR',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;}
+a.home{position:fixed;top:10px;left:10px;z-index:999;display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;text-decoration:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}a.home:hover{background:rgba(45,31,78,0.95);}a.home{transition:all 0.2s;}
+
+/* 상단 진행 */
+#progress-bar{width:100%;max-width:600px;padding:56px 16px 12px;}
+.xp-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.xp-label{font-size:0.75rem;color:#7c6a9a;}
+.xp-bg{flex:1;height:10px;background:#1a1030;border-radius:5px;overflow:hidden;}
+.xp-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,#7c3aed,#c084fc);transition:width 0.5s;}
+.lives{display:flex;gap:4px;}
+
+/* 메뉴 */
+#menu{width:100%;max-width:600px;padding:0 16px;}
+#menu h2{font-size:1.5rem;color:#c084fc;margin-bottom:4px;}
+#menu p{color:#7c6a9a;font-size:0.85rem;margin-bottom:20px;}
+.lesson-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px;}
+.lesson-card{
+  background:#1a1030;border:2px solid #3d2a5e;border-radius:14px;
+  padding:16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all 0.2s;
+}
+.lesson-card:hover{border-color:#c084fc;background:#200d3a;}
+.lesson-card.locked{opacity:0.5;cursor:not-allowed;}
+.lesson-card.done{border-color:#22c55e;}
+.lesson-icon{font-size:2.4rem;}
+.lesson-info{flex:1;}
+.lesson-title{font-weight:700;font-size:1rem;color:#e2d4ff;margin-bottom:3px;}
+.lesson-sub{font-size:0.78rem;color:#7c6a9a;}
+.lesson-badge{font-size:0.75rem;padding:3px 10px;border-radius:99px;background:#2d1f4e;color:#c084fc;}
+.lesson-badge.done-badge{background:#14532d;color:#4ade80;}
+
+/* 퀴즈 화면 */
+#quiz{display:none;width:100%;max-width:600px;padding:16px;}
+#quiz-progress{width:100%;height:8px;background:#1a1030;border-radius:4px;margin-bottom:16px;overflow:hidden;}
+#quiz-progress-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#c084fc);transition:width 0.4s;}
+#quiz-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+#quiz-type{font-size:0.78rem;color:#7c6a9a;}
+#quiz-lives{font-size:1rem;}
+.question-box{background:#1a1030;border:1px solid #3d2a5e;border-radius:16px;padding:24px;text-align:center;margin-bottom:20px;}
+.question-en{font-size:1.6rem;font-weight:700;color:#e2d4ff;margin-bottom:6px;}
+.question-hint{font-size:0.85rem;color:#7c6a9a;}
+.options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.opt{padding:14px;border-radius:12px;border:2px solid #3d2a5e;background:#1a1030;color:#e2d4ff;cursor:pointer;font-size:0.95rem;text-align:center;transition:all 0.2s;}
+.opt:hover{border-color:#c084fc;background:#200d3a;}
+.opt.correct{border-color:#22c55e;background:#14532d;color:#4ade80;}
+.opt.wrong{border-color:#ef4444;background:#450a0a;color:#f87171;}
+.opt.disabled{pointer-events:none;}
+/* 타이핑 퀴즈 */
+.type-input{width:100%;padding:14px;border-radius:12px;border:2px solid #3d2a5e;background:#1a1030;color:#e2d4ff;font-size:1.1rem;text-align:center;outline:none;margin-bottom:10px;}
+.type-input:focus{border-color:#c084fc;}
+.check-btn{width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#c084fc);color:#fff;font-size:1rem;font-weight:700;cursor:pointer;}
+/* 피드백 */
+#feedback{border-radius:12px;padding:14px 18px;margin-bottom:14px;display:none;font-size:0.9rem;}
+#feedback.correct{background:#14532d;color:#4ade80;border:1px solid #22c55e;}
+#feedback.wrong{background:#450a0a;color:#f87171;border:1px solid #ef4444;}
+.next-btn{width:100%;padding:14px;border-radius:12px;border:none;background:#2d1f4e;color:#e2d4ff;font-size:1rem;cursor:pointer;display:none;}
+/* 결과 */
+#result{display:none;width:100%;max-width:600px;padding:32px 16px;text-align:center;}
+#result .score-ring{width:120px;height:120px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#ec4899);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:2.5rem;font-weight:700;}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0;}
+.stat-card{background:#1a1030;border:1px solid #3d2a5e;border-radius:10px;padding:12px;}
+.stat-card .val{font-size:1.4rem;font-weight:700;color:#c084fc;}
+.stat-card .lbl{font-size:0.75rem;color:#7c6a9a;}
+.continue-btn{padding:14px 32px;border-radius:99px;border:none;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-size:1rem;font-weight:700;cursor:pointer;margin-top:8px;}
+</style>
+<style>
+#tut-btn{position:fixed;top:10px;right:10px;z-index:998;padding:5px 12px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
+#tut-modal{display:none;position:fixed;inset:0;background:#0009;z-index:1000;align-items:center;justify-content:center;padding:16px;}
+#tut-modal.open{display:flex;}
+#tut-inner{background:#120a28;border:1px solid #3d2a5e;border-radius:16px;max-width:440px;width:100%;padding:20px;max-height:80vh;overflow-y:auto;}
+#tut-inner h3{color:#c084fc;font-size:1.1rem;margin-bottom:12px;}
+.tut-ctrl{background:#1a1030;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a78bfa;}
+.tut-ctrl b{color:#c084fc;display:block;margin-bottom:4px;}
+.tut-tips{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.tut-tips li{font-size:0.82rem;color:#9f8ab8;padding:6px 10px;background:#1a1030;border-radius:8px;border-left:3px solid #3d2a5e;}
+.tut-close{width:100%;margin-top:14px;padding:10px;border-radius:8px;border:none;background:#2d1f4e;color:#e2d4ff;cursor:pointer;font-size:0.9rem;}
+</style>
+</head>
+<body>
+<div id="tut-btn" onclick="document.getElementById('tut-modal').classList.add('open')">❓ 도움말</div>
+<div id="tut-modal" onclick="if(event.target===this)this.classList.remove('open')">
+<div id="tut-inner">
+  <h3>🦜 영어 공부</h3>
+  <div class="tut-ctrl"><b>🎮 조작법</b>카테고리 선택 후 퀴즈 풀기</div>
+  <ul class="tut-tips"><li>💡 뜻 고르기 / 영어 고르기 / 직접 타이핑 3종류</li><li>💡 타이핑 문제는 정확히 입력해야 정답!</li><li>💡 매일 풀면 연속 스트릭(🔥)이 올라가요</li><li>💡 XP를 모아 레벨업하세요</li><li>💡 진행도는 브라우저에 저장돼요</li></ul>
+  <button class="tut-close" onclick="document.getElementById('tut-modal').classList.remove('open')">✕ 닫기</button>
+</div>
+</div>
+<a class="home" href="/">🏠 홈</a>
+
+<div id="progress-bar">
+  <div class="xp-row">
+    <span class="xp-label">⚡ XP</span>
+    <div class="xp-bg"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+    <span style="font-size:0.78rem;color:#c084fc;" id="xp-txt">0 XP</span>
+    <div class="lives" id="lives-row"></div>
+  </div>
+  <div style="display:flex;gap:8px;font-size:0.75rem;color:#7c6a9a;">
+    <span>🔥 연속 <span id="streak-txt" style="color:#f97316;font-weight:700">0</span>일</span>
+    <span>📚 레벨 <span id="level-txt" style="color:#c084fc;font-weight:700">1</span></span>
+  </div>
+</div>
+
+<div id="menu">
+  <h2>🦜 영어 공부</h2>
+  <p>매일 조금씩! 듀오링고 스타일</p>
+  <div class="lesson-list" id="lesson-list"></div>
+</div>
+
+<div id="quiz">
+  <div id="quiz-progress"><div id="quiz-progress-fill" style="width:0%"></div></div>
+  <div id="quiz-header">
+    <div id="quiz-type">🎯 단어 선택</div>
+    <div id="quiz-lives"></div>
+  </div>
+  <div class="question-box">
+    <div class="question-en" id="q-word"></div>
+    <div class="question-hint" id="q-hint"></div>
+  </div>
+  <div id="q-body"></div>
+  <div id="feedback"></div>
+  <button class="next-btn" id="next-btn" onclick="nextQuestion()">계속 →</button>
+</div>
+
+<div id="result">
+  <div class="score-ring" id="result-icon">🎉</div>
+  <h2 id="result-title" style="font-size:1.6rem;color:#c084fc;margin-bottom:8px;"></h2>
+  <p id="result-msg" style="color:#7c6a9a;margin-bottom:8px;"></p>
+  <div class="stat-grid" id="result-stats"></div>
+  <button class="continue-btn" onclick="showMenu()">계속 공부하기 🚀</button>
+</div>
+
+<script>
+const LESSONS=[
+  {id:'greet',title:'인사·기초',icon:'👋',words:[
+    {en:'hello',ko:'안녕',ex:'Hello! How are you?'},
+    {en:'thank you',ko:'감사합니다',ex:'Thank you so much!'},
+    {en:'sorry',ko:'미안합니다',ex:'I\'m sorry for being late.'},
+    {en:'please',ko:'부탁드려요',ex:'Please help me.'},
+    {en:'goodbye',ko:'안녕히 가세요',ex:'Goodbye! See you tomorrow.'},
+    {en:'excuse me',ko:'실례합니다',ex:'Excuse me, where is the bathroom?'},
+    {en:'you\'re welcome',ko:'천만에요',ex:'You\'re welcome!'},
+    {en:'nice to meet you',ko:'만나서 반가워요',ex:'Nice to meet you!'},
+  ]},
+  {id:'daily',title:'일상 생활',icon:'🏠',words:[
+    {en:'eat',ko:'먹다',ex:'I eat breakfast every morning.'},
+    {en:'drink',ko:'마시다',ex:'Can I drink some water?'},
+    {en:'sleep',ko:'자다',ex:'I sleep 8 hours a day.'},
+    {en:'work',ko:'일하다',ex:'I work at a cafe.'},
+    {en:'study',ko:'공부하다',ex:'She studies English every day.'},
+    {en:'play',ko:'놀다',ex:'Let\'s play outside!'},
+    {en:'go',ko:'가다',ex:'I need to go now.'},
+    {en:'come',ko:'오다',ex:'Come here, please.'},
+  ]},
+  {id:'emotion',title:'감정·표현',icon:'😊',words:[
+    {en:'happy',ko:'행복한',ex:'I am so happy today!'},
+    {en:'sad',ko:'슬픈',ex:'Why are you sad?'},
+    {en:'angry',ko:'화난',ex:'He is angry at me.'},
+    {en:'tired',ko:'피곤한',ex:'I am very tired.'},
+    {en:'excited',ko:'신난',ex:'She is excited about the trip.'},
+    {en:'bored',ko:'지루한',ex:'I am bored.'},
+    {en:'scared',ko:'무서운',ex:'Are you scared?'},
+    {en:'surprised',ko:'놀란',ex:'I was surprised!'},
+  ]},
+  {id:'travel',title:'여행·장소',icon:'✈️',words:[
+    {en:'airport',ko:'공항',ex:'I am at the airport.'},
+    {en:'hotel',ko:'호텔',ex:'This hotel is amazing.'},
+    {en:'restaurant',ko:'식당',ex:'Let\'s go to a restaurant.'},
+    {en:'museum',ko:'박물관',ex:'The museum was interesting.'},
+    {en:'ticket',ko:'티켓',ex:'I need a ticket, please.'},
+    {en:'passport',ko:'여권',ex:'Where is my passport?'},
+    {en:'map',ko:'지도',ex:'Can I see the map?'},
+    {en:'taxi',ko:'택시',ex:'Let\'s take a taxi.'},
+  ]},
+  {id:'tech',title:'기술·IT',icon:'💻',words:[
+    {en:'software',ko:'소프트웨어',ex:'This software is free.'},
+    {en:'password',ko:'비밀번호',ex:'Change your password!'},
+    {en:'download',ko:'다운로드',ex:'Please download the app.'},
+    {en:'update',ko:'업데이트',ex:'Update your phone.'},
+    {en:'search',ko:'검색',ex:'Search for it online.'},
+    {en:'click',ko:'클릭',ex:'Click the button.'},
+    {en:'file',ko:'파일',ex:'Send me the file.'},
+    {en:'screen',ko:'화면',ex:'My screen is broken.'},
+  ]},
+  {id:'food',title:'음식·맛',icon:'🍜',words:[
+    {en:'delicious',ko:'맛있는',ex:'This is delicious!'},
+    {en:'spicy',ko:'매운',ex:'Is this spicy?'},
+    {en:'sweet',ko:'달콤한',ex:'This cake is sweet.'},
+    {en:'salty',ko:'짠',ex:'The soup is too salty.'},
+    {en:'breakfast',ko:'아침 식사',ex:'I skip breakfast.'},
+    {en:'lunch',ko:'점심',ex:'Let\'s have lunch together.'},
+    {en:'dinner',ko:'저녁',ex:'Dinner is ready!'},
+    {en:'recipe',ko:'레시피',ex:'Give me the recipe!'},
+  ]},
+];
+
+// 상태
+let state=JSON.parse(localStorage.getItem('eng_state')||'{}');
+if(!state.xp)state={xp:0,level:1,streak:0,lives:5,maxLives:5,completed:{},lastDate:null};
+
+// 오늘 streak 체크
+const today=new Date().toDateString();
+if(state.lastDate&&state.lastDate!==today){
+  const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+  if(state.lastDate!==yesterday.toDateString())state.streak=0;
+}
+
+function saveState(){localStorage.setItem('eng_state',JSON.stringify(state));}
+function updateHUD(){
+  const xpToNext=state.level*100;
+  const xpCur=state.xp%(state.level*100);
+  document.getElementById('xp-fill').style.width=(xpCur/xpToNext*100)+'%';
+  document.getElementById('xp-txt').textContent=state.xp+' XP';
+  document.getElementById('streak-txt').textContent=state.streak;
+  document.getElementById('level-txt').textContent=state.level;
+  const lv=document.getElementById('lives-row');
+  lv.innerHTML=Array.from({length:state.maxLives},(_,i)=>`<span>${i<state.lives?'❤️':'🖤'}</span>`).join('');
+}
+
+function showMenu(){
+  document.getElementById('menu').style.display='block';
+  document.getElementById('quiz').style.display='none';
+  document.getElementById('result').style.display='none';
+  updateHUD();
+  renderLessons();
+}
+
+function renderLessons(){
+  const list=document.getElementById('lesson-list');
+  list.innerHTML='';
+  LESSONS.forEach((l,i)=>{
+    const done=state.completed[l.id];
+    const locked=false; // 모두 열림
+    const card=document.createElement('div');
+    card.className='lesson-card'+(done?' done':'')+(locked?' locked':'');
+    card.innerHTML=`
+      <div class="lesson-icon">${l.icon}</div>
+      <div class="lesson-info">
+        <div class="lesson-title">${l.title}</div>
+        <div class="lesson-sub">${l.words.length}개 단어</div>
+      </div>
+      <div class="lesson-badge ${done?'done-badge':''}">${done?'✅ 완료':'▶ 시작'}</div>
+    `;
+    if(!locked)card.onclick=()=>startLesson(l);
+    list.appendChild(card);
+  });
+}
+
+// 퀴즈 상태
+let currentLesson,questions,qIdx,score,wrong,quizLives;
+
+function startLesson(lesson){
+  currentLesson=lesson;
+  questions=buildQuestions(lesson);
+  qIdx=0;score=0;wrong=0;quizLives=state.lives;
+  document.getElementById('menu').style.display='none';
+  document.getElementById('quiz').style.display='block';
+  document.getElementById('result').style.display='none';
+  showQuestion();
+}
+
+function buildQuestions(lesson){
+  const words=[...lesson.words].sort(()=>Math.random()-0.5);
+  const qs=[];
+  words.forEach((w,i)=>{
+    // 타입 랜덤
+    const types=['choose_ko','choose_en','type_en','listen'];
+    const t=types[i%3]; // 번갈아
+    qs.push({word:w,type:t});
+  });
+  return qs.slice(0,10);
+}
+
+function showQuestion(){
+  if(qIdx>=questions.length){endLesson();return;}
+  const q=questions[qIdx];
+  const pct=(qIdx/questions.length*100);
+  document.getElementById('quiz-progress-fill').style.width=pct+'%';
+  document.getElementById('feedback').style.display='none';
+  document.getElementById('next-btn').style.display='none';
+
+  const body=document.getElementById('q-body');
+  body.innerHTML='';
+
+  if(q.type==='choose_ko'){
+    document.getElementById('quiz-type').textContent='🎯 뜻을 선택하세요';
+    document.getElementById('q-word').textContent=q.word.en;
+    document.getElementById('q-hint').textContent=`"${q.word.ex}"`;
+    const opts=buildOpts(q.word.ko, currentLesson.words.map(w=>w.ko), 4);
+    const grid=document.createElement('div');grid.className='options';
+    opts.forEach(opt=>{
+      const btn=document.createElement('button');btn.className='opt';btn.textContent=opt;
+      btn.onclick=()=>checkAnswer(opt,q.word.ko,btn,grid);
+      grid.appendChild(btn);
+    });
+    body.appendChild(grid);
+  } else if(q.type==='choose_en'){
+    document.getElementById('quiz-type').textContent='🔤 영어를 선택하세요';
+    document.getElementById('q-word').textContent=q.word.ko;
+    document.getElementById('q-hint').textContent=`뜻: "${q.word.ko}"`;
+    const opts=buildOpts(q.word.en, currentLesson.words.map(w=>w.en), 4);
+    const grid=document.createElement('div');grid.className='options';
+    opts.forEach(opt=>{
+      const btn=document.createElement('button');btn.className='opt';btn.textContent=opt;
+      btn.onclick=()=>checkAnswer(opt,q.word.en,btn,grid);
+      grid.appendChild(btn);
+    });
+    body.appendChild(grid);
+  } else {
+    document.getElementById('quiz-type').textContent='⌨️ 영어로 입력하세요';
+    document.getElementById('q-word').textContent=q.word.ko;
+    document.getElementById('q-hint').textContent=`힌트: "${q.word.en[0]}${'_'.repeat(q.word.en.length-1)}"`;
+    const inp=document.createElement('input');
+    inp.className='type-input';inp.placeholder='영어로 입력...';inp.autocomplete='off';
+    inp.onkeydown=e=>{if(e.key==='Enter')checkTyped(inp.value.trim().toLowerCase(),q.word.en);};
+    body.appendChild(inp);
+    const btn=document.createElement('button');btn.className='check-btn';btn.textContent='확인 ✓';
+    btn.onclick=()=>checkTyped(inp.value.trim().toLowerCase(),q.word.en);
+    body.appendChild(btn);
+    setTimeout(()=>inp.focus(),100);
+  }
+  // 목숨 표시
+  document.getElementById('quiz-lives').textContent='❤️'.repeat(quizLives);
+}
+
+function buildOpts(correct,pool,n){
+  const others=pool.filter(x=>x!==correct).sort(()=>Math.random()-0.5).slice(0,n-1);
+  return [correct,...others].sort(()=>Math.random()-0.5);
+}
+
+function checkAnswer(chosen,correct,btn,grid){
+  grid.querySelectorAll('.opt').forEach(b=>b.classList.add('disabled'));
+  if(chosen===correct){
+    btn.classList.add('correct');
+    showFeedback(true,`✅ 정답! "${correct}"`);
+    score++;
+  } else {
+    btn.classList.add('wrong');
+    grid.querySelectorAll('.opt').forEach(b=>{if(b.textContent===correct)b.classList.add('correct');});
+    showFeedback(false,`❌ 틀렸어요. 정답은 "${correct}"`);
+    quizLives--;wrong++;
+  }
+  document.getElementById('next-btn').style.display='block';
+}
+
+function checkTyped(input,correct){
+  const isOk=input===correct.toLowerCase();
+  const inp=document.querySelector('.type-input');
+  if(inp){inp.disabled=true;}
+  document.querySelector('.check-btn').disabled=true;
+  if(isOk){showFeedback(true,`✅ 정답! "${correct}"`);score++;}
+  else{showFeedback(false,`❌ 정답은 "${correct}"`);quizLives--;wrong++;}
+  document.getElementById('next-btn').style.display='block';
+  document.getElementById('quiz-lives').textContent='❤️'.repeat(Math.max(0,quizLives));
+}
+
+function showFeedback(correct,msg){
+  const f=document.getElementById('feedback');
+  f.className='feedback '+(correct?'correct':'wrong');
+  f.textContent=msg;
+  f.style.display='block';
+}
+
+function nextQuestion(){
+  qIdx++;
+  if(quizLives<=0){endLesson(true);return;}
+  showQuestion();
+}
+
+function endLesson(failed=false){
+  document.getElementById('quiz').style.display='none';
+  document.getElementById('result').style.display='block';
+  const total=questions.length;
+  const acc=Math.round(score/total*100);
+  const xpGained=Math.floor(score*10*(1+(state.streak*0.1)));
+  if(!failed){
+    state.xp+=xpGained;
+    state.completed[currentLesson.id]=true;
+    state.lastDate=today;
+    state.streak=state.streak||1;
+    if(state.xp>=state.level*100){state.level++;state.xp=state.xp%(state.level*100);}
+    saveState();
+  }
+  const icon=acc>=80?'🏆':acc>=60?'🌟':'😅';
+  document.getElementById('result-icon').textContent=icon;
+  document.getElementById('result-title').textContent=failed?'목숨이 없어요 💀':(acc>=80?'완벽해요! 🎉':'잘했어요! 👍');
+  document.getElementById('result-msg').textContent=`${score}/${total} 정답 · 정확도 ${acc}%`;
+  document.getElementById('result-stats').innerHTML=`
+    <div class="stat-card"><div class="val">+${xpGained}</div><div class="lbl">⚡ XP 획득</div></div>
+    <div class="stat-card"><div class="val">${acc}%</div><div class="lbl">🎯 정확도</div></div>
+    <div class="stat-card"><div class="val">${score}</div><div class="lbl">✅ 정답</div></div>
+    <div class="stat-card"><div class="val">${wrong}</div><div class="lbl">❌ 오답</div></div>
+  `;
+  updateHUD();
+}
+
+showMenu();
+</script>
+</body>
+</html>

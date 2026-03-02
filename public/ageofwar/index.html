@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SLQMKSZ1LF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-SLQMKSZ1LF');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>⚔️ 전쟁시대</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0d0a1a;color:#fff;font-family:'Segoe UI',sans-serif;display:flex;flex-direction:column;align-items:center;overflow:hidden;}
+#era-bar{width:100%;max-width:700px;background:#0a0818;border-bottom:1px solid #2d1f4e;padding:8px 12px;display:flex;gap:10px;align-items:center;}
+.era-name{color:#fde047;font-weight:700;font-size:0.9rem;}
+#era-fill-bg{flex:1;height:10px;background:#1a1030;border-radius:5px;overflow:hidden;}
+#era-fill{height:100%;background:linear-gradient(90deg,#fde047,#f97316);width:0%;transition:width 0.5s;}
+#hud{width:100%;max-width:700px;display:flex;gap:8px;padding:6px 10px;}
+.stat{background:#1a1030;border:1px solid #2d1f4e;border-radius:8px;padding:4px 12px;font-size:0.78rem;}
+.stat span{color:#c084fc;font-weight:700;}
+canvas{max-width:700px;width:100%;display:block;}
+#units-panel{width:100%;max-width:700px;background:#0a0818;border-top:1px solid #2d1f4e;padding:8px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;}
+.unit-btn{padding:6px 10px;border-radius:8px;border:1px solid #3d2a5e;background:#1a1030;color:#e2d4ff;cursor:pointer;font-size:0.75rem;text-align:center;min-width:72px;transition:all 0.15s;}
+.unit-btn:hover{border-color:#c084fc;background:#2d1f4e;}
+.unit-btn .cost{color:#fbbf24;font-size:0.7rem;}
+#overlay{position:fixed;inset:0;background:#000d;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;}
+.start{padding:12px 32px;border-radius:99px;border:none;background:linear-gradient(135deg,#f97316,#fde047);color:#1a1a1a;font-size:1rem;font-weight:700;cursor:pointer;}
+</style>
+<style>
+#tut-btn{position:fixed;top:10px;right:10px;z-index:998;padding:5px 12px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
+#tut-modal{display:none;position:fixed;inset:0;background:#0009;z-index:1000;align-items:center;justify-content:center;padding:16px;}
+#tut-modal.open{display:flex;}
+#tut-inner{background:#120a28;border:1px solid #3d2a5e;border-radius:16px;max-width:440px;width:100%;padding:20px;max-height:80vh;overflow-y:auto;}
+#tut-inner h3{color:#c084fc;font-size:1.1rem;margin-bottom:12px;}
+.tut-ctrl{background:#1a1030;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a78bfa;}
+.tut-ctrl b{color:#c084fc;display:block;margin-bottom:4px;}
+.tut-tips{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.tut-tips li{font-size:0.82rem;color:#9f8ab8;padding:6px 10px;background:#1a1030;border-radius:8px;border-left:3px solid #3d2a5e;}
+.tut-close{width:100%;margin-top:14px;padding:10px;border-radius:8px;border:none;background:#2d1f4e;color:#e2d4ff;cursor:pointer;font-size:0.9rem;}
+</style>
+</head>
+<body>
+<div id="tut-btn" onclick="document.getElementById('tut-modal').classList.add('open')">❓ 도움말</div>
+<div id="tut-modal" onclick="if(event.target===this)this.classList.remove('open')">
+<div id="tut-inner">
+  <h3>⚔️ 전쟁시대</h3>
+  <div class="tut-ctrl"><b>🎮 조작법</b>하단 버튼으로 유닛 파견</div>
+  <ul class="tut-tips"><li>💡 유닛을 쓰러뜨릴수록 XP 획득 → 시대 진화!</li><li>💡 원거리 유닛(궁수/마법사 등)은 뒤에서 쏴요</li><li>💡 근접+원거리 혼합이 최강 전략이에요</li><li>💡 미래 시대 로켓병은 범위 공격으로 무적!</li><li>💡 적보다 시대가 앞서면 압도적으로 유리해요</li></ul>
+  <button class="tut-close" onclick="document.getElementById('tut-modal').classList.remove('open')">✕ 닫기</button>
+</div>
+</div>
+<a href="/" style="position:fixed;top:10px;left:10px;z-index:999;display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;text-decoration:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:all 0.2s;" onmouseover="this.style.background='rgba(45,31,78,0.95)'" onmouseout="this.style.background='rgba(13,10,26,0.85)'">🏠 홈</a>
+<div id="era-bar">
+  <div class="era-name" id="era-name">⛏️ 석기시대</div>
+  <div id="era-fill-bg"><div id="era-fill"></div></div>
+  <div style="font-size:0.75rem;color:#7c6a9a;" id="era-pts">0 / 100</div>
+</div>
+<div id="hud">
+  <div class="stat">💰 <span id="gold-txt">200</span></div>
+  <div class="stat">🏰 아군: <span id="my-hp">1000</span></div>
+  <div class="stat">💀 적: <span id="en-hp">1000</span></div>
+  <div class="stat">⏱️ <span id="time-txt">0:00</span></div>
+</div>
+<canvas id="c" height="200"></canvas>
+<div id="units-panel" id="units-panel"></div>
+<div id="overlay">
+  <div style="font-size:4rem;margin-bottom:8px;">⚔️</div>
+  <h1 style="font-size:2rem;color:#fde047;margin-bottom:8px;">전쟁시대</h1>
+  <p style="color:#9f8ab8;margin-bottom:24px;text-align:center;">유닛을 파견해 적 기지를 파괴하라!<br>승리하면 다음 시대로 진화!</p>
+  <button class="start" onclick="startGame()">전쟁 시작!</button>
+</div>
+<script>
+const cv=document.getElementById('c');
+const ctx=cv.getContext('2d');
+const W=cv.width=Math.min(700,window.innerWidth);
+const H=200;
+const GY=H-50;
+const MY_BASE=55,EN_BASE=W-55;
+
+const ERAS=[
+  {name:'⛏️ 석기시대',bg:'#1a1208',gnd:'#2d2010',sky:'#0a0808',xp:100},
+  {name:'🏺 고대',bg:'#1a1410',gnd:'#3d2a10',sky:'#0a0810',xp:250},
+  {name:'⚔️ 중세',bg:'#10101a',gnd:'#1a1a2e',sky:'#080810',xp:500},
+  {name:'🔫 근대',bg:'#0f1418',gnd:'#1a2030',sky:'#080c10',xp:800},
+  {name:'🚀 미래',bg:'#08081a',gnd:'#0f0f2e',sky:'#04040e',xp:Infinity},
+];
+
+const UNIT_TIERS=[
+  // era 0
+  [{emoji:'🪨',name:'돌멩이꾼',cost:50,hp:30,dmg:5,spd:0.8,atk:60,range:45,r:12},{emoji:'🪓',name:'도끼맨',cost:100,hp:80,dmg:15,spd:0.6,atk:80,range:50,r:16},{emoji:'🏹',name:'활쟁이',cost:80,hp:25,dmg:20,spd:0.5,atk:70,range:110,r:12,proj:true}],
+  // era 1
+  [{emoji:'🗡️',name:'검사',cost:80,hp:60,dmg:18,spd:0.9,atk:55,range:50,r:14},{emoji:'🛡️',name:'중보병',cost:150,hp:200,dmg:22,spd:0.4,atk:90,range:45,r:20},{emoji:'🏇',name:'기병',cost:120,hp:80,dmg:28,spd:1.5,atk:50,range:55,r:16}],
+  // era 2
+  [{emoji:'🧙',name:'마법사',cost:130,hp:40,dmg:40,spd:0.6,atk:80,range:130,r:14,proj:true},{emoji:'🗡',name:'기사',cost:180,hp:250,dmg:35,spd:0.5,atk:85,range:50,r:20},{emoji:'🔥',name:'화염술사',cost:160,hp:50,dmg:55,spd:0.4,atk:100,range:140,r:14,proj:true,splash:60}],
+  // era 3
+  [{emoji:'🔫',name:'소총병',cost:100,hp:50,dmg:30,spd:0.8,atk:60,range:150,r:14,proj:true},{emoji:'💣',name:'폭격수',cost:200,hp:80,dmg:80,spd:0.4,atk:100,range:160,r:16,proj:true,splash:70},{emoji:'🛡',name:'중보병',cost:160,hp:300,dmg:40,spd:0.3,atk:95,range:50,r:22}],
+  // era 4
+  [{emoji:'🤖',name:'로봇',cost:150,hp:120,dmg:50,spd:1.1,atk:55,range:120,r:16,proj:true},{emoji:'🚀',name:'로켓병',cost:250,hp:100,dmg:120,spd:0.5,atk:110,range:180,r:16,proj:true,splash:90},{emoji:'🛸',name:'UFO',cost:300,hp:200,dmg:80,spd:0.8,atk:70,range:200,r:20,proj:true}],
+];
+
+const ENEMY_TIERS=UNIT_TIERS; // 같은 유닛 사용
+
+let units,projectiles,particles,gold,myHp,enHp,era,eraXp,running,gameTime,frame,goldTimer,spawnTimer;
+const MAX_HP=1000;
+
+function buildPanel(){
+  const panel=document.getElementById('units-panel');
+  panel.innerHTML='';
+  (UNIT_TIERS[era]||UNIT_TIERS[0]).forEach(u=>{
+    const b=document.createElement('button');b.className='unit-btn';
+    b.innerHTML=`${u.emoji} ${u.name}<div class="cost">${u.cost}G</div>`;
+    b.onclick=()=>deploy(u);panel.appendChild(b);
+  });
+}
+
+function startGame(){
+  document.getElementById('overlay').style.display='none';
+  units=[];projectiles=[];particles=[];gold=200;myHp=MAX_HP;enHp=MAX_HP;
+  era=0;eraXp=0;running=true;gameTime=0;frame=0;goldTimer=0;spawnTimer=0;
+  buildPanel();
+  loop();
+}
+
+function deploy(def){
+  if(gold<def.cost){return;}
+  gold-=def.cost;
+  units.push({...def,maxHp:def.hp,x:MY_BASE+30,y:GY-def.r,side:'ally',atkTimer:0,id:Math.random()});
+  updateHUD();
+}
+
+let animId;
+function loop(){if(!running)return;update();draw();animId=requestAnimationFrame(loop);}
+
+function update(){
+  frame++;
+  goldTimer++;if(goldTimer>=80){goldTimer=0;gold=Math.min(9999,gold+20+(era*5));updateHUD();}
+  // 적 AI 스폰
+  spawnTimer++;
+  const spawnRate=Math.max(150,300-era*30-Math.floor(gameTime/30)*5);
+  if(spawnTimer>=spawnRate){
+    spawnTimer=0;
+    const pool=ENEMY_TIERS[Math.min(era,ENEMY_TIERS.length-1)];
+    const def=pool[Math.floor(Math.random()*pool.length)];
+    const boost=1+era*0.3;
+    units.push({...def,hp:Math.floor(def.hp*boost),maxHp:Math.floor(def.hp*boost),dmg:Math.floor(def.dmg*boost),
+      x:EN_BASE-30,y:GY-def.r,side:'enemy',atkTimer:0,id:Math.random()});
+  }
+
+  if(frame%60===0)gameTime++;
+
+  for(let u of units){
+    const foes=units.filter(f=>f.side!==u.side);
+    const front=foes.find(f=>Math.abs(u.x-f.x)<u.range+f.r);
+    if(front){
+      u.atkTimer++;
+      if(u.atkTimer>=u.atk){
+        u.atkTimer=0;
+        if(u.proj){
+          projectiles.push({x:u.x+(u.side==='ally'?u.r:-u.r),y:u.y,vx:u.side==='ally'?7:-7,vy:0,
+            dmg:u.dmg,side:u.side,splash:u.splash||0,r:6});
+        } else {
+          front.hp-=u.dmg;spawnParticles(front.x,front.y,'#f87171',3);
+          if(front.hp<=0){front.dead=true;if(u.side==='ally'){gold+=8;eraXp+=5;}}
+        }
+      }
+    } else {
+      u.x+=u.spd*(u.side==='ally'?1:-1);
+      if(u.side==='ally'&&u.x>=EN_BASE-u.r){enHp-=u.dmg;u.dead=true;spawnParticles(EN_BASE,GY-40,'#f87171',8);if(enHp<=0){winGame();return;}}
+      if(u.side==='enemy'&&u.x<=MY_BASE+u.r){myHp-=u.dmg;u.dead=true;spawnParticles(MY_BASE,GY-40,'#f87171',8);if(myHp<=0){loseGame();return;}}
+    }
+  }
+
+  // 투사체
+  for(let p of projectiles){
+    p.x+=p.vx;
+    const targets=units.filter(u=>u.side!==p.side);
+    for(let t of targets){
+      if(Math.abs(p.x-t.x)<p.r+t.r){
+        if(p.splash){for(let tt of targets)if(Math.abs(p.x-tt.x)<p.splash){tt.hp-=p.dmg;if(tt.hp<=0){tt.dead=true;if(p.side==='ally'){gold+=8;eraXp+=5;}}}
+        spawnParticles(p.x,GY-20,'#f97316',10);}
+        else{t.hp-=p.dmg;spawnParticles(t.x,t.y,'#fbbf24',4);if(t.hp<=0){t.dead=true;if(p.side==='ally'){gold+=8;eraXp+=5;}}}
+        p.dead=true;break;
+      }
+    }
+    if(p.x<0||p.x>W)p.dead=true;
+  }
+
+  units=units.filter(u=>!u.dead);
+  projectiles=projectiles.filter(p=>!p.dead);
+  for(let p of particles){p.x+=p.vx;p.y+=p.vy;p.vy+=0.1;p.life--;}
+  particles=particles.filter(p=>p.life>0);
+
+  // 시대 진화
+  const curEra=ERAS[era];
+  if(era<ERAS.length-1&&eraXp>=curEra.xp){
+    era++;eraXp=0;
+    document.getElementById('era-name').textContent=ERAS[era].name;
+    buildPanel();
+    // 시대 전환 팡파레
+    spawnParticles(W/2,H/2,'#fde047',30);
+  }
+
+  const pct=era<ERAS.length-1?Math.min(100,eraXp/ERAS[era].xp*100):100;
+  document.getElementById('era-fill').style.width=pct+'%';
+  document.getElementById('era-pts').textContent=era<ERAS.length-1?`${eraXp}/${ERAS[era].xp}`:'MAX';
+  updateHUD();
+}
+
+function draw(){
+  const e=ERAS[Math.min(era,ERAS.length-1)];
+  ctx.fillStyle=e.sky||'#080808';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=e.bg||'#1a1208';ctx.fillRect(0,GY-20,W,20);
+  ctx.fillStyle=e.gnd||'#2d2010';ctx.fillRect(0,GY,W,H-GY);
+  ctx.fillStyle='#4a3a20';ctx.fillRect(0,GY,W,4);
+
+  // 기지
+  drawBase(MY_BASE,GY,myHp,'#7c3aed','🏰');
+  drawBase(EN_BASE,GY,enHp,'#dc2626','💀');
+
+  // 유닛
+  for(let u of units){
+    const bw=u.r*2.5;
+    ctx.fillStyle='#333';ctx.fillRect(u.x-bw/2,u.y-u.r-10,bw,5);
+    ctx.fillStyle=u.side==='ally'?'#22c55e':'#ef4444';
+    ctx.fillRect(u.x-bw/2,u.y-u.r-10,bw*(u.hp/u.maxHp),5);
+    ctx.font=`${u.r*1.4}px sans-serif`;ctx.textAlign='center';
+    ctx.fillText(u.emoji,u.x,u.y+u.r*0.4);
+  }
+
+  // 투사체
+  for(let p of projectiles){
+    ctx.beginPath();ctx.arc(p.x,GY-20,5,0,Math.PI*2);
+    ctx.fillStyle=p.side==='ally'?'#c084fc':'#f87171';ctx.fill();
+  }
+
+  // 파티클
+  for(let p of particles){ctx.globalAlpha=p.life/25;ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();}ctx.globalAlpha=1;
+}
+
+function drawBase(x,y,hp,color,emoji){
+  ctx.fillStyle=color+'44';ctx.fillRect(x-28,y-72,56,72);
+  ctx.strokeStyle=color;ctx.lineWidth=3;ctx.strokeRect(x-28,y-72,56,72);
+  ctx.font='26px sans-serif';ctx.textAlign='center';ctx.fillText(emoji,x,y-32);
+  ctx.fillStyle='#333';ctx.fillRect(x-28,y-80,56,7);
+  ctx.fillStyle=color;ctx.fillRect(x-28,y-80,56*(hp/MAX_HP),7);
+}
+
+function spawnParticles(x,y,color,n){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=Math.random()*3+1;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,life:25,color});}}
+function updateHUD(){
+  document.getElementById('gold-txt').textContent=gold;
+  document.getElementById('my-hp').textContent=Math.max(0,myHp);
+  document.getElementById('en-hp').textContent=Math.max(0,enHp);
+  const m=Math.floor(gameTime/60),s=gameTime%60;
+  document.getElementById('time-txt').textContent=`${m}:${String(s).padStart(2,'0')}`;
+}
+function winGame(){running=false;endScreen('🏆 승리!','적 기지를 함락했다!\n전쟁시대의 영웅이 됐어!');}
+function loseGame(){running=false;endScreen('💀 패배','아군 기지가 파괴됐어...\n다시 도전해봐!');}
+function endScreen(title,msg){
+  const ov=document.getElementById('overlay');
+  ov.innerHTML=`<div style="font-size:3rem">${title.split(' ')[0]}</div><h1 style="color:#fde047;font-size:1.8rem;margin:8px 0">${title}</h1><p style="color:#9f8ab8;margin-bottom:20px;text-align:center">${msg.replace('\n','<br>')}</p><button class="start" onclick="startGame()">다시 시작</button>`;
+  ov.style.display='flex';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SLQMKSZ1LF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-SLQMKSZ1LF');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📈 주식 차트</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0d0a1a;color:#f0e6ff;font-family:'Noto Sans KR',sans-serif;min-height:100vh;padding:16px;}
+h1{font-size:1.6rem;color:#c084fc;text-align:center;margin-bottom:16px;}
+.search-bar{display:flex;gap:8px;max-width:700px;margin:0 auto 16px;}
+.search-bar input{flex:1;padding:10px 14px;border-radius:10px;border:1px solid #3d2a5e;background:#1a1030;color:#e2d4ff;font-size:1rem;}
+.search-bar button{padding:10px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#c084fc);color:#fff;font-weight:700;cursor:pointer;}
+.quick-btns{display:flex;flex-wrap:wrap;gap:6px;max-width:700px;margin:0 auto 16px;justify-content:center;}
+.qbtn{padding:6px 12px;border-radius:20px;border:1px solid #3d2a5e;background:#1a1030;color:#c084fc;cursor:pointer;font-size:0.82rem;transition:all 0.2s;}
+.qbtn:hover{background:#2d1f4e;border-color:#c084fc;}
+#stock-info{max-width:700px;margin:0 auto 12px;display:none;}
+.info-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.info-card{background:#1a1030;border:1px solid #3d2a5e;border-radius:10px;padding:10px 16px;flex:1;min-width:120px;}
+.info-card .label{font-size:0.72rem;color:#7c6a9a;}
+.info-card .val{font-size:1.2rem;font-weight:700;}
+.up{color:#22c55e;}.down{color:#ef4444;}.neu{color:#e2d4ff;}
+.period-btns{display:flex;gap:6px;margin-bottom:10px;}
+.pbtn{padding:5px 14px;border-radius:6px;border:1px solid #3d2a5e;background:#1a1030;color:#9f8ab8;cursor:pointer;font-size:0.82rem;}
+.pbtn.active{background:#2d1f4e;border-color:#c084fc;color:#c084fc;}
+#chart-wrap{background:#120a28;border:1px solid #3d2a5e;border-radius:12px;overflow:hidden;max-width:700px;margin:0 auto;}
+canvas{display:block;width:100%;}
+#status{text-align:center;color:#7c6a9a;padding:16px;font-size:0.85rem;}
+#loading{text-align:center;padding:20px;color:#c084fc;display:none;}
+</style>
+<style>
+#tut-btn{position:fixed;top:10px;right:10px;z-index:998;padding:5px 12px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
+#tut-modal{display:none;position:fixed;inset:0;background:#0009;z-index:1000;align-items:center;justify-content:center;padding:16px;}
+#tut-modal.open{display:flex;}
+#tut-inner{background:#120a28;border:1px solid #3d2a5e;border-radius:16px;max-width:440px;width:100%;padding:20px;max-height:80vh;overflow-y:auto;}
+#tut-inner h3{color:#c084fc;font-size:1.1rem;margin-bottom:12px;}
+.tut-ctrl{background:#1a1030;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.82rem;color:#a78bfa;}
+.tut-ctrl b{color:#c084fc;display:block;margin-bottom:4px;}
+.tut-tips{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.tut-tips li{font-size:0.82rem;color:#9f8ab8;padding:6px 10px;background:#1a1030;border-radius:8px;border-left:3px solid #3d2a5e;}
+.tut-close{width:100%;margin-top:14px;padding:10px;border-radius:8px;border:none;background:#2d1f4e;color:#e2d4ff;cursor:pointer;font-size:0.9rem;}
+</style>
+</head>
+<body>
+<div id="tut-btn" onclick="document.getElementById('tut-modal').classList.add('open')">❓ 도움말</div>
+<div id="tut-modal" onclick="if(event.target===this)this.classList.remove('open')">
+<div id="tut-inner">
+  <h3>📈 주식 차트</h3>
+  <div class="tut-ctrl"><b>🎮 조작법</b>티커 입력 또는 퀵버튼으로 종목 선택</div>
+  <ul class="tut-tips"><li>💡 한국 주식: 005930.KS (삼성전자) 형식으로 입력</li><li>💡 암호화폐: BTC-USD, ETH-USD 형식</li><li>💡 기간 버튼으로 1일~5년 차트 변경 가능</li><li>💡 1분마다 자동 새로고침돼요</li><li>💡 CORS 제한으로 일부 종목은 느릴 수 있어요</li></ul>
+  <button class="tut-close" onclick="document.getElementById('tut-modal').classList.remove('open')">✕ 닫기</button>
+</div>
+</div>
+<a href="/" style="position:fixed;top:10px;left:10px;z-index:999;display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;background:rgba(13,10,26,0.92);border:1px solid #3d2a5e;color:#c084fc;font-size:0.82rem;font-weight:700;text-decoration:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:all 0.2s;" onmouseover="this.style.background='rgba(45,31,78,0.95)'" onmouseout="this.style.background='rgba(13,10,26,0.85)'">🏠 홈</a>
+<h1>📈 실시간 주식 차트</h1>
+<div class="search-bar">
+  <input id="ticker" type="text" placeholder="티커 입력 (예: AAPL, 005930.KS, TSLA)" value="AAPL">
+  <button onclick="loadStock()">조회</button>
+</div>
+<div class="quick-btns">
+  <button class="qbtn" onclick="setTicker('AAPL')">🍎 애플</button>
+  <button class="qbtn" onclick="setTicker('TSLA')">⚡ 테슬라</button>
+  <button class="qbtn" onclick="setTicker('NVDA')">🟢 엔비디아</button>
+  <button class="qbtn" onclick="setTicker('MSFT')">🪟 마이크로소프트</button>
+  <button class="qbtn" onclick="setTicker('GOOGL')">🔍 구글</button>
+  <button class="qbtn" onclick="setTicker('META')">📘 메타</button>
+  <button class="qbtn" onclick="setTicker('005930.KS')">📱 삼성전자</button>
+  <button class="qbtn" onclick="setTicker('000660.KS')">💡 SK하이닉스</button>
+  <button class="qbtn" onclick="setTicker('035420.KS')">🔵 NAVER</button>
+  <button class="qbtn" onclick="setTicker('BTC-USD')">₿ 비트코인</button>
+  <button class="qbtn" onclick="setTicker('ETH-USD')">💎 이더리움</button>
+</div>
+<div id="loading">⏳ 데이터 불러오는 중...</div>
+<div id="stock-info">
+  <div class="info-row">
+    <div class="info-card"><div class="label">종목</div><div class="val neu" id="i-name">-</div></div>
+    <div class="info-card"><div class="label">현재가</div><div class="val neu" id="i-price">-</div></div>
+    <div class="info-card"><div class="label">등락</div><div class="val" id="i-change">-</div></div>
+    <div class="info-card"><div class="label">시가총액</div><div class="val neu" id="i-cap">-</div></div>
+  </div>
+  <div class="info-row">
+    <div class="info-card"><div class="label">52주 최고</div><div class="val up" id="i-high">-</div></div>
+    <div class="info-card"><div class="label">52주 최저</div><div class="val down" id="i-low">-</div></div>
+    <div class="info-card"><div class="label">거래량</div><div class="val neu" id="i-vol">-</div></div>
+    <div class="info-card"><div class="label">PE Ratio</div><div class="val neu" id="i-pe">-</div></div>
+  </div>
+  <div class="period-btns">
+    <button class="pbtn active" onclick="changePeriod('1d','5m',this)">1일</button>
+    <button class="pbtn" onclick="changePeriod('5d','30m',this)">5일</button>
+    <button class="pbtn" onclick="changePeriod('1mo','1d',this)">1달</button>
+    <button class="pbtn" onclick="changePeriod('3mo','1d',this)">3달</button>
+    <button class="pbtn" onclick="changePeriod('1y','1wk',this)">1년</button>
+    <button class="pbtn" onclick="changePeriod('5y','1mo',this)">5년</button>
+  </div>
+</div>
+<div id="chart-wrap" style="display:none;">
+  <canvas id="chart" height="320"></canvas>
+</div>
+<div id="status">위에서 종목을 선택하거나 티커를 입력하세요</div>
+
+<script>
+async function fetchWithProxy(url){
+  // 직접 시도 먼저
+  try{const r=await fetch(url,{mode:'cors'});if(r.ok)return r;}catch(e){}
+  // 프록시 순서대로 시도
+  for(let p of PROXIES){
+    try{const r=await fetch(p+encodeURIComponent(url));if(r.ok)return r;}catch(e){}
+  }
+  throw new Error('모든 요청 실패 — 잠시 후 다시 시도해주세요');
+}
+
+let currentTicker='AAPL',currentPeriod='1d',currentInterval='5m';
+const PROXIES=['https://api.allorigins.win/raw?url=','https://corsproxy.io/?','https://cors-anywhere.herokuapp.com/'];
+
+function setTicker(t){
+  document.getElementById('ticker').value=t;
+  loadStock();
+}
+
+function changePeriod(period,interval,btn){
+  currentPeriod=period;currentInterval=interval;
+  document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  fetchChart(currentTicker,period,interval);
+}
+
+async function loadStock(){
+  const t=document.getElementById('ticker').value.trim().toUpperCase();
+  if(!t)return;
+  currentTicker=t;
+  document.getElementById('loading').style.display='block';
+  document.getElementById('status').textContent='';
+  document.getElementById('stock-info').style.display='none';
+  document.getElementById('chart-wrap').style.display='none';
+
+  try {
+    // 기본 정보
+    const infoUrl=`https://query1.finance.yahoo.com/v8/finance/chart/${t}?interval=1d&range=1d`;
+    const infoRes=await fetchWithProxy(infoUrl);
+    const infoData=await infoRes.json();
+    const meta=infoData.result?.[0]?.meta;
+    if(!meta) throw new Error('종목을 찾을 수 없어요');
+
+    const price=meta.regularMarketPrice||0;
+    const prev=meta.chartPreviousClose||meta.previousClose||price;
+    const change=price-prev;
+    const changePct=(change/prev*100);
+    const isUp=change>=0;
+
+    document.getElementById('i-name').textContent=meta.symbol;
+    document.getElementById('i-price').textContent=fmtPrice(price,meta.currency);
+    document.getElementById('i-change').className='val '+(isUp?'up':'down');
+    document.getElementById('i-change').textContent=`${isUp?'+':''}${fmtPrice(change,meta.currency)} (${changePct.toFixed(2)}%)`;
+    document.getElementById('i-high').textContent=fmtPrice(meta.fiftyTwoWeekHigh,meta.currency);
+    document.getElementById('i-low').textContent=fmtPrice(meta.fiftyTwoWeekLow,meta.currency);
+    document.getElementById('i-vol').textContent=fmtNum(meta.regularMarketVolume);
+    document.getElementById('i-cap').textContent=meta.marketCap?fmtNum(meta.marketCap):'-';
+    document.getElementById('i-pe').textContent='-';
+
+    document.getElementById('stock-info').style.display='block';
+    await fetchChart(t,currentPeriod,currentInterval);
+  } catch(e) {
+    document.getElementById('status').textContent='⚠️ '+e.message+' (CORS 제한으로 일부 종목은 조회 불가)';
+  }
+  document.getElementById('loading').style.display='none';
+}
+
+async function fetchChart(t,period,interval){
+  document.getElementById('loading').style.display='block';
+  try{
+    const url=`https://query1.finance.yahoo.com/v8/finance/chart/${t}?interval=${interval}&range=${period}`;
+    const res=await fetchWithProxy(url);
+    const data=await res.json();
+    const r=data.result?.[0];
+    if(!r)throw new Error('차트 데이터 없음');
+    const ts=r.timestamp||[];
+    const q=r.indicators?.quote?.[0]||{};
+    const closes=q.close||[];
+    const opens=q.open||[];
+    const highs=q.high||[];
+    const lows=q.low||[];
+    drawChart(ts,opens,highs,lows,closes,r.meta?.currency);
+    document.getElementById('chart-wrap').style.display='block';
+    document.getElementById('status').textContent='';
+  }catch(e){
+    document.getElementById('status').textContent='차트 로딩 실패: '+e.message;
+  }
+  document.getElementById('loading').style.display='none';
+}
+
+function drawChart(timestamps,opens,highs,lows,closes,currency='USD'){
+  const cv=document.getElementById('chart');
+  const W=cv.offsetWidth||700;cv.width=W;
+  const H=cv.height=320;
+  const ctx=cv.getContext('2d');
+
+  // 유효 데이터만
+  const pts=[];
+  for(let i=0;i<timestamps.length;i++){
+    if(closes[i]!=null)pts.push({t:timestamps[i]*1000,o:opens[i],h:highs[i],l:lows[i],c:closes[i]});
+  }
+  if(!pts.length)return;
+
+  const PAD={l:60,r:10,t:16,b:36};
+  const cw=W-PAD.l-PAD.r, ch=H-PAD.t-PAD.b;
+
+  const minP=Math.min(...pts.map(p=>p.l));
+  const maxP=Math.max(...pts.map(p=>p.h));
+  const range=maxP-minP||1;
+
+  const xOf=i=>PAD.l+i/(pts.length-1||1)*cw;
+  const yOf=v=>PAD.t+ch-(v-minP)/range*ch;
+
+  // 배경
+  ctx.fillStyle='#120a28';ctx.fillRect(0,0,W,H);
+
+  // 그리드
+  ctx.strokeStyle='#2a1f3d';ctx.lineWidth=1;
+  for(let i=0;i<=5;i++){
+    const y=PAD.t+ch*i/5;
+    ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(W-PAD.r,y);ctx.stroke();
+    const v=maxP-(range*i/5);
+    ctx.fillStyle='#7c6a9a';ctx.font='11px sans-serif';ctx.textAlign='right';
+    ctx.fillText(fmtPrice(v,currency),PAD.l-4,y+4);
+  }
+
+  // 등락 방향
+  const isUp=pts[pts.length-1].c>=pts[0].c;
+  const upC='#22c55e',downC='#ef4444';
+  const lineC=isUp?upC:downC;
+
+  // 면적 그라디언트
+  const grad=ctx.createLinearGradient(0,PAD.t,0,PAD.t+ch);
+  grad.addColorStop(0,lineC+'55');grad.addColorStop(1,lineC+'00');
+  ctx.beginPath();
+  ctx.moveTo(xOf(0),yOf(pts[0].c));
+  for(let i=1;i<pts.length;i++)ctx.lineTo(xOf(i),yOf(pts[i].c));
+  ctx.lineTo(xOf(pts.length-1),PAD.t+ch);ctx.lineTo(xOf(0),PAD.t+ch);ctx.closePath();
+  ctx.fillStyle=grad;ctx.fill();
+
+  // 라인
+  ctx.beginPath();ctx.strokeStyle=lineC;ctx.lineWidth=2;ctx.lineJoin='round';
+  ctx.moveTo(xOf(0),yOf(pts[0].c));
+  for(let i=1;i<pts.length;i++)ctx.lineTo(xOf(i),yOf(pts[i].c));
+  ctx.stroke();
+
+  // 시간 레이블
+  const step=Math.max(1,Math.floor(pts.length/6));
+  ctx.fillStyle='#7c6a9a';ctx.font='10px sans-serif';ctx.textAlign='center';
+  for(let i=0;i<pts.length;i+=step){
+    const d=new Date(pts[i].t);
+    const label=currentPeriod==='1d'?`${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`
+      :currentPeriod==='5d'?`${d.getMonth()+1}/${d.getDate()} ${d.getHours()}h`
+      :`${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;
+    ctx.fillText(label,xOf(i),H-6);
+  }
+
+  // 마지막 가격 표시
+  const lastY=yOf(pts[pts.length-1].c);
+  ctx.strokeStyle=lineC;ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(PAD.l,lastY);ctx.lineTo(W-PAD.r,lastY);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle=lineC;ctx.beginPath();ctx.arc(xOf(pts.length-1),lastY,4,0,Math.PI*2);ctx.fill();
+}
+
+function fmtPrice(v,currency='USD'){
+  if(v==null||isNaN(v))return'-';
+  const sym=currency==='KRW'?'₩':currency==='USD'?'$':currency+'';
+  if(currency==='KRW')return sym+Math.round(v).toLocaleString();
+  return sym+v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtNum(v){
+  if(!v)return'-';
+  if(v>=1e12)return(v/1e12).toFixed(2)+'T';
+  if(v>=1e9)return(v/1e9).toFixed(2)+'B';
+  if(v>=1e6)return(v/1e6).toFixed(2)+'M';
+  if(v>=1e4)return(v/1000).toFixed(0)+'K';
+  return v.toLocaleString();
+}
+
+// 자동 새로고침 (1분)
+setInterval(()=>{if(currentTicker)loadStock();},60000);
+loadStock();
+</script>
+</body>
+</html>
