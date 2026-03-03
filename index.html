@@ -1,16 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<script>
-// Firebase/Supabase 기본 도메인 접속 시 hunhui.cloud로 리다이렉트
-(function() {
-  var host = window.location.hostname;
-  var allowed = ['hunhui.cloud', 'www.hunhui.cloud', 'playground.hunhui.cloud', 'localhost', '127.0.0.1'];
-  if (allowed.indexOf(host) === -1 && host !== '') {
-    window.location.replace('https://hunhui.cloud' + window.location.pathname + window.location.search + window.location.hash);
-  }
-})();
-</script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-SLQMKSZ1LF"></script>
 <script>
