@@ -6,11 +6,18 @@ function getBossType(t)  { let r = BOSS_TYPES[0]; for (const b of BOSS_TYPES) { 
 function spawnEnemy() {
   const pool = getEnemyPool(gameTime);
   let idx = 0;
-  const rnd = Math.random();
-  if (pool.length >= 3 && rnd < 0.38) idx = pool.length - 1;
-  else if (pool.length >= 2 && rnd < 0.68) idx = pool.length - 2;
-  else idx = Math.floor(Math.random() * pool.length);
-  const t = pool[Math.max(0, idx)];
+  let t;
+  // 최대 3번 재추첨: 총 쏘는 적(archer/mage) 빈도 감소
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const rnd = Math.random();
+    if (pool.length >= 3 && rnd < 0.38) idx = pool.length - 1;
+    else if (pool.length >= 2 && rnd < 0.68) idx = pool.length - 2;
+    else idx = Math.floor(Math.random() * pool.length);
+    t = pool[Math.max(0, idx)];
+    // 총 쏘는 적은 30% 확률로만 등장 허용 (70%는 재추첨)
+    if ((t.type === 'archer' || t.type === 'mage') && Math.random() < 0.70 && attempt < 2) continue;
+    break;
+  }
 
   const angle = Math.random() * Math.PI * 2;
   const d = Math.max(W, H) * 0.65;
