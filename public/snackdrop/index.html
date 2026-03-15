@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🍡 간식 합치기</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#1a0a00; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; min-height:100vh; font-family:'Noto Sans KR',sans-serif; color:#eee; overflow:hidden; }
+    #header { display:flex; justify-content:space-between; align-items:center; width:100%; max-width:400px; padding:8px 16px; background:rgba(0,0,0,0.5); }
+    #score-display { font-size:1.2rem; font-weight:bold; color:#feca57; }
+    #next-display { display:flex; align-items:center; gap:6px; font-size:0.8rem; color:#aaa; }
+    #next-emoji { font-size:1.5rem; }
+    #canvas-wrap { position:relative; }
+    canvas { display:block; }
+    #gameover { display:none; position:absolute; inset:0; background:rgba(0,0,0,0.85); flex-direction:column; align-items:center; justify-content:center; text-align:center; border-radius:4px; }
+    #gameover.show { display:flex; }
+    #gameover h2 { font-size:2rem; color:#ff6b6b; margin-bottom:0.5rem; }
+    #gameover .final { font-size:1.3rem; color:#feca57; margin-bottom:1rem; }
+    #gameover button { padding:0.8rem 2rem; background:linear-gradient(135deg,#feca57,#ff6b6b); border:none; border-radius:10px; font-size:1rem; font-weight:bold; color:#000; cursor:pointer; }
+    #legend { display:flex; flex-wrap:wrap; gap:4px; justify-content:center; padding:6px; max-width:400px; }
+    .leg-item { display:flex; align-items:center; gap:3px; font-size:0.7rem; color:#888; }
+    #guide { font-size:0.7rem; color:#555; padding:4px; }
+    #drop-indicator { position:absolute; top:0; width:2px; background:rgba(255,255,255,0.2); pointer-events:none; transition:left 0.05s; }
+    #next-snack-preview { position:absolute; top:0; pointer-events:none; transition:left 0.05s; font-size:1.5rem; transform:translateX(-50%); }
+  </style>
+</head>
+<body>
+
+<div id="header">
+  <div>🍡 간식 합치기<br><small style="color:#888;font-size:0.7rem;">같은 간식 → 합치기!</small></div>
+  <div>
+    <div id="score-display">점수: 0</div>
+    <div id="next-display">다음: <span id="next-emoji">?</span></div>
+  </div>
+</div>
+
+<div id="canvas-wrap">
+  <canvas id="c"></canvas>
+  <div id="drop-indicator"></div>
+  <div id="next-snack-preview"></div>
+  <div id="gameover">
+    <h2>💀 게임 오버</h2>
+    <div class="final" id="final-score">점수: 0</div>
+    <div style="color:#aaa;font-size:0.85rem;margin-bottom:1rem;">간식이 넘쳤습니다 🍡</div>
+    <button onclick="restartGame()">🔄 다시 하기</button>
+  </div>
+</div>
+
+<div id="legend"></div>
+<div id="guide">← → 마우스/터치로 위치, 클릭으로 드롭!</div>
+
+<script>
+var SNACKS = [
+  { name:'마이구미',   emoji:'🐻', r:14,  score:1,  color:'#ff6b9d' },
+  { name:'새우깡',     emoji:'🦐', r:19,  score:3,  color:'#ff9f43' },
+  { name:'칸쵸',       emoji:'🍫', r:24,  score:6,  color:'#5f27cd' },
+  { name:'버터떡',     emoji:'🍡', r:29,  score:10, color:'#feca57' },
+  { name:'빼빼로',     emoji:'🍫', r:34,  score:15, color:'#d63031' },
+  { name:'허니버터칩', emoji:'🥔', r:40,  score:21, color:'#fdcb6e' },
+  { name:'초코파이',   emoji:'🍰', r:47,  score:28, color:'#6c5ce7' },
+  { name:'뻥튀기',     emoji:'⭕', r:55,  score:36, color:'#a29bfe' },
+  { name:'오예스',     emoji:'🎂', r:64,  score:45, color:'#fd79a8' },
+  { name:'메가톤바',   emoji:'🍬', r:74,  score:55, color:'#00b894' },
+  { name:'전통과자세트',emoji:'🎁', r:85, score:100,color:'#e17055' },
+];
+
+var W = Math.min(window.innerWidth, 400);
+var H = Math.min(window.innerHeight - 140, 580);
+var canvas = document.getElementById('c');
+canvas.width = W; canvas.height = H;
+document.getElementById('drop-indicator').style.height = H + 'px';
+
+var score = 0;
+var dropX = W / 2;
+var currentSnack = 0;
+var nextSnack = 0;
+var canDrop = true;
+var gameOver = false;
+var bodies = [];
+
+// Matter.js setup
+var Engine = Matter.Engine, Render = Matter.Render, Runner = Matter.Runner,
+    Bodies = Matter.Bodies, Body = Matter.Body, Composite = Matter.Composite,
+    Events = Matter.Events, Vector = Matter.Vector;
+
+var engine, runner, ctx;
+
+function initGame() {
+  if (engine) { Runner.stop(runner); Engine.clear(engine); }
+  bodies = [];
+  score = 0;
+  canDrop = true;
+  gameOver = false;
+  document.getElementById('score-display').textContent = '점수: 0';
+  document.getElementById('gameover').classList.remove('show');
+
+  engine = Engine.create({ gravity: { y: 2 } });
+  runner = Runner.create();
+
+  // Walls
+  var walls = [
+    Bodies.rectangle(W/2, H+25, W, 50, { isStatic:true, label:'wall', friction:0.3, restitution:0.1 }),   // floor
+    Bodies.rectangle(-12, H/2, 25, H*2, { isStatic:true, label:'wall' }),  // left
+    Bodies.rectangle(W+12, H/2, 25, H*2, { isStatic:true, label:'wall' }), // right
+  ];
+  Composite.add(engine.world, walls);
+
+  currentSnack = Math.floor(Math.random() * 4);
+  nextSnack = Math.floor(Math.random() * 4);
+  updateNextUI();
+
+  // Collision detection
+  Events.on(engine, 'collisionStart', function(e) {
+    e.pairs.forEach(function(pair) {
+      var a = pair.bodyA, b = pair.bodyB;
+      if (a.snackIdx !== undefined && b.snackIdx !== undefined && a.snackIdx === b.snackIdx && !a.merging && !b.merging) {
+        var idx = a.snackIdx;
+        if (idx >= SNACKS.length - 1) return;
+        a.merging = true; b.merging = true;
+        var mx = (a.position.x + b.position.x) / 2;
+        var my = (a.position.y + b.position.y) / 2;
+        setTimeout(function() {
+          if (Composite.get(engine.world, a.id, 'body')) Composite.remove(engine.world, a);
+          if (Composite.get(engine.world, b.id, 'body')) Composite.remove(engine.world, b);
+          bodies = bodies.filter(function(x){ return x !== a && x !== b; });
+          var newBody = makeSnackBody(mx, Math.min(my, H - SNACKS[idx+1].r - 5), idx+1);
+          Composite.add(engine.world, newBody);
+          bodies.push(newBody);
+          score += SNACKS[idx+1].score;
+          document.getElementById('score-display').textContent = '점수: ' + score;
+          spawnMergeEffect(mx, my, SNACKS[idx+1].emoji);
+        }, 30);
+      }
+    });
+  });
+
+  Runner.run(runner, engine);
+  ctx = canvas.getContext('2d');
+  requestAnimationFrame(drawLoop);
+}
+
+function makeSnackBody(x, y, idx) {
+  var s = SNACKS[idx];
+  var body = Bodies.circle(x, y, s.r, {
+    restitution: 0.2, friction: 0.5, density: 0.002,
+    label: 'snack'
+  });
+  body.snackIdx = idx;
+  return body;
+}
+
+var mergeEffects = [];
+function spawnMergeEffect(x, y, emoji) {
+  mergeEffects.push({ x:x, y:y, emoji:emoji, life:40, maxLife:40 });
+}
+
+function drawLoop() {
+  if (gameOver) return;
+  ctx.clearRect(0, 0, W, H);
+
+  // bg
+  ctx.fillStyle = '#1a0a00';
+  ctx.fillRect(0, 0, W, H);
+
+  // container walls visual
+  ctx.strokeStyle = '#8B4513';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(2, 0, W-4, H-2);
+  ctx.fillStyle = 'rgba(139,69,19,0.1)';
+  ctx.fillRect(2, 0, W-4, H-2);
+
+  // danger line
+  ctx.strokeStyle = 'rgba(231,76,60,0.4)';
+  ctx.setLineDash([5,5]);
+  ctx.beginPath(); ctx.moveTo(0, 80); ctx.lineTo(W, 80); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(231,76,60,0.5)';
+  ctx.font = '10px sans-serif';
+  ctx.fillText('⚠ 위험선', 5, 76);
+
+  // draw snacks
+  var allBodies = Composite.allBodies(engine.world);
+  allBodies.forEach(function(body) {
+    if (body.label !== 'snack') return;
+    var idx = body.snackIdx;
+    var s = SNACKS[idx];
+    var pos = body.position;
+    var angle = body.angle;
+
+    ctx.save();
+    ctx.translate(pos.x, pos.y);
+    ctx.rotate(angle);
+
+    // circle bg
+    ctx.beginPath();
+    ctx.arc(0, 0, s.r, 0, Math.PI*2);
+    ctx.fillStyle = s.color + '88';
+    ctx.fill();
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // emoji
+    ctx.font = (s.r * 1.1) + 'px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(s.emoji, 0, 2);
+
+    ctx.restore();
+
+    // check game over
+    if (!gameOver && pos.y < 85 && body.speed < 0.5) {
+      triggerGameOver();
+    }
+  });
+
+  // merge effects
+  mergeEffects.forEach(function(ef) {
+    var alpha = ef.life / ef.maxLife;
+    ctx.globalAlpha = alpha;
+    ctx.font = '2rem serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(ef.emoji, ef.x, ef.y - (1 - alpha) * 30);
+    ctx.globalAlpha = 1;
+    ef.life--;
+  });
+  mergeEffects = mergeEffects.filter(function(e){ return e.life > 0; });
+
+  // drop preview
+  if (canDrop) {
+    var s = SNACKS[currentSnack];
+    ctx.globalAlpha = 0.5;
+    ctx.font = s.r * 1.2 + 'px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(s.emoji, dropX, 40);
+    ctx.globalAlpha = 1;
+
+    // guide line
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.setLineDash([3,6]);
+    ctx.beginPath(); ctx.moveTo(dropX, 55); ctx.lineTo(dropX, H); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  requestAnimationFrame(drawLoop);
+}
+
+function drop() {
+  if (!canDrop || gameOver) return;
+  canDrop = false;
+  var s = SNACKS[currentSnack];
+  var body = makeSnackBody(dropX, 50, currentSnack);
+  Composite.add(engine.world, body);
+  bodies.push(body);
+
+  currentSnack = nextSnack;
+  nextSnack = Math.floor(Math.random() * 4);
+  updateNextUI();
+
+  setTimeout(function(){ canDrop = true; }, 500);
+}
+
+function updateNextUI() {
+  document.getElementById('next-emoji').textContent = SNACKS[nextSnack].emoji + ' ' + SNACKS[nextSnack].name;
+}
+
+function triggerGameOver() {
+  gameOver = true;
+  Runner.stop(runner);
+  document.getElementById('final-score').textContent = '최종 점수: ' + score;
+  document.getElementById('gameover').classList.add('show');
+}
+
+function restartGame() { initGame(); }
+
+// Input
+canvas.addEventListener('mousemove', function(e) {
+  var rect = canvas.getBoundingClientRect();
+  dropX = Math.max(30, Math.min(W-30, e.clientX - rect.left));
+});
+canvas.addEventListener('click', function(e) {
+  var rect = canvas.getBoundingClientRect();
+  dropX = Math.max(30, Math.min(W-30, e.clientX - rect.left));
+  drop();
+});
+canvas.addEventListener('touchmove', function(e) {
+  e.preventDefault();
+  var rect = canvas.getBoundingClientRect();
+  dropX = Math.max(30, Math.min(W-30, e.touches[0].clientX - rect.left));
+}, {passive:false});
+canvas.addEventListener('touchend', function(e) {
+  e.preventDefault();
+  drop();
+}, {passive:false});
+
+// Legend
+var legDiv = document.getElementById('legend');
+SNACKS.forEach(function(s) {
+  legDiv.innerHTML += '<div class="leg-item"><span>' + s.emoji + '</span><span>' + s.name + '</span></div>';
+});
+
+initGame();
+</script>
+</body>
+</html>

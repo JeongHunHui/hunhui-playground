@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🤯 완전히 멘탈이 나가 버렸습니다</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family:'Noto Sans KR',sans-serif;
+      background:#000;
+      color:#fff;
+      min-height:100vh;
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      user-select:none;
+    }
+
+    /* ── BG ── */
+    #scene {
+      position:fixed; inset:0;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      transition:background 0.1s;
+    }
+
+    /* ── OVERLAYS ── */
+    .overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100; background:rgba(0,0,0,0.92); }
+    .overlay.hidden { display:none; }
+
+    /* ── START ── */
+    #start { text-align:center; }
+    .logo-big { font-size:5rem; animation:bounce 0.6s infinite alternate; display:block; margin-bottom:0.5rem; }
+    @keyframes bounce { from{transform:translateY(0) scale(1);} to{transform:translateY(-10px) scale(1.05);} }
+    .title-big { font-size:1.5rem; font-weight:900; line-height:1.3; margin-bottom:1rem; }
+    .title-red { color:#ff3b30; }
+    .start-btn { 
+      padding:1.2rem 3rem; border:none; border-radius:16px;
+      background:linear-gradient(135deg,#ff3b30,#ff9500);
+      font-size:1.2rem; font-weight:900; color:#fff;
+      cursor:pointer; animation:pulse 1s infinite;
+      box-shadow:0 0 30px rgba(255,59,48,0.6);
+    }
+    @keyframes pulse { 0%,100%{transform:scale(1);box-shadow:0 0 30px rgba(255,59,48,0.6);} 50%{transform:scale(1.05);box-shadow:0 0 50px rgba(255,59,48,0.9);} }
+
+    /* ── HUD ── */
+    #hud { 
+      position:fixed; top:0; left:0; right:0; 
+      padding:12px 16px; 
+      display:flex; justify-content:space-between; align-items:center;
+      z-index:50; background:rgba(0,0,0,0.6);
+    }
+    #timer-wrap { display:flex; flex-direction:column; align-items:center; }
+    #timer { font-size:2rem; font-weight:900; color:#ff3b30; line-height:1; }
+    #timer-bar { width:100px; height:6px; background:rgba(255,255,255,0.2); border-radius:3px; overflow:hidden; margin-top:3px; }
+    #timer-fill { height:100%; background:#ff3b30; border-radius:3px; transition:width 0.1s linear; }
+    #score { font-size:1.1rem; font-weight:bold; color:#ffd60a; }
+    #life { font-size:1.4rem; letter-spacing:2px; }
+
+    /* ── MAIN CARD ── */
+    #card {
+      position:relative;
+      width:min(90vw,420px);
+      background:rgba(255,255,255,0.05);
+      border:2px solid rgba(255,255,255,0.15);
+      border-radius:20px;
+      padding:1.5rem;
+      text-align:center;
+      margin-top:60px;
+    }
+
+    #card-tag {
+      display:inline-block; padding:4px 12px; border-radius:99px;
+      font-size:0.72rem; font-weight:bold; letter-spacing:.1em;
+      margin-bottom:12px;
+    }
+
+    #card-emoji { font-size:5rem; display:block; margin-bottom:12px; line-height:1; }
+
+    #card-title {
+      font-size:1.3rem; font-weight:900; margin-bottom:10px; line-height:1.3;
+    }
+
+    #card-body {
+      font-size:0.88rem; color:#ccc; line-height:1.7; margin-bottom:16px;
+    }
+
+    #card-narrator {
+      font-size:0.85rem; font-weight:bold; color:#ff9500;
+      border-top:1px solid rgba(255,255,255,0.1);
+      padding-top:12px; line-height:1.5;
+    }
+
+    /* ── CHOICE BTNS ── */
+    #choices { display:flex; gap:10px; margin-top:16px; }
+    .choice {
+      flex:1; padding:14px 8px;
+      border:2px solid; border-radius:14px;
+      font-size:0.88rem; font-weight:bold;
+      cursor:pointer; transition:transform 0.1s, filter 0.1s;
+      background:transparent;
+    }
+    .choice:hover { transform:scale(1.04); filter:brightness(1.2); }
+    .choice:active { transform:scale(0.96); }
+    .choice-ok { border-color:#30d158; color:#30d158; }
+    .choice-nope { border-color:#ff453a; color:#ff453a; }
+    .choice-idk { border-color:#ffd60a; color:#ffd60a; }
+
+    /* ── REACTIONS ── */
+    #narrator-popup {
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      z-index:200; pointer-events:none;
+      text-align:center; transition:opacity 0.15s;
+    }
+    #narrator-popup.hidden { opacity:0; }
+    #np-emoji { font-size:6rem; display:block; }
+    #np-text {
+      font-size:1.4rem; font-weight:900;
+      text-shadow:0 0 20px currentColor;
+      background:rgba(0,0,0,0.8);
+      padding:8px 16px; border-radius:10px;
+      margin-top:8px;
+    }
+
+    /* ── SCREEN SHAKE ── */
+    @keyframes shake {
+      0%,100%{transform:translate(0,0);}
+      10%{transform:translate(-8px,4px);}
+      20%{transform:translate(8px,-4px);}
+      30%{transform:translate(-6px,6px);}
+      40%{transform:translate(6px,-2px);}
+      50%{transform:translate(-4px,4px);}
+      60%{transform:translate(4px,-4px);}
+      70%{transform:translate(-2px,2px);}
+    }
+    .shaking { animation:shake 0.4s; }
+
+    /* ── FLASH ── */
+    #flash { position:fixed;inset:0;z-index:150;pointer-events:none;opacity:0;transition:opacity 0.1s; }
+
+    /* ── FLYING TEXT ── */
+    .fly-text {
+      position:fixed; font-size:1.1rem; font-weight:900;
+      pointer-events:none; z-index:180;
+      animation:fly 1s ease-out forwards;
+    }
+    @keyframes fly {
+      0%{opacity:1;transform:translateY(0) scale(1);}
+      100%{opacity:0;transform:translateY(-80px) scale(1.3);}
+    }
+
+    /* ── COMBO ── */
+    #combo {
+      position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+      font-size:2rem; font-weight:900; color:#ffd60a;
+      text-shadow:0 0 20px #ffd60a;
+      z-index:60; opacity:0; transition:opacity 0.3s;
+    }
+
+    /* ── END ── */
+    #end { text-align:center; padding:2rem; }
+    .end-big { font-size:5rem; margin-bottom:0.5rem; }
+    .end-title { font-size:1.8rem; font-weight:900; margin-bottom:0.5rem; }
+    .end-sub { color:#999; line-height:1.7; margin-bottom:1.5rem; font-size:0.9rem; white-space:pre-line; }
+    .end-stat { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:1.5rem; }
+    .stat-pill { padding:8px 14px; background:rgba(255,255,255,0.08); border-radius:99px; font-size:0.85rem; }
+    .restart { padding:0.9rem 2.5rem; background:linear-gradient(135deg,#ff3b30,#ff9500); border:none; border-radius:12px; font-size:1rem; font-weight:900; color:#fff; cursor:pointer; }
+  </style>
+</head>
+<body>
+
+<div id="scene"></div>
+<div id="flash"></div>
+<div id="combo"></div>
+<div id="narrator-popup" class="hidden"><span id="np-emoji"></span><div id="np-text"></div></div>
+
+<!-- HUD -->
+<div id="hud" style="display:none;">
+  <div id="timer-wrap"><div id="timer">10</div><div id="timer-bar"><div id="timer-fill" style="width:100%"></div></div></div>
+  <div id="score">점수 0</div>
+  <div id="life">❤️❤️❤️</div>
+</div>
+
+<!-- START -->
+<div id="start" class="overlay">
+  <span class="logo-big">🤯</span>
+  <div class="title-big">옛날 사람들은<br><span class="title-red">완전히 멘탈이<br>나가 버렸습니다</span></div>
+  <p style="color:#888;margin:1rem 0;font-size:0.85rem;">충격적인 역사 팩트 앞에서<br>나레이터가 될 수 있는가?</p>
+  <button class="start-btn" onclick="startGame()">👆 멘탈 나가기 시작!</button>
+</div>
+
+<!-- GAME -->
+<div id="card" style="display:none;">
+  <span id="card-tag"></span>
+  <span id="card-emoji"></span>
+  <div id="card-title"></div>
+  <div id="card-body"></div>
+  <div id="card-narrator"></div>
+  <div id="choices">
+    <button class="choice choice-ok" onclick="answer('ok')">😤<br>이 정도는 OK</button>
+    <button class="choice choice-nope" onclick="answer('nope')">🤯<br>멘탈 나갔다</button>
+    <button class="choice choice-idk" onclick="answer('wtf')">💀<br>실화임?</button>
+  </div>
+</div>
+
+<!-- END -->
+<div id="end" class="overlay hidden">
+  <div class="end-big" id="end-emoji"></div>
+  <div class="end-title" id="end-title"></div>
+  <div class="end-sub" id="end-sub"></div>
+  <div class="end-stat" id="end-stat"></div>
+  <button class="restart" onclick="startGame()">🔄 다시 멘탈 나가기</button>
+</div>
+
+<script>
+var FACTS = [
+  {
+    tag:'🏰 중세유럽', color:'#8B4513', bg:'#1a0800',
+    emoji:'🦷',
+    title:'치통이 오면 교회로 가라',
+    body:'중세 유럽에서 충치 치료는 교회 사제가 했습니다. 기도를 외우며 뽑는 방식이었고, 이발사가 뽑을 때는 당연히 마취 없이 생으로 뽑았습니다.',
+    narrator:'"야 잠깐만요?? 기도하면서 이빨을 뽑는다고요?? 완전히 멘탈이 나가 버렸습니다! 이게 치과예요 교회예요!!!"',
+    correct:'nope', damage:20
+  },
+  {
+    tag:'👑 왕실비화', color:'#ffd700', bg:'#1a1400',
+    emoji:'🛁',
+    title:'루이 14세 평생 목욕 3번',
+    body:'태양왕 루이 14세는 살면서 목욕을 3번 했다고 전해집니다. 향수를 온몸에 뿌려 냄새를 감췄고, 베르사유 궁전에는 화장실이 없어 귀족들이 궁전 구석에서 볼일을 봤습니다.',
+    narrator:'"잠깐, 잠깐만요. 베르사유 궁전이 화장실이 없다고요? 그럼 귀족들이 복도에서?? 아 이거 완전히 멘탈이 나가 버렸습니다!!!"',
+    correct:'nope', damage:22
+  },
+  {
+    tag:'⚕️ 의학사', color:'#00b894', bg:'#001a10',
+    emoji:'🧪',
+    title:'의사가 소변을 맛봤습니다',
+    body:'히포크라테스는 환자의 소변을 직접 맛보고 병을 진단했습니다. 달면 당뇨, 쓰면 감염. 이 방법이 무려 18세기까지 이어졌습니다.',
+    narrator:'"저 지금 제대로 들은 거 맞죠?? 의사가 소변을?? 맛을?? 봤다고요?? 완전히 멘탈이 나가 버렸습니다 이거 진짜예요??"',
+    correct:'wtf', damage:35
+  },
+  {
+    tag:'🇰🇷 조선시대', color:'#0984e3', bg:'#00081a',
+    emoji:'🛀',
+    title:'조선시대 남녀혼탕이 있었다',
+    body:'조선시대에는 혼성 공중목욕탕이 존재했습니다. 17세기 청나라 사신이 "풍속이 특이하다"고 기록했고, 금지령이 여러 번 내려졌지만 잘 지켜지지 않았습니다.',
+    narrator:'"아니 조선이 유교의 나라라며요?? 남녀칠세부동석이라며요?? 근데 혼탕이요?? 완전히 멘탈이 나가 버렸습니다!!!!"',
+    correct:'wtf', damage:25
+  },
+  {
+    tag:'🐀 흑사병', color:'#e17055', bg:'#1a0500',
+    emoji:'🐈',
+    title:'고양이 학살이 흑사병을 불렀다',
+    body:'교황이 고양이를 악마와 연관지어 학살 명령을 내렸습니다. 고양이가 사라지자 쥐가 폭발적으로 늘었고, 흑사병으로 유럽 인구 1/3이 사망했습니다.',
+    narrator:'"고양이를 죽여서 인구 1/3이 죽었다고요?? 고양이한테 사과해야 하는 거 아닌가요?? 완전히 멘탈이 나가 버렸습니다!!"',
+    correct:'nope', damage:28
+  },
+  {
+    tag:'🍺 음식문화', color:'#fdcb6e', bg:'#1a1000',
+    emoji:'🍺',
+    title:'중세 어린이도 맥주를 마셨다',
+    body:'중세 유럽의 물은 너무 오염되어 어린이들도 약한 맥주(에일)를 마셨습니다. 하루 3리터씩. 사실상 전 국민이 24시간 약간 취해있었던 셈입니다.',
+    narrator:'"유치원생이 맥주를요?? 하루에 3리터씩?? 학교에서 술 마시고 공부한 거예요?? 완전히 멘탈이 나가 버렸습니다!!!"',
+    correct:'wtf', damage:20
+  },
+  {
+    tag:'⚔️ 전쟁사', color:'#d63031', bg:'#1a0000',
+    emoji:'💈',
+    title:'수술은 이발사가 했다',
+    body:'중세~근대 유럽에서 수술은 이발사-외과의가 했습니다. 마취 없이, 30초 안에 다리를 절단하는 것이 "기술"이었습니다. 속도가 생존률이었습니다.',
+    narrator:'"이발 하러 갔다가 다리를 잘릴 수도 있다고요?? 30초 만에?? 완전히 멘탈이 나가 버렸습니다 이게 무슨 공포영화예요!!"',
+    correct:'nope', damage:30
+  },
+  {
+    tag:'🎭 화장품', color:'#a29bfe', bg:'#0d001a',
+    emoji:'💚',
+    title:'패션계의 비소 드레스',
+    body:'19세기 영국에서 에메랄드그린 드레스가 유행했는데, 그 염료 성분이 비소였습니다. 드레스를 만드는 재봉사들이 잇달아 사망했지만 유행은 계속됐습니다.',
+    narrator:'"드레스에 독이요?? 입으면 죽는 드레스가 유행이었다고요?? 패션을 위해 죽는 거예요?? 완전히 멘탈이 나가 버렸습니다!!!!"',
+    correct:'nope', damage:22
+  },
+  {
+    tag:'🏺 고대로마', color:'#fd79a8', bg:'#1a0010',
+    emoji:'🧻',
+    title:'로마의 공중화장실 스펀지',
+    body:'고대 로마의 공중화장실에는 막대기 끝에 달린 스펀지를 여러 사람이 돌려쓰며 사용했습니다. 소금물에 헹궈서 재사용했습니다.',
+    narrator:'"공용 스펀지를요?? 여러 사람이 돌아가면서요?? 로마 문명이 이렇게 발달했는데 왜요?? 완전히 멘탈이 나가 버렸습니다!!!!"',
+    correct:'wtf', damage:40
+  },
+  {
+    tag:'🇰🇷 조선시대', color:'#74b9ff', bg:'#001020',
+    emoji:'🥢',
+    title:'조선 왕은 30가지 반찬을 먹었다',
+    body:'조선 왕의 밥상에는 기본 30가지 반찬(수라상)이 올라왔습니다. 독살을 막기 위해 모든 음식을 먼저 기미상궁이 맛보고, 은수저로 독을 감지했습니다.',
+    narrator:'"은수저가 독에 반응한다고요?? 근데 사실은 반응 안 한다는 게 함정 아닌가요?? 완전히 멘탈이 나가 버렸습니다 가짜 과학이잖아요!!"',
+    correct:'ok', damage:10
+  },
+  {
+    tag:'⚡ 19세기', color:'#00cec9', bg:'#001a1a',
+    emoji:'⚡',
+    title:'전기로 모든 병을 고쳤다',
+    body:'19세기에 전기가 발견되자 전기 목욕, 전기 코르셋, 전기 칫솔이 나왔습니다. 심지어 전기충격이 탈모 치료제로 팔렸습니다.',
+    narrator:'"탈모에 전기충격이요?? 그게 치료예요 고문이에요?? 근데 효과가 있긴 했나요?? 완전히 멘탈이 나가 버렸습니다!!!!"',
+    correct:'nope', damage:18
+  },
+  {
+    tag:'🏛️ 고대그리스', color:'#636e72', bg:'#0a0a0a',
+    emoji:'🍷',
+    title:'소크라테스는 독약을 직접 마셨다',
+    body:'소크라테스는 사형 선고를 받고 독당근을 직접 들고 마셨습니다. 도망갈 기회가 있었지만 법을 어기는 것은 옳지 않다며 거절했습니다.',
+    narrator:'"도망가도 되는데 직접 드셨다고요?? 철학자라서 그런 건가요?? 근데 솔직히 좀 이해가 안 가요?? 완전히 멘탈이 나가 버렸습니다!!"',
+    correct:'ok', damage:8
+  },
+];
+
+var currentIdx = 0, score = 0, lives = 3, combo = 0, maxCombo = 0;
+var timeLeft = 0, timerInterval = null;
+var shuffled = [];
+var answered = false;
+
+function startGame() {
+  score = 0; lives = 3; combo = 0; maxCombo = 0; currentIdx = 0; answered = false;
+  shuffled = FACTS.slice().sort(function(){return Math.random()-0.5;});
+  document.getElementById('start').classList.add('hidden');
+  document.getElementById('end').classList.add('hidden');
+  document.getElementById('hud').style.display = 'flex';
+  document.getElementById('card').style.display = 'block';
+  updateHUD();
+  showFact();
+}
+
+function showFact() {
+  if (currentIdx >= shuffled.length) { finishGame(); return; }
+  answered = false;
+  var f = shuffled[currentIdx];
+  document.getElementById('scene').style.background = f.bg || '#000';
+  document.getElementById('card-tag').textContent = f.tag;
+  document.getElementById('card-tag').style.background = (f.color||'#fff') + '22';
+  document.getElementById('card-tag').style.color = f.color || '#fff';
+  document.getElementById('card-tag').style.border = '1px solid ' + (f.color||'#fff') + '44';
+  document.getElementById('card-emoji').textContent = f.emoji;
+  document.getElementById('card-title').textContent = f.title;
+  document.getElementById('card-body').textContent = f.body;
+  document.getElementById('card-narrator').textContent = f.narrator;
+
+  // Timer
+  clearInterval(timerInterval);
+  timeLeft = 10;
+  updateTimer();
+  timerInterval = setInterval(function(){
+    timeLeft -= 0.1;
+    updateTimer();
+    if (timeLeft <= 0) { clearInterval(timerInterval); onTimeout(); }
+  }, 100);
+}
+
+function updateTimer() {
+  var pct = timeLeft / 10 * 100;
+  document.getElementById('timer').textContent = Math.ceil(timeLeft);
+  document.getElementById('timer-fill').style.width = pct + '%';
+  document.getElementById('timer-fill').style.background = pct > 50 ? '#30d158' : pct > 25 ? '#ffd60a' : '#ff3b30';
+}
+
+function answer(type) {
+  if (answered) return;
+  answered = true;
+  clearInterval(timerInterval);
+  var f = shuffled[currentIdx];
+  var correct = (type === f.correct);
+
+  if (correct) {
+    combo++;
+    if (combo > maxCombo) maxCombo = combo;
+    var pts = 100 + (combo - 1) * 50;
+    score += pts;
+    showFlash('#30d15820');
+    showNarrator('✅', '정답! +' + pts + (combo > 1 ? ' 🔥' + combo + '콤보!' : ''), '#30d158');
+    flyText('+' + pts, '#30d158');
+    if (combo > 1) showCombo(combo + '콤보!');
+  } else {
+    combo = 0;
+    lives--;
+    shakeScreen();
+    showFlash('#ff3b3020');
+    showNarrator('❌', '틀렸습니다! 멘탈 -1', '#ff453a');
+    flyText('멘탈 ↓', '#ff453a');
+  }
+
+  updateHUD();
+  setTimeout(function(){
+    hideNarrator();
+    currentIdx++;
+    if (lives <= 0) { finishGame(); return; }
+    showFact();
+  }, 1200);
+}
+
+function onTimeout() {
+  if (answered) return;
+  answered = true;
+  combo = 0;
+  lives--;
+  shakeScreen();
+  showFlash('#ff950020');
+  showNarrator('⏰', '시간 초과! 멘탈 -1', '#ff9500');
+  updateHUD();
+  setTimeout(function(){
+    hideNarrator();
+    currentIdx++;
+    if (lives <= 0) { finishGame(); return; }
+    showFact();
+  }, 1200);
+}
+
+function finishGame() {
+  clearInterval(timerInterval);
+  document.getElementById('card').style.display = 'none';
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('scene').style.background = '#000';
+
+  var grade, emoji, title, sub;
+  if (score >= 800) { emoji='🧠'; title='멘탈 최강자'; sub='나레이터 자격증 취득!\n유튜브 쇼츠 채널 운영해도 될 것 같아요'; }
+  else if (score >= 500) { emoji='😤'; title='꽤 잘 버텼다'; sub='제법이네요\n근데 몇 개는 진짜 몰랐죠?'; }
+  else if (score >= 300) { emoji='😅'; title='흔들렸다'; sub='옛날 사람들한테\n많이 당했군요'; }
+  else if (score >= 100) { emoji='😰'; title='멘탈 붕괴'; sub='역사의 충격에\n완전히 멘탈이 나가 버렸습니다'; }
+  else { emoji='💀'; title='죽었습니다'; sub='당신도 이제\n옛날 사람입니다'; }
+
+  document.getElementById('end-emoji').textContent = emoji;
+  document.getElementById('end-title').textContent = title;
+  document.getElementById('end-sub').textContent = sub;
+  document.getElementById('end-stat').innerHTML =
+    '<div class="stat-pill">🏆 ' + score + '점</div>' +
+    '<div class="stat-pill">🔥 최대 ' + maxCombo + '콤보</div>' +
+    '<div class="stat-pill">✅ ' + currentIdx + '문제</div>';
+  document.getElementById('end').classList.remove('hidden');
+}
+
+function updateHUD() {
+  document.getElementById('score').textContent = '점수 ' + score;
+  document.getElementById('life').textContent = '❤️'.repeat(lives) + '🖤'.repeat(Math.max(0, 3-lives));
+}
+
+function showNarrator(emoji, text, color) {
+  var el = document.getElementById('narrator-popup');
+  document.getElementById('np-emoji').textContent = emoji;
+  document.getElementById('np-text').textContent = text;
+  document.getElementById('np-text').style.color = color;
+  el.classList.remove('hidden');
+}
+
+function hideNarrator() {
+  document.getElementById('narrator-popup').classList.add('hidden');
+}
+
+function showFlash(color) {
+  var el = document.getElementById('flash');
+  el.style.background = color;
+  el.style.opacity = '1';
+  setTimeout(function(){ el.style.opacity = '0'; }, 150);
+}
+
+function shakeScreen() {
+  document.getElementById('card').classList.add('shaking');
+  setTimeout(function(){ document.getElementById('card').classList.remove('shaking'); }, 400);
+}
+
+function flyText(text, color) {
+  var el = document.createElement('div');
+  el.className = 'fly-text';
+  el.textContent = text;
+  el.style.color = color;
+  el.style.left = (30 + Math.random() * 40) + '%';
+  el.style.top = (40 + Math.random() * 20) + '%';
+  document.body.appendChild(el);
+  setTimeout(function(){ document.body.removeChild(el); }, 1000);
+}
+
+function showCombo(text) {
+  var el = document.getElementById('combo');
+  el.textContent = text;
+  el.style.opacity = '1';
+  setTimeout(function(){ el.style.opacity = '0'; }, 1000);
+}
+</script>
+</body>
+</html>

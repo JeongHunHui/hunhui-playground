@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🚨 계엄령 해제 작전</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0d0d0d; color: #eee; font-family: 'Noto Sans KR', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
+
+    #gameCanvas { border: 2px solid #333; background: #111; display: block; }
+
+    #ui { position: fixed; top: 0; left: 0; right: 0; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.7); z-index: 10; font-size: 0.9rem; }
+
+    #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; text-align: center; padding: 2rem; }
+    #overlay.hidden { display: none; }
+
+    .overlay-title { font-size: 2.2rem; font-weight: bold; margin-bottom: 0.5rem; }
+    .overlay-sub { color: #aaa; margin-bottom: 1.5rem; font-size: 0.95rem; line-height: 1.7; }
+
+    .btn { padding: 0.9rem 2.5rem; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: transform 0.15s; }
+    .btn:hover { transform: scale(1.05); }
+    .btn-red { background: linear-gradient(135deg, #c0392b, #e74c3c); color: #fff; }
+    .btn-green { background: linear-gradient(135deg, #27ae60, #2ecc71); color: #fff; }
+
+    #ticker { position: fixed; bottom: 0; left: 0; right: 0; background: #c0392b; color: #fff; font-size: 0.85rem; padding: 6px 0; overflow: hidden; white-space: nowrap; z-index: 10; }
+    #ticker-inner { display: inline-block; animation: scroll 20s linear infinite; padding-left: 100%; }
+    @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+
+    .vote-count { font-size: 1.1rem; font-weight: bold; color: #2ecc71; }
+    .needed { color: #e74c3c; }
+    .time-count { font-size: 1.1rem; font-weight: bold; color: #f39c12; }
+
+    #controls-hint { position: fixed; bottom: 30px; right: 20px; background: rgba(0,0,0,0.6); border-radius: 8px; padding: 8px 12px; font-size: 0.75rem; color: #888; z-index: 10; }
+  </style>
+</head>
+<body>
+
+<div id="ui">
+  <div>🗳️ 찬성: <span class="vote-count" id="votes">0</span> / <span class="needed">150</span></div>
+  <div style="color:#fff;font-weight:bold;">🚨 계엄령 해제 작전</div>
+  <div>⏱️ <span class="time-count" id="timer">180</span>초</div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="ticker"><span id="ticker-inner">🚨 긴급속보 | 대통령, 비상계엄 선포 | 군병력 국회 봉쇄 | 의원들 담 넘어 국회 진입 | 국회 본회의 소집 | 계엄 해제 투표 진행 중 | 🚨 긴급속보 | 대통령, 비상계엄 선포 | 군병력 국회 봉쇄 | 의원들 담 넘어 국회 진입 | 국회 본회의 소집</span></div>
+
+<div id="overlay">
+  <div class="overlay-title">🚨 계엄령 해제 작전</div>
+  <div class="overlay-sub">
+    2024년 12월 3일 밤 — 비상계엄이 선포됐습니다.<br>
+    국회의원으로서 계엄군을 피해 국회에 입장하고<br>
+    동료 의원들을 모아 <b>찬성 150표</b>를 만들어야 합니다.<br><br>
+    <b>← → 또는 A/D</b>: 이동 &nbsp;|&nbsp; <b>↑ 또는 W / 스페이스</b>: 점프<br>
+    계엄군에 닿으면 끌려갑니다! 담을 넘어 입장하세요.
+  </div>
+  <button class="btn btn-red" onclick="startGame()">🏃 국회로 달려가자!</button>
+</div>
+
+<div id="controls-hint">← → 이동 | ↑/Space 점프</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  canvas.width = Math.min(window.innerWidth, 900);
+  canvas.height = Math.min(window.innerHeight - 80, 550);
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Game state
+var state = 'idle'; // idle, playing, win, lose
+var votes = 0, timeLeft = 180, timerInterval;
+var keys = {};
+var frame = 0;
+var allys = [];
+var soldiers = [];
+var particles = [];
+var scrollX = 0;
+
+// Player
+var player = {};
+var GRAVITY = 0.6, JUMP = -13, SPEED = 4;
+
+var WORLD_W = 3000;
+var GROUND_Y;
+
+// Platforms / walls
+var platforms = [
+  // ground sections with gaps (river/barriers)
+  {x:0,   y:0, w:800,  h:20, type:'ground', color:'#2c3e50'},
+  {x:850, y:0, w:200,  h:20, type:'ground', color:'#2c3e50'},
+  {x:1100,y:0, w:500,  h:20, type:'ground', color:'#2c3e50'},
+  {x:1700,y:0, w:300,  h:20, type:'ground', color:'#2c3e50'},
+  {x:2100,y:0, w:600,  h:20, type:'ground', color:'#2c3e50'},
+  {x:2800,y:0, w:200,  h:20, type:'ground', color:'#2c3e50'},
+
+  // Walls / barriers
+  {x:400, y:0, w:30, h:120, type:'wall', color:'#7f8c8d'},
+  {x:900, y:0, w:30, h:80,  type:'wall', color:'#7f8c8d'},
+  {x:1500,y:0, w:30, h:100, type:'wall', color:'#7f8c8d'},
+  {x:2000,y:0, w:30, h:90,  type:'wall', color:'#7f8c8d'},
+  {x:2600,y:0, w:30, h:110, type:'wall', color:'#7f8c8d'},
+
+  // National Assembly wall (final)
+  {x:2850,y:0, w:20, h:150, type:'final-wall', color:'#2980b9'},
+];
+
+// Platforms to jump on
+var jumpPads = [
+  {x:380, y:0, w:40, h:12, color:'#e67e22'},
+  {x:880, y:0, w:40, h:12, color:'#e67e22'},
+  {x:1480,y:0, w:40, h:12, color:'#e67e22'},
+  {x:1980,y:0, w:40, h:12, color:'#e67e22'},
+  {x:2580,y:0, w:40, h:12, color:'#e67e22'},
+  {x:2830,y:0, w:40, h:12, color:'#e67e22'},
+];
+
+// Ally positions
+var allySpawns = [150,350,700,1050,1350,1650,1900,2200,2400,2700];
+
+function initGame() {
+  GROUND_Y = canvas.height - 40;
+  votes = 0; timeLeft = 180; frame = 0; scrollX = 0;
+  
+  player = { x: 60, y: GROUND_Y - 40, w: 24, h: 40, vx: 0, vy: 0, onGround: false, arrested: false, arrestTimer: 0 };
+  
+  soldiers = [
+    {x:500,  y:0, w:22, h:38, vx:1.2, patrol:50, dir:1},
+    {x:1000, y:0, w:22, h:38, vx:1.0, patrol:60, dir:1},
+    {x:1300, y:0, w:22, h:38, vx:1.3, patrol:40, dir:1},
+    {x:1800, y:0, w:22, h:38, vx:1.1, patrol:55, dir:1},
+    {x:2150, y:0, w:22, h:38, vx:1.4, patrol:50, dir:1},
+    {x:2450, y:0, w:22, h:38, vx:1.2, patrol:60, dir:1},
+    {x:2650, y:0, w:22, h:38, vx:1.0, patrol:45, dir:1},
+  ];
+  
+  allys = allySpawns.map(function(ax, i) {
+    return { x: ax, y: 0, w: 20, h: 34, collected: false, id: i };
+  });
+
+  particles = [];
+
+  // fix y positions
+  soldiers.forEach(function(s){ s.y = GROUND_Y - s.h; s.startX = s.x; });
+  allys.forEach(function(a){ a.y = GROUND_Y - a.h - 2; });
+  jumpPads.forEach(function(p){ p.y = GROUND_Y - p.h - (platforms.find(function(pl){ return pl.x <= p.x && pl.x+pl.w > p.x && pl.type==='wall'; }) || {h:80}).h + 5; });
+
+  // recalc jumpPads relative to wall tops
+  for (var i = 0; i < jumpPads.length; i++) {
+    var jp = jumpPads[i];
+    // find wall near jp.x
+    var wall = platforms.find(function(pl){ return Math.abs(pl.x - jp.x) < 60 && (pl.type==='wall'||pl.type==='final-wall'); });
+    if (wall) {
+      jp.y = GROUND_Y - wall.h - jp.h + 5;
+      jp.x = wall.x - jp.w - 5;
+    }
+  }
+
+  document.getElementById('votes').textContent = '0';
+  document.getElementById('timer').textContent = '180';
+}
+
+function startGame() {
+  document.getElementById('overlay').classList.add('hidden');
+  initGame();
+  state = 'playing';
+  timerInterval = setInterval(function(){
+    if (state !== 'playing') return;
+    timeLeft--;
+    document.getElementById('timer').textContent = timeLeft;
+    if (timeLeft <= 0) endGame(false);
+  }, 1000);
+  requestAnimationFrame(loop);
+}
+
+function endGame(win) {
+  state = win ? 'win' : 'lose';
+  clearInterval(timerInterval);
+  var ov = document.getElementById('overlay');
+  ov.classList.remove('hidden');
+  if (win) {
+    ov.innerHTML = '<div class="overlay-title">🎉 계엄 해제 성공!</div><div class="overlay-sub">'+votes+'명의 의원이 찬성표를 던져<br>비상계엄이 해제되었습니다!<br><br>"대통령은 헌법을 준수해야 합니다"</div><button class="btn btn-green" onclick="startGame()">🔄 다시 하기</button>';
+  } else {
+    ov.innerHTML = '<div class="overlay-title">💀 계엄 유지...</div><div class="overlay-sub">시간 안에 150표를 모으지 못했습니다.<br>찬성표: '+votes+'표<br><br>역사는 당신을 기억하지 않을 것입니다...</div><button class="btn btn-red" onclick="startGame()">🔄 다시 시도</button>';
+  }
+}
+
+function loop() {
+  if (state !== 'playing') return;
+  frame++;
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function update() {
+  GROUND_Y = canvas.height - 40;
+
+  // player movement
+  if (!player.arrested) {
+    if (keys['ArrowLeft']||keys['a']||keys['A']) player.vx = -SPEED;
+    else if (keys['ArrowRight']||keys['d']||keys['D']) player.vx = SPEED;
+    else player.vx *= 0.7;
+
+    if ((keys['ArrowUp']||keys['w']||keys['W']||keys[' ']) && player.onGround) {
+      player.vy = JUMP;
+      player.onGround = false;
+    }
+  } else {
+    player.vx = 0;
+    player.arrestTimer--;
+    if (player.arrestTimer <= 0) {
+      player.arrested = false;
+      player.x = Math.max(0, player.x - 100);
+    }
+    return;
+  }
+
+  player.vy += GRAVITY;
+  player.x += player.vx;
+  player.y += player.vy;
+  player.x = Math.max(0, player.x);
+  player.onGround = false;
+
+  // ground
+  if (player.y + player.h >= GROUND_Y) {
+    player.y = GROUND_Y - player.h;
+    player.vy = 0;
+    player.onGround = true;
+  }
+
+  // platform collision (walls)
+  platforms.forEach(function(p) {
+    var py = GROUND_Y - p.h;
+    if (p.type === 'wall' || p.type === 'final-wall') {
+      // block horizontal if can't jump over
+      if (player.x + player.w > p.x && player.x < p.x + p.w && player.y + player.h > py && player.y < GROUND_Y) {
+        if (player.vx > 0 && player.x + player.w - player.vx <= p.x) {
+          player.x = p.x - player.w;
+          player.vx = 0;
+        } else if (player.vx < 0 && player.x - player.vx >= p.x + p.w) {
+          player.x = p.x + p.w;
+          player.vx = 0;
+        }
+      }
+    }
+  });
+
+  // jumppad collision
+  jumpPads.forEach(function(jp) {
+    if (player.x + player.w > jp.x && player.x < jp.x + jp.w &&
+        player.y + player.h >= jp.y && player.y + player.h <= jp.y + jp.h + 5 && player.vy > 0) {
+      player.y = jp.y - player.h;
+      player.vy = 0;
+      player.onGround = true;
+    }
+  });
+
+  // soldier movement + patrol
+  soldiers.forEach(function(s) {
+    s.x += s.vx * s.dir;
+    if (Math.abs(s.x - s.startX) > s.patrol) s.dir *= -1;
+    s.y = GROUND_Y - s.h;
+
+    // arrest player
+    if (!player.arrested && rectsOverlap(player, s)) {
+      player.arrested = true;
+      player.arrestTimer = 90;
+      spawnParticles(player.x, player.y, '#e74c3c', 10);
+    }
+  });
+
+  // collect allies
+  allys.forEach(function(a) {
+    if (!a.collected && rectsOverlap(player, a)) {
+      a.collected = true;
+      votes += 15;
+      document.getElementById('votes').textContent = votes;
+      spawnParticles(a.x, a.y, '#2ecc71', 8);
+      if (votes >= 150) { endGame(true); }
+    }
+  });
+
+  // scroll camera
+  scrollX = Math.max(0, Math.min(player.x - canvas.width * 0.35, WORLD_W - canvas.width));
+
+  // particles
+  particles.forEach(function(p) { p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.life--; });
+  particles = particles.filter(function(p){ return p.life > 0; });
+}
+
+function rectsOverlap(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+function spawnParticles(x, y, color, n) {
+  for (var i = 0; i < n; i++) {
+    particles.push({ x:x, y:y, vx:(Math.random()-0.5)*5, vy:(Math.random()-1)*5, color:color, life:40, r:3+Math.random()*3 });
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  GROUND_Y = canvas.height - 40;
+
+  // sky gradient
+  var grad = ctx.createLinearGradient(0,0,0,canvas.height);
+  grad.addColorStop(0,'#0a0a1a');
+  grad.addColorStop(1,'#1a1a2e');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // stars
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  for (var i = 0; i < 60; i++) {
+    var sx = ((i * 137 + frame * 0.05) % WORLD_W - scrollX + WORLD_W) % canvas.width;
+    var sy = (i * 73) % (canvas.height * 0.6);
+    ctx.beginPath();
+    ctx.arc(sx, sy, 1, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  ctx.save();
+  ctx.translate(-scrollX, 0);
+
+  // Ground
+  ctx.fillStyle = '#2c3e50';
+  ctx.fillRect(0, GROUND_Y, WORLD_W, 40);
+  ctx.fillStyle = '#34495e';
+  ctx.fillRect(0, GROUND_Y, WORLD_W, 3);
+
+  // National Assembly building
+  var naX = 2870;
+  ctx.fillStyle = '#1a3a5c';
+  ctx.fillRect(naX, GROUND_Y - 200, 300, 200);
+  ctx.fillStyle = '#2980b9';
+  ctx.fillRect(naX + 10, GROUND_Y - 190, 280, 180);
+  // dome
+  ctx.fillStyle = '#2c82c9';
+  ctx.beginPath();
+  ctx.ellipse(naX + 150, GROUND_Y - 200, 80, 40, 0, Math.PI, 0);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 14px sans-serif';
+  ctx.fillText('🏛️ 국회의사당', naX + 55, GROUND_Y - 100);
+
+  // vote progress inside building
+  ctx.fillStyle = 'rgba(0,200,100,0.3)';
+  ctx.fillRect(naX + 20, GROUND_Y - 60, (votes/150) * 260, 30);
+  ctx.strokeStyle = '#2ecc71';
+  ctx.strokeRect(naX + 20, GROUND_Y - 60, 260, 30);
+  ctx.fillStyle = '#fff';
+  ctx.font = '12px sans-serif';
+  ctx.fillText('찬성: '+votes+'/150', naX + 90, GROUND_Y - 40);
+
+  // Walls
+  platforms.forEach(function(p) {
+    if (p.type === 'wall' || p.type === 'final-wall') {
+      var py = GROUND_Y - p.h;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, py, p.w, p.h);
+      // barbed wire on top
+      ctx.fillStyle = '#e74c3c';
+      for (var i = 0; i < p.w; i += 6) {
+        ctx.fillRect(p.x + i, py, 3, 4);
+      }
+      // label
+      ctx.fillStyle = '#fff';
+      ctx.font = '10px sans-serif';
+      ctx.fillText('STOP', p.x, py - 4);
+    }
+  });
+
+  // Jump pads (boxes to climb)
+  jumpPads.forEach(function(jp) {
+    ctx.fillStyle = '#e67e22';
+    ctx.fillRect(jp.x, jp.y, jp.w, jp.h);
+    ctx.fillStyle = '#fff';
+    ctx.font = '10px sans-serif';
+    ctx.fillText('📦', jp.x + 2, jp.y + jp.h - 2);
+  });
+
+  // Allies (other MPs)
+  allys.forEach(function(a) {
+    if (a.collected) return;
+    // bounce
+    var by = a.y + Math.sin(frame * 0.08 + a.id) * 4;
+    ctx.fillStyle = '#3498db';
+    ctx.fillRect(a.x, by, a.w, a.h);
+    // face
+    ctx.fillStyle = '#fde3a7';
+    ctx.fillRect(a.x + 4, by + 2, 12, 12);
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px sans-serif';
+    ctx.fillText('🙋', a.x - 2, by + 32);
+    // glow
+    ctx.strokeStyle = 'rgba(46,204,113,0.6)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(a.x - 2, by - 2, a.w + 4, a.h + 4);
+    ctx.lineWidth = 1;
+  });
+
+  // Soldiers
+  soldiers.forEach(function(s) {
+    ctx.fillStyle = '#7f8c8d';
+    ctx.fillRect(s.x, s.y, s.w, s.h);
+    ctx.fillStyle = '#2c3e50';
+    ctx.fillRect(s.x + 2, s.y, s.w - 4, 12); // helmet
+    ctx.fillStyle = '#fde3a7';
+    ctx.fillRect(s.x + 4, s.y + 4, s.w - 8, 10);
+    ctx.font = '18px sans-serif';
+    ctx.fillText('🪖', s.x - 2, s.y + 18);
+    // gun
+    ctx.fillStyle = '#555';
+    ctx.fillRect(s.dir > 0 ? s.x + s.w : s.x - 12, s.y + 18, 12, 4);
+  });
+
+  // Player
+  if (!player.arrested) {
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillRect(player.x, player.y, player.w, player.h);
+    ctx.fillStyle = '#fde3a7';
+    ctx.fillRect(player.x + 4, player.y + 2, 16, 14);
+    var run = player.onGround ? Math.floor(frame/6)%2 : 0;
+    ctx.font = '22px sans-serif';
+    ctx.fillText(run ? '🏃' : '🚶', player.x - 3, player.y + player.h);
+    // name
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 10px sans-serif';
+    ctx.fillText('의원', player.x + 2, player.y - 5);
+  } else {
+    // arrested flash
+    if (Math.floor(frame/5)%2) {
+      ctx.fillStyle = '#e74c3c';
+      ctx.font = '28px sans-serif';
+      ctx.fillText('🚔', player.x - 8, player.y + player.h);
+    }
+  }
+
+  // Particles
+  particles.forEach(function(p) {
+    ctx.globalAlpha = p.life / 40;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  ctx.restore();
+
+  // Ground bar
+  ctx.fillStyle = '#1a252f';
+  ctx.fillRect(0, GROUND_Y + 3, canvas.width, 37);
+
+  // News bar bg
+  // Progress bar
+  ctx.fillStyle = 'rgba(46,204,113,0.15)';
+  ctx.fillRect(0, canvas.height - 6, (votes/150) * canvas.width, 6);
+  ctx.fillStyle = '#2ecc71';
+  ctx.fillRect(0, canvas.height - 6, (votes/150) * canvas.width, 4);
+}
+
+// Keys
+document.addEventListener('keydown', function(e){
+  keys[e.key] = true;
+  if (e.key === ' ' || e.key === 'ArrowUp') e.preventDefault();
+});
+document.addEventListener('keyup', function(e){ keys[e.key] = false; });
+
+// Mobile touch controls
+var touchStartX = 0, touchStartY = 0;
+canvas.addEventListener('touchstart', function(e) {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, {passive: true});
+canvas.addEventListener('touchend', function(e) {
+  var dx = e.changedTouches[0].clientX - touchStartX;
+  var dy = e.changedTouches[0].clientY - touchStartY;
+  if (Math.abs(dy) > 40 && dy < 0) { keys[' '] = true; setTimeout(function(){ keys[' ']=false; }, 100); }
+  else if (dx > 30) { keys['ArrowRight'] = true; setTimeout(function(){ keys['ArrowRight']=false; }, 150); }
+  else if (dx < -30) { keys['ArrowLeft'] = true; setTimeout(function(){ keys['ArrowLeft']=false; }, 150); }
+}, {passive: true});
+
+// Mobile button overlay
+var mobileDiv = document.createElement('div');
+mobileDiv.style.cssText = 'position:fixed;bottom:30px;left:0;right:0;display:flex;justify-content:space-between;padding:0 20px;z-index:15;pointer-events:none;';
+mobileDiv.innerHTML = '<div style="display:flex;gap:10px;pointer-events:all;">'
+  + '<button onpointerdown="keys[\'ArrowLeft\']=true" onpointerup="keys[\'ArrowLeft\']=false" style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.2);border:2px solid rgba(255,255,255,0.4);color:#fff;font-size:1.4rem;cursor:pointer;">◀</button>'
+  + '<button onpointerdown="keys[\'ArrowRight\']=true" onpointerup="keys[\'ArrowRight\']=false" style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.2);border:2px solid rgba(255,255,255,0.4);color:#fff;font-size:1.4rem;cursor:pointer;">▶</button>'
+  + '</div>'
+  + '<button onpointerdown="keys[\' \']=true" onpointerup="keys[\' \']=false" style="pointer-events:all;width:56px;height:56px;border-radius:50%;background:rgba(231,76,60,0.5);border:2px solid rgba(231,76,60,0.8);color:#fff;font-size:1rem;font-weight:bold;cursor:pointer;">JUMP</button>';
+document.body.appendChild(mobileDiv);
+</script>
+</body>
+</html>
