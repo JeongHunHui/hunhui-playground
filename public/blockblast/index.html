@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>블록 블라스트 🧱</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; touch-action:none; }
+  body {
+    background:#0d0d1a;
+    color:#f0f0f0;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:16px;
+  }
+  h1 {
+    font-size:1.8rem;
+    font-weight:800;
+    background:linear-gradient(135deg,#a78bfa,#60a5fa);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    margin-bottom:8px;
+  }
+  .score-row {
+    display:flex;
+    gap:24px;
+    margin-bottom:12px;
+    align-items:center;
+  }
+  .score-box { text-align:center; }
+  .score-label { font-size:0.7rem; color:#888; text-transform:uppercase; letter-spacing:.08em; }
+  .score-val { font-size:1.5rem; font-weight:800; color:#a78bfa; }
+  .best-val { color:#f59e0b; }
+  .combo-val { color:#60a5fa; }
+
+  #grid {
+    display:grid;
+    grid-template-columns:repeat(8,1fr);
+    gap:3px;
+    background:#1a1a2e;
+    padding:6px;
+    border-radius:12px;
+    border:2px solid #2a2a4a;
+    box-shadow:0 0 30px rgba(167,139,250,0.15);
+    margin-bottom:12px;
+  }
+
+  .cell {
+    width:38px;
+    height:38px;
+    border-radius:6px;
+    background:#12122a;
+    border:1px solid #1e1e3a;
+    cursor:pointer;
+    transition:transform 0.08s;
+  }
+  .cell.filled { border-color:transparent; }
+  .cell.preview { opacity:0.55; transform:scale(0.88); }
+  .cell.land-anim { animation:landBounce 0.2s ease; }
+  @keyframes landBounce {
+    0%,100% { transform:scale(1); }
+    40% { transform:scale(0.82); }
+    70% { transform:scale(1.06); }
+  }
+  .cell.clearing { animation:clearPop 0.35s forwards; }
+  @keyframes clearPop {
+    0% { transform:scale(1); opacity:1; }
+    50% { transform:scale(1.3); opacity:0.7; }
+    100% { transform:scale(0); opacity:0; }
+  }
+
+  #piece-tray {
+    display:flex;
+    gap:16px;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+  .piece-container {
+    background:#1a1a2e;
+    border:2px solid #2a2a4a;
+    border-radius:12px;
+    padding:12px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-width:70px;
+    min-height:70px;
+    transition:border-color 0.2s, transform 0.15s, opacity 0.2s;
+  }
+  .piece-container.selected {
+    border-color:#a78bfa;
+    box-shadow:0 0 16px rgba(167,139,250,0.4);
+    transform:scale(1.06);
+  }
+  .piece-container.used { opacity:0.2; cursor:default; }
+  .mini-grid { display:grid; gap:2px; }
+  .mini-cell { width:14px; height:14px; border-radius:3px; }
+
+  #overlay {
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.85);
+    z-index:100;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:14px;
+  }
+  #overlay.show { display:flex; }
+  #overlay h2 { font-size:2rem; font-weight:900; color:#a78bfa; }
+  #overlay .final { font-size:3rem; font-weight:900; color:#fff; }
+  #overlay button {
+    padding:14px 36px;
+    font-size:1rem;
+    font-weight:700;
+    border:none;
+    border-radius:99px;
+    background:linear-gradient(135deg,#a78bfa,#60a5fa);
+    color:#fff;
+    cursor:pointer;
+  }
+  .float-text {
+    position:fixed;
+    font-size:1.5rem;
+    font-weight:900;
+    color:#f59e0b;
+    pointer-events:none;
+    animation:floatUp 0.9s forwards;
+    z-index:200;
+    text-shadow:0 0 20px #f59e0b88;
+  }
+  @keyframes floatUp {
+    0% { opacity:1; transform:translateY(0); }
+    100% { opacity:0; transform:translateY(-80px); }
+  }
+  .back-btn {
+    position:fixed;top:12px;left:12px;
+    text-decoration:none;color:#888;font-size:0.85rem;
+    background:#1a1a2e;padding:6px 14px;border-radius:99px;border:1px solid #2a2a4a;
+  }
+  @media(max-width:420px){
+    .cell{width:32px;height:32px;}
+    h1{font-size:1.3rem;}
+  }
+</style>
+</head>
+<body>
+<a class="back-btn" href="/">← 홈</a>
+<h1>🧱 블록 블라스트</h1>
+<div class="score-row">
+  <div class="score-box"><div class="score-label">점수</div><div class="score-val" id="scoreEl">0</div></div>
+  <div class="score-box"><div class="score-label">최고</div><div class="score-val best-val" id="bestEl">0</div></div>
+  <div class="score-box"><div class="score-label">콤보</div><div class="score-val combo-val" id="comboEl">×1</div></div>
+</div>
+<div id="grid"></div>
+<div id="piece-tray"></div>
+<div id="overlay">
+  <h2>게임 오버 💥</h2>
+  <div class="final" id="finalEl">0</div>
+  <div id="newBestEl" style="color:#f59e0b;font-weight:700;display:none">🎉 신기록!</div>
+  <button onclick="startGame()">다시 시작</button>
+</div>
+<script>
+const GS=8;
+const COLORS=[
+  {fill:'#6366f1',dark:'#4338ca'},
+  {fill:'#ec4899',dark:'#be185d'},
+  {fill:'#10b981',dark:'#047857'},
+  {fill:'#f59e0b',dark:'#b45309'},
+  {fill:'#06b6d4',dark:'#0e7490'},
+  {fill:'#ef4444',dark:'#b91c1c'},
+  {fill:'#8b5cf6',dark:'#6d28d9'},
+];
+const PIECES=[
+  [[1]],
+  [[1,1]],[[1],[1]],
+  [[1,0],[1,0],[1,1]],[[0,1],[0,1],[1,1]],[[1,1],[1,0],[1,0]],[[1,1],[0,1],[0,1]],
+  [[0,1,1],[1,1,0]],[[1,1,0],[0,1,1]],
+  [[1,1,1],[0,1,0]],[[0,1,0],[1,1,1]],[[1,0],[1,1],[1,0]],[[0,1],[1,1],[0,1]],
+  [[1,1],[1,1]],
+  [[1,1,1]],[[1],[1],[1]],
+  [[1,1,1,1]],[[1],[1],[1],[1]],
+  [[1,1,1,1,1]],[[1],[1],[1],[1],[1]],
+  [[1,1,1],[1,0,0]],[[1,1,1],[0,0,1]],[[1,0,0],[1,1,1]],[[0,0,1],[1,1,1]],
+  [[1,1,1],[1,1,1]],
+  [[1,1],[1,0]],[[1,1],[0,1]],[[1,0],[1,1]],[[0,1],[1,1]],
+];
+
+let board,score,best,combo,pieces,selIdx;
+
+function startGame(){
+  board=Array.from({length:GS},()=>Array(GS).fill(null));
+  score=0;combo=0;selIdx=null;
+  best=parseInt(localStorage.getItem('bb-best')||'0');
+  buildGrid();renderBoard();spawnPieces();
+  document.getElementById('overlay').classList.remove('show');
+  updateUI();
+}
+
+function updateUI(){
+  document.getElementById('scoreEl').textContent=score.toLocaleString();
+  document.getElementById('bestEl').textContent=best.toLocaleString();
+  document.getElementById('comboEl').textContent='×'+(combo+1);
+}
+
+function buildGrid(){
+  const g=document.getElementById('grid');
+  g.innerHTML='';
+  for(let r=0;r<GS;r++) for(let c=0;c<GS;c++){
+    const cell=document.createElement('div');
+    cell.className='cell';
+    cell.dataset.r=r;cell.dataset.c=c;
+    cell.addEventListener('click',()=>onCellClick(r,c));
+    cell.addEventListener('mouseover',()=>onHover(r,c));
+    g.appendChild(cell);
+  }
+  g.addEventListener('mouseleave',()=>{renderBoard();});
+}
+
+function getCells(){return document.getElementById('grid').querySelectorAll('.cell');}
+
+function renderBoard(shape,color,pr,pc){
+  const cells=getCells();
+  const previewSet=new Set();
+  let valid=true;
+  if(shape&&pr!=null){
+    for(let r=0;r<shape.length;r++) for(let c=0;c<shape[r].length;c++){
+      if(!shape[r][c])continue;
+      const br=pr+r,bc=pc+c;
+      if(br<0||br>=GS||bc<0||bc>=GS||board[br][bc]){valid=false;break;}
+      previewSet.add(br*GS+bc);
+    }
+    if(!valid)previewSet.clear();
+  }
+  cells.forEach((cell,i)=>{
+    const r=Math.floor(i/GS),c=i%GS;
+    const filled=board[r][c];
+    const inPrev=previewSet.has(i);
+    cell.className='cell'+(filled?' filled':'')+(inPrev?' preview filled':'');
+    if(filled){cell.style.background=filled.fill;cell.style.boxShadow=`inset 0 -3px 0 ${filled.dark}`;}
+    else if(inPrev){cell.style.background=color.fill;cell.style.boxShadow=`inset 0 -3px 0 ${color.dark}`;}
+    else{cell.style.background='';cell.style.boxShadow='';}
+  });
+}
+
+function onHover(r,c){
+  if(selIdx===null)return;
+  const p=pieces[selIdx];if(!p)return;
+  const pr=r-Math.floor(p.shape.length/2);
+  const pc=c-Math.floor(p.shape[0].length/2);
+  renderBoard(p.shape,p.color,pr,pc);
+}
+
+function canPlace(shape,pr,pc){
+  for(let r=0;r<shape.length;r++) for(let c=0;c<shape[r].length;c++){
+    if(!shape[r][c])continue;
+    const br=pr+r,bc=pc+c;
+    if(br<0||br>=GS||bc<0||bc>=GS||board[br][bc])return false;
+  }
+  return true;
+}
+
+function onCellClick(r,c){
+  if(selIdx===null)return;
+  const p=pieces[selIdx];if(!p)return;
+  const pr=r-Math.floor(p.shape.length/2);
+  const pc=c-Math.floor(p.shape[0].length/2);
+  if(!canPlace(p.shape,pr,pc))return;
+  // Place
+  const cells=getCells();
+  for(let dr=0;dr<p.shape.length;dr++) for(let dc=0;dc<p.shape[dr].length;dc++){
+    if(!p.shape[dr][dc])continue;
+    const br=pr+dr,bc=pc+dc;
+    board[br][bc]=p.color;
+    const idx=br*GS+bc;
+    cells[idx].classList.add('land-anim');
+    setTimeout(()=>cells[idx].classList.remove('land-anim'),300);
+  }
+  pieces[selIdx]=null;selIdx=null;
+  renderBoard();renderTray();
+  checkAndClear();
+  if(pieces.every(p=>p===null))spawnPieces();
+  if(!anyMovePossible())setTimeout(gameOver,400);
+}
+
+function checkAndClear(){
+  const rows=[],cols=[];
+  for(let r=0;r<GS;r++) if(board[r].every(x=>x))rows.push(r);
+  for(let c=0;c<GS;c++) if(board.every(row=>row[c]))cols.push(c);
+  const total=rows.length+cols.length;
+  if(!total){combo=0;updateUI();return;}
+  const set=new Set();
+  rows.forEach(r=>{for(let c=0;c<GS;c++)set.add(r*GS+c);});
+  cols.forEach(c=>{for(let r=0;r<GS;r++)set.add(r*GS+c);});
+  const cells=getCells();
+  set.forEach(i=>cells[i].classList.add('clearing'));
+  setTimeout(()=>{
+    rows.forEach(r=>board[r].fill(null));
+    cols.forEach(c=>{for(let r=0;r<GS;r++)board[r][c]=null;});
+    set.forEach(i=>cells[i].classList.remove('clearing'));
+    const earned=(set.size*10+total*50)*(combo+1);
+    score+=earned;
+    if(total>=2)combo++;else combo=0;
+    if(score>best){best=score;localStorage.setItem('bb-best',best);}
+    updateUI();renderBoard();
+    showFloat('+'+earned.toLocaleString(),false);
+    if(combo>0)showFloat('콤보 ×'+(combo+1)+'! 🔥',true);
+  },320);
+}
+
+function showFloat(text,isCombo){
+  const el=document.createElement('div');
+  el.className='float-text';
+  el.textContent=text;
+  if(isCombo)el.style.color='#f97316';
+  el.style.left=(window.innerWidth/2-80)+'px';
+  el.style.top=(window.innerHeight/2-(isCombo?70:30))+'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),900);
+}
+
+function anyMovePossible(){
+  return pieces.some(p=>{
+    if(!p)return false;
+    for(let r=0;r<GS;r++) for(let c=0;c<GS;c++) if(canPlace(p.shape,r,c))return true;
+    return false;
+  });
+}
+
+function gameOver(){
+  document.getElementById('finalEl').textContent=score.toLocaleString();
+  document.getElementById('newBestEl').style.display=score>=best?'block':'none';
+  document.getElementById('overlay').classList.add('show');
+}
+
+function spawnPieces(){
+  pieces=[rndPiece(),rndPiece(),rndPiece()];
+  selIdx=null;renderTray();
+}
+
+function rndPiece(){
+  return{shape:PIECES[Math.floor(Math.random()*PIECES.length)],color:COLORS[Math.floor(Math.random()*COLORS.length)]};
+}
+
+function renderTray(){
+  const tray=document.getElementById('piece-tray');
+  tray.innerHTML='';
+  pieces.forEach((p,i)=>{
+    const con=document.createElement('div');
+    con.className='piece-container'+(p?'':" used")+(selIdx===i?' selected':'');
+    if(p){
+      const mg=document.createElement('div');
+      mg.className='mini-grid';
+      mg.style.gridTemplateColumns=`repeat(${p.shape[0].length},1fr)`;
+      p.shape.forEach(row=>row.forEach(v=>{
+        const mc=document.createElement('div');
+        mc.className='mini-cell';
+        mc.style.background=v?p.color.fill:'transparent';
+        mg.appendChild(mc);
+      }));
+      con.appendChild(mg);
+      con.addEventListener('click',()=>{selIdx=selIdx===i?null:i;renderTray();renderBoard();});
+    }
+    tray.appendChild(con);
+  });
+}
+
+// Touch support
+const gridEl=document.getElementById('grid');
+gridEl.addEventListener('touchstart',e=>{if(selIdx!==null)e.preventDefault();},{passive:false});
+gridEl.addEventListener('touchmove',e=>{
+  if(selIdx===null)return;e.preventDefault();
+  const t=e.touches[0],el=document.elementFromPoint(t.clientX,t.clientY);
+  if(el&&el.dataset.r!==undefined)onHover(+el.dataset.r,+el.dataset.c);
+},{passive:false});
+gridEl.addEventListener('touchend',e=>{
+  if(selIdx===null)return;e.preventDefault();
+  const t=e.changedTouches[0],el=document.elementFromPoint(t.clientX,t.clientY);
+  if(el&&el.dataset.r!==undefined)onCellClick(+el.dataset.r,+el.dataset.c);
+},{passive:false});
+
+startGame();
+</script>
+</body>
+</html>
