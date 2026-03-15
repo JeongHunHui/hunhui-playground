@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🏛️ 대통령 되기</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: #0a0a1a;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .bg { position: fixed; inset: 0; background: radial-gradient(ellipse at 20% 50%, #1a1a4e 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, #1a3a1a 0%, transparent 50%), #0a0a1a; z-index: -1; }
+    h1 { font-size: 2.5rem; text-align: center; margin-bottom: 0.3rem; background: linear-gradient(135deg, #ffd700, #ff6b35); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { text-align: center; color: #888; margin-bottom: 2rem; font-size: 0.95rem; }
+    .screen { display: none; width: 100%; max-width: 700px; padding: 1rem; }
+    .screen.active { display: block; }
+    #stats-bar { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
+    .stat { flex: 1; min-width: 100px; text-align: center; }
+    .stat-label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem; }
+    .stat-bar-wrap { background: rgba(255,255,255,0.1); border-radius: 99px; height: 8px; overflow: hidden; margin-bottom: 0.2rem; }
+    .stat-bar-fill { height: 100%; border-radius: 99px; transition: width 0.5s ease; }
+    .stat-bar-fill.popularity { background: linear-gradient(90deg, #ff6b35, #ffd700); }
+    .stat-bar-fill.economy { background: linear-gradient(90deg, #00c6ff, #0072ff); }
+    .stat-bar-fill.military { background: linear-gradient(90deg, #56ab2f, #a8e063); }
+    .stat-bar-fill.diplomacy { background: linear-gradient(90deg, #f953c6, #b91d73); }
+    .stat-value { font-size: 0.8rem; font-weight: bold; }
+    .phase-badge { display: inline-block; padding: 0.25rem 0.8rem; border-radius: 99px; font-size: 0.75rem; font-weight: bold; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.8rem; }
+    .phase-local { background: #1a3a1a; color: #56ab2f; border: 1px solid #56ab2f44; }
+    .phase-national { background: #1a1a3a; color: #00c6ff; border: 1px solid #00c6ff44; }
+    .phase-primary { background: #3a1a1a; color: #ff6b35; border: 1px solid #ff6b3544; }
+    .phase-election { background: #3a2a00; color: #ffd700; border: 1px solid #ffd70044; }
+    .phase-final { background: #2a003a; color: #f953c6; border: 1px solid #f953c644; }
+    .event-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.2rem; }
+    .event-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 0.5rem; }
+    .event-desc { color: #aaa; font-size: 0.92rem; line-height: 1.6; margin-bottom: 1rem; }
+    .choices { display: flex; flex-direction: column; gap: 0.7rem; }
+    .choice-btn { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 1rem 1.2rem; color: #ddd; font-size: 0.92rem; cursor: pointer; text-align: left; transition: all 0.2s; line-height: 1.5; }
+    .choice-btn:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,215,0,0.4); color: #fff; transform: translateX(3px); }
+    .choice-hint { display: block; font-size: 0.75rem; color: #666; margin-top: 0.3rem; }
+    #result-popup { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 100; }
+    #result-popup.show { display: flex; }
+    .result-box { background: #111827; border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 2rem; max-width: 420px; width: 90%; text-align: center; }
+    .result-emoji { font-size: 3rem; margin-bottom: 0.5rem; }
+    .result-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 0.8rem; }
+    .result-text { color: #999; font-size: 0.9rem; line-height: 1.6; margin-bottom: 1.5rem; }
+    .result-deltas { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-bottom: 1.5rem; }
+    .delta-chip { padding: 0.3rem 0.7rem; border-radius: 99px; font-size: 0.8rem; font-weight: bold; }
+    .delta-chip.pos { background: rgba(86,171,47,0.2); color: #a8e063; border: 1px solid #56ab2f55; }
+    .delta-chip.neg { background: rgba(255,59,59,0.2); color: #ff8080; border: 1px solid #ff3b3b55; }
+    .delta-chip.neu { background: rgba(255,255,255,0.08); color: #888; border: 1px solid #44444455; }
+    .continue-btn { background: linear-gradient(135deg, #ffd700, #ff6b35); border: none; border-radius: 10px; padding: 0.8rem 2rem; color: #000; font-weight: bold; font-size: 1rem; cursor: pointer; }
+    .continue-btn:hover { opacity: 0.85; }
+    .progress-wrap { margin-bottom: 0.5rem; font-size: 0.8rem; color: #666; display: flex; justify-content: space-between; }
+    .progress-track { background: rgba(255,255,255,0.08); border-radius: 99px; height: 4px; margin-top: 0.4rem; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #ffd700, #ff6b35); border-radius: 99px; transition: width 0.4s ease; }
+    #start-screen { text-align: center; max-width: 500px; margin: 0 auto; }
+    .big-emoji { font-size: 5rem; margin-bottom: 1rem; display: block; }
+    .start-btn { background: linear-gradient(135deg, #ffd700, #ff6b35); border: none; border-radius: 12px; padding: 1rem 3rem; font-size: 1.1rem; font-weight: bold; color: #000; cursor: pointer; margin-top: 1.5rem; transition: transform 0.2s; }
+    .start-btn:hover { transform: scale(1.05); }
+    .start-desc { color: #888; line-height: 1.7; margin: 1rem 0; }
+    #end-screen { text-align: center; max-width: 500px; margin: 0 auto; }
+    .end-grade { font-size: 4rem; margin: 1rem 0; }
+    .final-score { font-size: 2rem; font-weight: bold; background: linear-gradient(135deg, #ffd700, #ff6b35); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .end-msg { color: #aaa; line-height: 1.7; margin: 1rem 0 2rem; white-space: pre-line; }
+    .restart-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 0.8rem 2rem; color: #ddd; font-size: 1rem; cursor: pointer; }
+    .restart-btn:hover { background: rgba(255,255,255,0.2); }
+  </style>
+</head>
+<body>
+<div class="bg"></div>
+
+<div id="start-screen" class="screen active">
+  <span class="big-emoji">🏛️</span>
+  <h1>대통령 되기</h1>
+  <p class="subtitle">지방의원 → 국회의원 → 당 대표 → 대선 후보 → 최후 결전</p>
+  <p class="start-desc">
+    작은 지역구 의원에서 시작해<br>
+    선택을 거듭하며 대한민국 대통령이 되세요.<br><br>
+    각 결정은 <b>지지율·경제·군사·외교</b>에 영향을 미칩니다.
+  </p>
+  <button class="start-btn" onclick="startGame()">🗳️ 선거 출마!</button>
+</div>
+
+<div id="game-screen" class="screen" style="max-width:700px;width:100%;padding:1rem;">
+  <h1 style="font-size:1.5rem;margin-bottom:0.2rem;">🏛️ 대통령 되기</h1>
+  <div class="subtitle" id="turn-info"></div>
+  <div id="stats-bar">
+    <div class="stat"><div class="stat-label">지지율</div><div class="stat-bar-wrap"><div class="stat-bar-fill popularity" id="bar-popularity"></div></div><div class="stat-value" id="val-popularity"></div></div>
+    <div class="stat"><div class="stat-label">경제</div><div class="stat-bar-wrap"><div class="stat-bar-fill economy" id="bar-economy"></div></div><div class="stat-value" id="val-economy"></div></div>
+    <div class="stat"><div class="stat-label">군사</div><div class="stat-bar-wrap"><div class="stat-bar-fill military" id="bar-military"></div></div><div class="stat-value" id="val-military"></div></div>
+    <div class="stat"><div class="stat-label">외교</div><div class="stat-bar-wrap"><div class="stat-bar-fill diplomacy" id="bar-diplomacy"></div></div><div class="stat-value" id="val-diplomacy"></div></div>
+  </div>
+  <div class="progress-wrap"><span id="phase-label"></span><span id="event-counter"></span></div>
+  <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  <div id="event-area" style="margin-top:1rem;"></div>
+</div>
+
+<div id="end-screen" class="screen">
+  <span class="big-emoji">🎖️</span>
+  <h1>게임 종료</h1>
+  <div class="end-grade" id="end-grade"></div>
+  <div class="final-score" id="final-score"></div>
+  <div id="end-stat-chips"></div>
+  <p class="end-msg" id="end-msg"></p>
+  <button class="restart-btn" onclick="restartGame()">🔄 다시 시작</button>
+</div>
+
+<div id="result-popup">
+  <div class="result-box">
+    <div class="result-emoji" id="res-emoji"></div>
+    <div class="result-title" id="res-title"></div>
+    <div class="result-text" id="res-text"></div>
+    <div class="result-deltas" id="res-deltas"></div>
+    <button class="continue-btn" onclick="closeResult()">계속하기 →</button>
+  </div>
+</div>
+
+<script>
+var stats={}, currentPhase=0, currentEvent=0, pendingNext=null;
+var PHASES=[
+  {name:'지방의원',badge:'phase-local',emoji:'🏘️',events:4},
+  {name:'국회의원',badge:'phase-national',emoji:'🏛️',events:4},
+  {name:'당 대표',badge:'phase-primary',emoji:'🎙️',events:3},
+  {name:'대선 후보',badge:'phase-election',emoji:'📣',events:4},
+  {name:'최후 결전',badge:'phase-final',emoji:'🗳️',events:2}
+];
+var EVENTS=[
+  {phase:0,title:'🚧 낡은 다리 문제',desc:'지역구의 오래된 다리가 위험하다는 민원이 빗발칩니다.',choices:[
+    {text:'즉시 보수 공사를 추진한다',hint:'지지율↑, 예산 소모',delta:{popularity:15,economy:-8}},
+    {text:'안전 점검 후 순차적으로 처리한다',hint:'안정적이지만 비판도 있음',delta:{popularity:5,economy:-3}},
+    {text:'민간 투자를 유치해 해결한다',hint:'시간이 걸리지만 효율적',delta:{popularity:3,economy:10,diplomacy:3}}
+  ]},
+  {phase:0,title:'📰 지역 언론 인터뷰',desc:'지역 신문사가 심층 인터뷰를 요청했습니다. 어떤 이미지를 강조할까요?',choices:[
+    {text:'민생 밀착형 의원 이미지를 강조',hint:'지지율↑',delta:{popularity:12,diplomacy:3}},
+    {text:'경제 전문가 이미지를 강조',hint:'경제 지지층 확보',delta:{popularity:5,economy:12}},
+    {text:'인터뷰를 거절, 현장 활동에 집중',hint:'신뢰도 상승',delta:{popularity:8}}
+  ]},
+  {phase:0,title:'🏫 폐교 활용 논란',desc:'폐교된 초등학교를 어떻게 활용할지 주민들 의견이 엇갈립니다.',choices:[
+    {text:'노인복지센터로 전환',hint:'고령 유권자 지지 확보',delta:{popularity:14,economy:5}},
+    {text:'청년 창업 공간으로 활용',hint:'청년층 지지',delta:{popularity:8,economy:14}},
+    {text:'주민 투표로 결정',hint:'민주적이지만 시간 소요',delta:{popularity:10,diplomacy:8}}
+  ]},
+  {phase:0,title:'💰 지역 축제 예산',desc:'전통 축제 예산 삭감 요구와 문화 진흥 사이에서 갈등입니다.',choices:[
+    {text:'예산을 늘려 축제를 더 크게 키운다',hint:'단기 지지율 급상승',delta:{popularity:18,economy:-12}},
+    {text:'예산을 현행 유지한다',hint:'무난한 선택',delta:{popularity:5,economy:2}},
+    {text:'스폰서십을 유치해 예산 절감',hint:'경제적이고 외교적',delta:{popularity:7,economy:10,diplomacy:5}}
+  ]},
+  {phase:1,title:'⚖️ 최저임금 인상 법안',desc:'최저임금 대폭 인상 법안에 찬반이 팽팽합니다. 당신의 입장은?',choices:[
+    {text:'강하게 지지, 공동 발의한다',hint:'노동계 지지, 재계 반발',delta:{popularity:15,economy:-10}},
+    {text:'단계적 인상안을 제안한다',hint:'균형잡힌 입장',delta:{popularity:8,economy:5}},
+    {text:'기업 부담을 이유로 반대한다',hint:'재계 지지, 노동계 반발',delta:{popularity:-8,economy:15}}
+  ]},
+  {phase:1,title:'🌐 한미 방위비 협상',desc:'미국이 방위비 분담금 대폭 인상을 요구하고 있습니다.',choices:[
+    {text:'단호히 거부, 협상 지속을 촉구',hint:'국민 지지↑, 외교 마찰',delta:{popularity:18,military:-5,diplomacy:-8}},
+    {text:'적정선에서 타협안을 모색',hint:'균형 외교',delta:{popularity:5,military:8,diplomacy:10}},
+    {text:'미국 입장을 수용한다',hint:'동맹 강화, 국내 반발',delta:{popularity:-10,military:15,diplomacy:15}}
+  ]},
+  {phase:1,title:'🏥 무상의료 공약',desc:'야당이 무상의료 공약을 내세우며 당신을 압박합니다.',choices:[
+    {text:'더 강한 무상의료 공약을 제시',hint:'복지 지지층 확보',delta:{popularity:20,economy:-15}},
+    {text:'선택적 무상의료를 제안',hint:'중도층 공략',delta:{popularity:10,economy:-5}},
+    {text:'재정 건전성을 강조하며 반대',hint:'재정 보수층 지지',delta:{popularity:-5,economy:18}}
+  ]},
+  {phase:1,title:'📡 국방 예산 증액',desc:'북한의 도발이 계속되자 국방부가 예산 증액을 요청했습니다.',choices:[
+    {text:'적극 지지, 예산 대폭 증액',hint:'안보 강화',delta:{military:20,economy:-10,popularity:8}},
+    {text:'적정 수준 증액을 지지',hint:'균형',delta:{military:10,economy:-3,popularity:5}},
+    {text:'복지 예산 우선을 주장',hint:'복지층 지지',delta:{military:-8,economy:5,popularity:12}}
+  ]},
+  {phase:2,title:'🎙️ 전당대회 연설',desc:'당 대표 선출을 위한 전당대회. 어떤 메시지로 당원들의 마음을 사로잡을까요?',choices:[
+    {text:'민생 경제 중심의 진보적 비전 제시',hint:'진보 당원 결집',delta:{popularity:20,economy:10,diplomacy:5}},
+    {text:'강한 안보와 국가 리더십 강조',hint:'중도·보수 당원 확보',delta:{popularity:15,military:15,diplomacy:3}},
+    {text:'통합과 화합의 메시지',hint:'분열 막기',delta:{popularity:25,economy:5,diplomacy:8}}
+  ]},
+  {phase:2,title:'🗞️ 당내 스캔들',desc:'당내 인사가 비리 의혹에 휘말렸습니다. 당 대표로서의 대응은?',choices:[
+    {text:'즉각 출당 조치하고 강한 쇄신 선언',hint:'단호한 리더십',delta:{popularity:18,economy:3,diplomacy:5}},
+    {text:'진상 조사 후 결정',hint:'신중하지만 우유부단 이미지',delta:{popularity:5,diplomacy:3}},
+    {text:'감싸고 내부 해결 시도',hint:'민심 이탈',delta:{popularity:-15,diplomacy:-5}}
+  ]},
+  {phase:2,title:'🤝 야당과의 협력',desc:'민생 법안 처리를 위해 야당이 협치를 제안했습니다.',choices:[
+    {text:'적극적으로 협치를 받아들인다',hint:'중도층 확보',delta:{popularity:12,economy:8,diplomacy:15}},
+    {text:'조건부 협치를 제안',hint:'실리 챙기기',delta:{popularity:8,economy:10,diplomacy:8}},
+    {text:'단독 처리를 추진한다',hint:'리더십 과시, 외교 마찰',delta:{popularity:5,economy:5,diplomacy:-10}}
+  ]},
+  {phase:3,title:'📣 대선 공약 발표',desc:'대선 핵심 공약을 발표할 시간입니다. 어디에 초점을 맞출까요?',choices:[
+    {text:'경제 살리기 - 일자리 100만 개 창출',hint:'경제 집중 공약',delta:{popularity:15,economy:25,military:-3}},
+    {text:'한반도 평화 - 남북 관계 개선',hint:'평화 공약',delta:{popularity:18,diplomacy:25,military:5}},
+    {text:'복지국가 - 전국민 기본소득',hint:'복지 공약',delta:{popularity:25,economy:-10,diplomacy:5}}
+  ]},
+  {phase:3,title:'📺 TV 토론',desc:'대선 TV 토론에서 경쟁 후보가 당신의 능력을 공격합니다.',choices:[
+    {text:'당당하게 반박하며 역공격',hint:'강한 인상',delta:{popularity:20,diplomacy:8}},
+    {text:'차분하게 사실로만 대응',hint:'신중한 이미지',delta:{popularity:10,diplomacy:15}},
+    {text:'공약으로 화제를 전환',hint:'미래지향적',delta:{popularity:12,economy:5,diplomacy:5}}
+  ]},
+  {phase:3,title:'🌏 외교 위기',desc:'대선 직전 중국과의 무역 분쟁이 터졌습니다.',choices:[
+    {text:'강경 대응 - 국익 우선 천명',hint:'강한 리더십, 외교 손실',delta:{popularity:15,military:10,diplomacy:-15,economy:-8}},
+    {text:'대화와 협상을 촉구',hint:'외교적 해결',delta:{popularity:8,diplomacy:18,economy:5}},
+    {text:'미국과 공동 대응',hint:'동맹 강화',delta:{popularity:10,military:12,diplomacy:10,economy:-3}}
+  ]},
+  {phase:3,title:'💊 의료 파업',desc:'대형 의사 파업이 대선 직전 터졌습니다.',choices:[
+    {text:'의사 편 - 의료 자율성 보장',hint:'의사협회 지지',delta:{popularity:5,economy:8}},
+    {text:'환자 편 - 필수 의료 강화 법제화',hint:'일반 국민 지지',delta:{popularity:20,economy:-5}},
+    {text:'중재안 제시',hint:'갈등 완화',delta:{popularity:12,economy:3,diplomacy:5}}
+  ]},
+  {phase:4,title:'🗳️ 투표 당일',desc:'출구조사 결과 초박빙입니다. 마지막 순간 무엇을 할까요?',choices:[
+    {text:'지지자들에게 투표 독려 메시지 발송',hint:'마지막 결집',delta:{popularity:20,diplomacy:5}},
+    {text:'차분하게 결과를 기다린다',hint:'품위 있는 리더십',delta:{popularity:10,diplomacy:10}},
+    {text:'경합 지역 직접 방문',hint:'마지막 스퍼트',delta:{popularity:15,economy:5,military:3}}
+  ]},
+  {phase:4,title:'🏆 당선 확정 순간',desc:'당신이 당선됐습니다! 첫 번째 연설의 메시지는?',choices:[
+    {text:'"모든 국민을 위한 대통령이 되겠습니다"',hint:'통합의 메시지',delta:{popularity:25,diplomacy:15,economy:5}},
+    {text:'"경제 위기를 반드시 극복하겠습니다"',hint:'경제 우선',delta:{popularity:15,economy:25,military:3}},
+    {text:'"한반도 평화의 새 역사를 쓰겠습니다"',hint:'평화 외교 선언',delta:{popularity:20,diplomacy:25,military:5}}
+  ]}
+];
+
+var LABELS={popularity:'지지율',economy:'경제',military:'군사',diplomacy:'외교'};
+
+function startGame(){
+  stats={popularity:30,economy:40,military:35,diplomacy:30};
+  currentPhase=0; currentEvent=0;
+  showScreen('game-screen');
+  renderEvent();
+}
+
+function renderEvent(){
+  var phase=PHASES[currentPhase];
+  var evts=EVENTS.filter(function(e){return e.phase===currentPhase;});
+  var evt=evts[currentEvent%evts.length];
+  var totalEvts=PHASES.reduce(function(s,p){return s+p.events;},0);
+  var doneEvts=PHASES.slice(0,currentPhase).reduce(function(s,p){return s+p.events;},0)+currentEvent;
+  document.getElementById('progress-fill').style.width=(doneEvts/totalEvts*100)+'%';
+  document.getElementById('phase-label').textContent=phase.emoji+' '+phase.name;
+  document.getElementById('event-counter').textContent='이벤트 '+(currentEvent+1)+' / '+phase.events;
+  document.getElementById('turn-info').textContent=PHASES.map(function(p,i){return i===currentPhase?'【'+p.name+'】':p.name;}).join(' → ');
+  updateStats();
+  var area=document.getElementById('event-area');
+  area.innerHTML='<span class="phase-badge '+phase.badge+'">'+phase.emoji+' '+phase.name+'</span>'
+    +'<div class="event-card">'
+    +'<div class="event-title">'+evt.title+'</div>'
+    +'<div class="event-desc">'+evt.desc+'</div>'
+    +'<div class="choices">'
+    +evt.choices.map(function(c,i){
+      return '<button class="choice-btn" onclick="choose('+i+')">'+c.text+'<span class="choice-hint">'+c.hint+'</span></button>';
+    }).join('')
+    +'</div></div>';
+}
+
+function choose(idx){
+  var evts=EVENTS.filter(function(e){return e.phase===currentPhase;});
+  var evt=evts[currentEvent%evts.length];
+  var choice=evt.choices[idx];
+  Object.entries(choice.delta).forEach(function(kv){
+    stats[kv[0]]=Math.max(0,Math.min(100,(stats[kv[0]]||0)+kv[1]));
+  });
+  showResult(choice);
+  pendingNext=function(){
+    currentEvent++;
+    if(currentEvent>=PHASES[currentPhase].events){
+      currentPhase++; currentEvent=0;
+      if(currentPhase>=PHASES.length){endGame();return;}
+    }
+    renderEvent();
+  };
+}
+
+function showResult(choice){
+  var total=Object.values(choice.delta).reduce(function(a,b){return a+b;},0);
+  document.getElementById('res-emoji').textContent=total>20?'🎉':total>5?'😊':total>-5?'😐':'😬';
+  document.getElementById('res-title').textContent=choice.text;
+  document.getElementById('res-text').textContent=choice.hint;
+  document.getElementById('res-deltas').innerHTML=Object.entries(choice.delta).map(function(kv){
+    var cls=kv[1]>0?'pos':kv[1]<0?'neg':'neu';
+    var sign=kv[1]>0?'+':'';
+    return '<span class="delta-chip '+cls+'">'+LABELS[kv[0]]+' '+sign+kv[1]+'</span>';
+  }).join('');
+  document.getElementById('result-popup').classList.add('show');
+}
+
+function closeResult(){
+  document.getElementById('result-popup').classList.remove('show');
+  if(pendingNext){pendingNext();pendingNext=null;}
+}
+
+function updateStats(){
+  ['popularity','economy','military','diplomacy'].forEach(function(k){
+    var v=stats[k]||0;
+    document.getElementById('bar-'+k).style.width=v+'%';
+    document.getElementById('val-'+k).textContent=v;
+  });
+}
+
+function endGame(){
+  showScreen('end-screen');
+  var avg=Math.round(Object.values(stats).reduce(function(a,b){return a+b;},0)/4);
+  document.getElementById('final-score').textContent='종합 점수: '+avg+'점';
+  var grade,msg;
+  if(avg>=80){grade='👑';msg='압도적인 지지를 받으며 대통령에 당선!\n역대급 지도자로 역사에 이름을 남길 것입니다.';}
+  else if(avg>=65){grade='🥇';msg='안정적인 국정 운영으로 훌륭한 대통령에 당선!\n국민의 신뢰를 받는 지도자가 되었습니다.';}
+  else if(avg>=50){grade='🥈';msg='아슬아슬하게 대통령에 당선되었습니다.\n향후 국정 운영이 더욱 중요해질 것입니다.';}
+  else if(avg>=35){grade='😰';msg='아쉽게 낙선했습니다.\n더 현명한 선택을 했다면 달랐을지도...';}
+  else{grade='💀';msg='정치 생명이 끝났습니다.\n처음부터 다시 시작해보세요!';}
+  document.getElementById('end-grade').textContent=grade;
+  document.getElementById('end-msg').textContent=msg;
+  document.getElementById('end-stat-chips').innerHTML='<div style="display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center;margin:1rem 0 1.5rem;">'
+    +Object.entries(stats).map(function(kv){
+      var cls=kv[1]>=60?'pos':kv[1]>=40?'neu':'neg';
+      return '<span class="delta-chip '+cls+'">'+LABELS[kv[0]]+' '+kv[1]+'</span>';
+    }).join('')+'</div>';
+}
+
+function restartGame(){startGame();}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body>
+</html>

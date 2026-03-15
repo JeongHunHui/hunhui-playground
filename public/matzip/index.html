@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>맛집 탐방 🍜</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0f0f13; --surface: #1a1a24; --surface2: #22222f;
+      --accent: #ff6b35; --accent2: #ff9f1c;
+      --text: #f0f0f5; --sub: #8888aa; --card: #1e1e2a; --border: #2a2a3a;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+    header { padding: 20px 20px 0; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 22px; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .tab-bar { display: flex; gap: 4px; background: var(--surface); padding: 4px; border-radius: 12px; }
+    .tab { padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--sub); transition: all 0.2s; border: none; background: none; }
+    .tab.active { background: var(--accent); color: white; }
+    #tab-search { display: block; } #tab-log { display: none; } #tab-map { display: none; }
+    .search-section { padding: 20px; }
+    .location-bar { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; cursor: pointer; transition: border-color 0.2s; }
+    .location-bar:hover { border-color: var(--accent); }
+    .location-bar .icon { font-size: 18px; }
+    .location-bar .loc-text { flex: 1; font-size: 14px; color: var(--sub); }
+    .location-bar .loc-text.found { color: var(--text); }
+    .search-bar { display: flex; gap: 8px; margin-bottom: 20px; }
+    .search-input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; color: var(--text); font-size: 15px; outline: none; transition: border-color 0.2s; }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--sub); }
+    .search-btn { background: var(--accent); border: none; border-radius: 12px; padding: 12px 18px; color: white; font-size: 18px; cursor: pointer; }
+    .category-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 20px; scrollbar-width: none; }
+    .category-chips::-webkit-scrollbar { display: none; }
+    .chip { flex-shrink: 0; padding: 7px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: transparent; color: var(--sub); transition: all 0.2s; }
+    .chip.active, .chip:hover { border-color: var(--accent); color: var(--accent); background: rgba(255,107,53,0.1); }
+    .results-label { font-size: 13px; color: var(--sub); margin-bottom: 12px; padding: 0 2px; }
+    .restaurant-list { display: flex; flex-direction: column; gap: 12px; }
+    .restaurant-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; }
+    .restaurant-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+    .card-name { font-size: 16px; font-weight: 700; }
+    .card-category { font-size: 12px; color: var(--accent2); background: rgba(255,159,28,0.15); padding: 3px 8px; border-radius: 6px; font-weight: 600; }
+    .card-address { font-size: 13px; color: var(--sub); margin-bottom: 10px; }
+    .card-actions { display: flex; gap: 8px; }
+    .action-btn { flex: 1; padding: 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center; }
+    .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .action-btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
+    .visited-badge { font-size: 11px; color: #4caf50; background: rgba(76,175,80,0.15); padding: 3px 8px; border-radius: 6px; font-weight: 600; }
+    .log-section { padding: 20px; }
+    .log-empty { text-align: center; padding: 60px 20px; color: var(--sub); }
+    .log-empty .emoji { font-size: 48px; margin-bottom: 12px; }
+    .log-list { display: flex; flex-direction: column; gap: 12px; }
+    .log-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
+    .log-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .log-name { font-size: 16px; font-weight: 700; }
+    .log-date { font-size: 12px; color: var(--sub); }
+    .log-category { font-size: 12px; color: var(--accent2); margin-bottom: 8px; }
+    .log-memo { font-size: 14px; color: var(--sub); line-height: 1.5; margin-bottom: 10px; }
+    .log-delete { font-size: 12px; color: var(--sub); cursor: pointer; text-decoration: underline; }
+    .log-delete:hover { color: #ff4444; }
+    #map { width: 100%; height: calc(100vh - 120px); }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; display: none; align-items: flex-end; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--surface2); border-radius: 20px 20px 0 0; padding: 24px 20px; width: 100%; max-height: 70vh; overflow-y: auto; }
+    .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+    .modal-title { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+    .modal-category { font-size: 13px; color: var(--accent2); margin-bottom: 8px; }
+    .modal-address { font-size: 14px; color: var(--sub); margin-bottom: 20px; line-height: 1.4; }
+    .modal-label { font-size: 13px; color: var(--sub); font-weight: 600; margin-bottom: 8px; }
+    .memo-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; color: var(--text); font-size: 14px; resize: none; height: 80px; outline: none; font-family: inherit; margin-bottom: 16px; transition: border-color 0.2s; }
+    .memo-input:focus { border-color: var(--accent); }
+    .memo-input::placeholder { color: var(--sub); }
+    .modal-btns { display: flex; gap: 10px; }
+    .modal-cancel { flex: 1; padding: 14px; border-radius: 12px; border: 1px solid var(--border); background: transparent; color: var(--sub); font-size: 15px; font-weight: 600; cursor: pointer; }
+    .modal-save { flex: 2; padding: 14px; border-radius: 12px; border: none; background: var(--accent); color: white; font-size: 15px; font-weight: 700; cursor: pointer; }
+    .loading { text-align: center; padding: 40px; color: var(--sub); font-size: 14px; }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--accent); color: white; padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; opacity: 0; transition: all 0.3s; z-index: 200; white-space: nowrap; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .api-notice { background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; padding: 16px; margin: 16px 0; font-size: 13px; color: var(--sub); line-height: 1.6; }
+    .api-notice strong { color: var(--accent2); display: block; margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🍜 맛집 탐방</div>
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab('search')">탐색</button>
+    <button class="tab" onclick="switchTab('log')">기록</button>
+    <button class="tab" onclick="switchTab('map')">지도</button>
+  </div>
+</header>
+
+<div id="tab-search">
+  <div class="search-section">
+    <div class="api-notice" id="api-notice" style="display:none">
+      <strong>⚙️ Kakao Maps API 키 필요</strong>
+      현재 데모 모드입니다. 실제 주변 맛집 검색을 위해 Kakao Developers에서 앱 키를 발급받아 URL의 <code>appkey=</code>에 입력하세요.
+      <br><br>데모 데이터로 UI를 미리 보여드립니다 👇
+    </div>
+
+    <div class="location-bar" onclick="getLocation()">
+      <span class="icon">📍</span>
+      <span class="loc-text" id="loc-text">내 위치 불러오기</span>
+      <span style="color:var(--sub);font-size:13px;">→</span>
+    </div>
+
+    <div class="search-bar">
+      <input class="search-input" id="search-input" placeholder="식당 이름, 음식 종류 검색..." />
+      <button class="search-btn" onclick="searchPlaces()">🔍</button>
+    </div>
+
+    <div class="category-chips">
+      <button class="chip active" onclick="selectChip(this, '')">전체</button>
+      <button class="chip" onclick="selectChip(this, '한식')">🍚 한식</button>
+      <button class="chip" onclick="selectChip(this, '일식')">🍣 일식</button>
+      <button class="chip" onclick="selectChip(this, '중식')">🥟 중식</button>
+      <button class="chip" onclick="selectChip(this, '양식')">🍝 양식</button>
+      <button class="chip" onclick="selectChip(this, '카페')">☕ 카페</button>
+      <button class="chip" onclick="selectChip(this, '분식')">🍢 분식</button>
+      <button class="chip" onclick="selectChip(this, '치킨')">🍗 치킨</button>
+    </div>
+
+    <div class="results-label" id="results-label">위치를 불러오거나 검색해보세요</div>
+    <div class="restaurant-list" id="restaurant-list"></div>
+  </div>
+</div>
+
+<div id="tab-log">
+  <div class="log-section">
+    <div id="log-container"></div>
+  </div>
+</div>
+
+<div id="tab-map">
+  <div id="map"></div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-name"></div>
+    <div class="modal-category" id="modal-cat"></div>
+    <div class="modal-address" id="modal-addr"></div>
+    <div class="modal-label">메모 (선택)</div>
+    <textarea class="memo-input" id="memo-input" placeholder="어떤 메뉴가 맛있었나요? 분위기는?"></textarea>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">취소</button>
+      <button class="modal-save" onclick="saveVisit()">✅ 방문 기록하기</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const KAKAO_KEY = '';  // 여기에 카카오 앱 키 입력
+  const DEMO_PLACES = [
+    { id: 'd1', place_name: '진미평양냉면', category_name: '음식점 > 한식 > 냉면', road_address_name: '서울 마포구 토정로 289', place_url: '#', distance: '120', y: 37.549, x: 126.915 },
+    { id: 'd2', place_name: '스시 오마카세 하나', category_name: '음식점 > 일식 > 초밥', road_address_name: '서울 마포구 양화로 141', place_url: '#', distance: '230', y: 37.552, x: 126.918 },
+    { id: 'd3', place_name: '더현대 소고기집', category_name: '음식점 > 한식 > 고기집', road_address_name: '서울 영등포구 여의대로 108', place_url: '#', distance: '450', y: 37.527, x: 126.928 },
+    { id: 'd4', place_name: '블루보틀 합정점', category_name: '카페 > 커피전문점', road_address_name: '서울 마포구 양화로 162', place_url: '#', distance: '310', y: 37.553, x: 126.919 },
+    { id: 'd5', place_name: '홍콩반점 0410', category_name: '음식점 > 중식 > 중국집', road_address_name: '서울 마포구 서교동 357-14', place_url: '#', distance: '180', y: 37.552, x: 126.922 },
+    { id: 'd6', place_name: '마제소바 도라', category_name: '음식점 > 일식 > 라멘', road_address_name: '서울 마포구 어울마당로 65', place_url: '#', distance: '95', y: 37.550, x: 126.920 },
+  ];
+
+  let userLat = null, userLng = null;
+  let selectedCategory = '';
+  let currentPlaces = [];
+  let selectedPlace = null;
+  let visitLog = JSON.parse(localStorage.getItem('matzip-log') || '[]');
+  let map = null, markers = [], ps = null;
+  let kakaoReady = false;
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  function switchTab(tab) {
+    ['search','log','map'].forEach(t => {
+      document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+    });
+    document.querySelectorAll('.tab').forEach((btn, i) => {
+      btn.classList.toggle('active', ['search','log','map'][i] === tab);
+    });
+    if (tab === 'log') renderLog();
+    if (tab === 'map') initMap();
+  }
+
+  function getLocation() {
+    const el = document.getElementById('loc-text');
+    el.textContent = '위치 불러오는 중...';
+    navigator.geolocation.getCurrentPosition(pos => {
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+      if (kakaoReady) {
+        const geocoder = new kakao.maps.services.Geocoder();
+        geocoder.coord2Address(userLng, userLat, (result, status) => {
+          if (status === kakao.maps.services.Status.OK) {
+            const addr = result[0].road_address?.address_name || result[0].address.address_name;
+            el.textContent = addr;
+          } else {
+            el.textContent = '현재 위치';
+          }
+          el.classList.add('found');
+          searchPlaces();
+        });
+      } else {
+        el.textContent = '현재 위치 확인됨';
+        el.classList.add('found');
+        showDemoPlaces();
+      }
+    }, () => {
+      el.textContent = '위치 접근 실패 — 검색으로 탐색하세요';
+      showDemoPlaces();
+    });
+  }
+
+  function selectChip(el, cat) {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    selectedCategory = cat;
+    searchPlaces();
+  }
+
+  function searchPlaces() {
+    if (!kakaoReady) { showDemoPlaces(); return; }
+    if (!ps) ps = new kakao.maps.services.Places();
+
+    const q = (document.getElementById('search-input').value || selectedCategory || '맛집').trim();
+    const opts = {};
+    if (userLat && userLng) {
+      opts.location = new kakao.maps.LatLng(userLat, userLng);
+      opts.radius = 1000;
+      opts.sort = kakao.maps.services.SortBy.DISTANCE;
+    }
+
+    const list = document.getElementById('restaurant-list');
+    list.innerHTML = '<div class="loading"><div class="spinner"></div>검색 중...</div>';
+
+    ps.keywordSearch(q, (data, status) => {
+      if (status === kakao.maps.services.Status.OK) {
+        currentPlaces = data;
+        renderCards(currentPlaces);
+        document.getElementById('results-label').textContent = currentPlaces.length + '개 결과';
+      } else {
+        list.innerHTML = '<div class="loading">결과가 없습니다 😅</div>';
+      }
+    }, opts);
+  }
+
+  function showDemoPlaces() {
+    document.getElementById('api-notice').style.display = 'block';
+    let filtered = DEMO_PLACES;
+    if (selectedCategory) {
+      filtered = DEMO_PLACES.filter(p => p.category_name.includes(selectedCategory));
+    }
+    currentPlaces = filtered;
+    renderCards(currentPlaces);
+    document.getElementById('results-label').textContent = '데모 데이터 ' + currentPlaces.length + '개';
+  }
+
+  function isVisited(id) { return visitLog.some(v => v.id === id); }
+
+  function renderCards(places) {
+    const list = document.getElementById('restaurant-list');
+    if (!places.length) { list.innerHTML = '<div class="loading">결과가 없습니다 😅</div>'; return; }
+    list.innerHTML = places.map(p => {
+      const visited = isVisited(p.id);
+      const cat = p.category_name.split(' > ').pop();
+      return '<div class="restaurant-card" onclick="openModal(\'' + p.id + '\')">' +
+        '<div class="card-top"><div class="card-name">' + p.place_name + '</div>' +
+        (visited ? '<span class="visited-badge">✅ 방문함</span>' : '<span class="card-category">' + cat + '</span>') +
+        '</div>' +
+        '<div class="card-address">' + (p.road_address_name || p.address_name || '') + '</div>' +
+        (p.distance ? '<div style="font-size:12px;color:var(--sub);margin-bottom:8px;">📍 ' + p.distance + 'm</div>' : '') +
+        '<div class="card-actions">' +
+        (p.place_url && p.place_url !== '#' ? '<button class="action-btn" onclick="event.stopPropagation();window.open(\'' + p.place_url + '\',\'_blank\')">카카오맵</button>' : '<button class="action-btn" disabled style="opacity:0.4">카카오맵</button>') +
+        '<button class="action-btn primary" onclick="event.stopPropagation();openModal(\'' + p.id + '\')">' + (visited ? '메모 수정' : '방문 기록') + '</button>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  function openModal(id) {
+    const place = currentPlaces.find(p => p.id === id);
+    if (!place) return;
+    selectedPlace = place;
+    document.getElementById('modal-name').textContent = place.place_name;
+    document.getElementById('modal-cat').textContent = place.category_name.split(' > ').pop();
+    document.getElementById('modal-addr').textContent = place.road_address_name || place.address_name || '';
+    const existing = visitLog.find(v => v.id === id);
+    document.getElementById('memo-input').value = existing?.memo || '';
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function closeModal(e) {
+    if (!e || e.target === document.getElementById('modal-overlay')) {
+      document.getElementById('modal-overlay').classList.remove('open');
+    }
+  }
+
+  function saveVisit() {
+    if (!selectedPlace) return;
+    const memo = document.getElementById('memo-input').value.trim();
+    const existing = visitLog.findIndex(v => v.id === selectedPlace.id);
+    const entry = {
+      id: selectedPlace.id,
+      name: selectedPlace.place_name,
+      category: selectedPlace.category_name.split(' > ').pop(),
+      address: selectedPlace.road_address_name || selectedPlace.address_name || '',
+      url: selectedPlace.place_url,
+      memo,
+      date: new Date().toLocaleDateString('ko-KR'),
+      lat: parseFloat(selectedPlace.y),
+      lng: parseFloat(selectedPlace.x),
+    };
+    if (existing >= 0) visitLog[existing] = entry;
+    else visitLog.unshift(entry);
+    localStorage.setItem('matzip-log', JSON.stringify(visitLog));
+    showToast('✅ 방문 기록 완료!');
+    document.getElementById('modal-overlay').classList.remove('open');
+    renderCards(currentPlaces);
+  }
+
+  function renderLog() {
+    const c = document.getElementById('log-container');
+    if (!visitLog.length) {
+      c.innerHTML = '<div class="log-empty"><div class="emoji">🍽️</div><p>아직 방문 기록이 없어요<br>탐색 탭에서 맛집을 찾아보세요!</p></div>';
+      return;
+    }
+    c.innerHTML = '<div style="font-size:13px;color:var(--sub);margin-bottom:16px;">총 ' + visitLog.length + '곳 방문</div><div class="log-list">' +
+      visitLog.map((v, i) =>
+        '<div class="log-card">' +
+        '<div class="log-card-top"><div class="log-name">' + v.name + '</div><div class="log-date">' + v.date + '</div></div>' +
+        '<div class="log-category">' + v.category + '</div>' +
+        (v.memo ? '<div class="log-memo">"' + v.memo + '"</div>' : '') +
+        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+        '<span style="font-size:12px;color:var(--sub);">📍 ' + v.address + '</span>' +
+        '<span class="log-delete" onclick="deleteLog(' + i + ')">삭제</span></div></div>'
+      ).join('') + '</div>';
+  }
+
+  function deleteLog(i) {
+    visitLog.splice(i, 1);
+    localStorage.setItem('matzip-log', JSON.stringify(visitLog));
+    renderLog();
+  }
+
+  function initMap() {
+    if (!kakaoReady) {
+      document.getElementById('map').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--sub);font-size:14px;flex-direction:column;gap:12px;padding:40px;text-align:center;"><div style="font-size:48px;">🗺️</div><div>Kakao Maps API 키를 설정하면<br>방문한 맛집들이 지도에 표시됩니다</div></div>';
+      return;
+    }
+    if (!map) {
+      const container = document.getElementById('map');
+      map = new kakao.maps.Map(container, {
+        center: new kakao.maps.LatLng(userLat || 37.5665, userLng || 126.9780),
+        level: 4,
+      });
+    }
+    markers.forEach(m => m.setMap(null));
+    markers = [];
+    visitLog.forEach(v => {
+      if (!v.lat || !v.lng) return;
+      const marker = new kakao.maps.Marker({ map, position: new kakao.maps.LatLng(v.lat, v.lng), title: v.name });
+      const info = new kakao.maps.InfoWindow({ content: '<div style="padding:6px 10px;font-size:13px;font-weight:600;">' + v.name + '</div>' });
+      kakao.maps.event.addListener(marker, 'click', () => info.open(map, marker));
+      markers.push(marker);
+    });
+    if (userLat) map.setCenter(new kakao.maps.LatLng(userLat, userLng));
+  }
+
+  document.getElementById('search-input').addEventListener('keydown', e => { if (e.key === 'Enter') searchPlaces(); });
+
+  // Kakao SDK 로드
+  if (KAKAO_KEY) {
+    const s = document.createElement('script');
+    s.src = '//dapi.kakao.com/v2/maps/sdk.js?appkey=' + KAKAO_KEY + '&libraries=services&autoload=false';
+    s.onload = () => kakao.maps.load(() => { kakaoReady = true; });
+    document.head.appendChild(s);
+  } else {
+    showDemoPlaces();
+  }
+</script>
+</body>
+</html>
